@@ -21,8 +21,14 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
 
-	r.Run(":8080")
+	r.Run(":8088")
 }
