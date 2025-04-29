@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 type EmbeddingRequest struct {
@@ -18,16 +19,21 @@ type EmbeddingResponse struct {
 }
 
 func GetEmbedding(text string) ([]float32, error) {
+
+	fmt.Println("---- GetEmbedding ----")
 	reqBody := EmbeddingRequest{
 		Model:  "nomic-embed-text",
 		Prompt: text,
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 
-	resp, err := http.Post("http://localhost:11434/api/embeddings", "application/json", bytes.NewBuffer(bodyBytes))
+	ollamaURL := os.Getenv("OLLAMA_HOST")
+	resp, err := http.Post(ollamaURL+"/api/embeddings", "application/json", bytes.NewBuffer(bodyBytes))
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to call embedding API: %v", err)
 	}
+
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)

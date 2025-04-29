@@ -32,7 +32,7 @@ func UploadHandler(c *gin.Context) {
 	w.Close()
 
 	// Call Python extractor
-	resp, err := http.Post("http://localhost:5001/extract-text", w.FormDataContentType(), &b)
+	resp, err := http.Post("http://localhost:5002/extract-text", w.FormDataContentType(), &b)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to call extractor service"})
 		return
