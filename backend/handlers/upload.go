@@ -73,7 +73,7 @@ func UploadHandler(c *gin.Context) {
 	for _, ch := range chunks {
 		embedding, err := ollama.GetEmbedding(ch)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create embedding"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create embedding", "message": err.Error()})
 			return
 		}
 		chunkObjs = append(chunkObjs, storage.Chunk{
@@ -89,7 +89,6 @@ func UploadHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "File processed successfully",
 		"chunks":  len(chunkObjs),
-		"preview": chunks[0], // ส่งตัวอย่าง chunk อันแรกกลับไปดูเล่น
 	})
 }
 

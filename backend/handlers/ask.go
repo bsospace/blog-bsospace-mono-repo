@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"os"
 	"rag-searchbot-backend/internal/ollama"
 	"rag-searchbot-backend/internal/storage"
 	"rag-searchbot-backend/utils"
@@ -66,7 +67,7 @@ func AskHandler(c *gin.Context) {
 	// 3. Call LLM with fullContext
 	answer, err := callOllamaChat(fullContext, req.Question)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call LLM"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call LLM", "message": err.Error()})
 		return
 	}
 
@@ -105,7 +106,8 @@ Answer:
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 
-	resp, err := http.Post("http://localhost:11434/api/generate", "application/json", bytes.NewBuffer(bodyBytes))
+	ollamaURL := os.Getenv("OLLAMA_HOST")
+	resp, err := http.Post(ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return "", err
 	}
