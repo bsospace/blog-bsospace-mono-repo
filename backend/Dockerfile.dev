@@ -7,10 +7,10 @@ RUN go mod download
 
 COPY . .
 
-RUN go install github.com/cespare/reflex@latest
+RUN go install github.com/air-verse/air@latest
 
 EXPOSE 8088
 
 WORKDIR /app/cmd/server
 
-CMD ["reflex", "-r", "\\.go$", "--", "go", "run", "."]
+CMD ["air"]
