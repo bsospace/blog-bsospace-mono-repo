@@ -1,4 +1,4 @@
-name: Go Build & Test
+name: Go Build
 
 on:
   push:
@@ -30,6 +30,9 @@ jobs:
 
     - name: Install dependencies
       run: go mod download
+      working-directory: ./backend
 
     - name: Build
-      run: go build -v ./backend/cmd/server
+      run: go build -v ./cmd/server
+      working-directory: ./backend
+
