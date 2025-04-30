@@ -32,4 +32,4 @@ jobs:
       run: go mod download
 
     - name: Build
-      run: go build -v ./cmd/server
+      run: go build -v ./backend/cmd/server
