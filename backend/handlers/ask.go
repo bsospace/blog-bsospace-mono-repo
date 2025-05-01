@@ -8,7 +8,7 @@ import (
 	"os"
 	"rag-searchbot-backend/internal/ollama"
 	"rag-searchbot-backend/internal/storage"
-	"rag-searchbot-backend/utils"
+	"rag-searchbot-backend/pkg/utils"
 	"sort"
 	"strings"
 
