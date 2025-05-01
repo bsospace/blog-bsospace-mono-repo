@@ -1,7 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/handlers"
+	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/pkg/logger"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -9,6 +14,40 @@ import (
 )
 
 func main() {
+
+	cfg := config.LoadConfig()
+
+	logger.InitLogger(cfg.AppEnv)
+	defer logger.Log.Sync()
+
+	logger.Log.Info("Application started")
+
+	// กำหนด Mode การทำงาน
+	if cfg.AppEnv == "production" {
+		gin.SetMode(gin.ReleaseMode)
+		log.Println("Running in Production Mode")
+	} else {
+		gin.SetMode(gin.DebugMode)
+		log.Println("Running in Development Mode")
+	}
+
+	// เชื่อมต่อฐานข้อมูล
+	db := config.ConnectDatabase()
+
+	if db == nil {
+		log.Fatal("Failed to connect to database")
+	}
+
+	redisClient := config.ConnectRedis()
+
+	if redisClient == nil {
+		log.Fatal("Failed to connect to Redis")
+	}
+
+	// TTL 15 minutes
+	cacheService := cache.NewService(redisClient, 15*time.Minute)
+	fmt.Println("=== Cache service initialized ===", cacheService)
+
 	r := gin.Default()
 
 	// CORS settings
