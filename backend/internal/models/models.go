@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -39,20 +40,20 @@ type User struct {
 }
 
 type Post struct {
-	ID          uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Slug        string     `gorm:"uniqueIndex;not null" json:"slug"`
-	Title       string     `gorm:"not null" json:"title"`
-	Description string     `json:"description,omitempty"`
-	Thumbnail   string     `json:"thumbnail,omitempty"`
-	Example     string     `json:"example,omitempty"`
-	Content     string     `gorm:"type:text;not null" json:"content"`
-	Published   bool       `gorm:"default:false" json:"published"`
-	PublishedAt *time.Time `json:"published_at,omitempty"`
-	Keywords    []string   `gorm:"type:text[]" json:"keywords,omitempty"`
-	Key         string     `json:"key,omitempty"`
-	Likes       int        `gorm:"default:0" json:"likes"`
-	Views       int        `gorm:"default:0" json:"views"`
-	ReadTime    float64    `gorm:"default:0" json:"read_time"`
+	ID          uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Slug        string         `gorm:"uniqueIndex;not null" json:"slug"`
+	Title       string         `gorm:"not null" json:"title"`
+	Description string         `json:"description,omitempty"`
+	Thumbnail   string         `json:"thumbnail,omitempty"`
+	Example     string         `json:"example,omitempty"`
+	Content     string         `gorm:"type:text;not null" json:"content"`
+	Published   bool           `gorm:"default:false" json:"published"`
+	PublishedAt *time.Time     `json:"published_at,omitempty"`
+	Keywords    pq.StringArray `gorm:"type:text[]" json:"keywords,omitempty"`
+	Key         string         `json:"key,omitempty"`
+	Likes       int            `gorm:"default:0" json:"likes"`
+	Views       int            `gorm:"default:0" json:"views"`
+	ReadTime    float64        `gorm:"default:0" json:"read_time"`
 	BaseModel
 
 	AuthorID   uuid.UUID   `gorm:"not null" json:"author_id"`
@@ -91,10 +92,10 @@ type Category struct {
 }
 
 type Embedding struct {
-	ID      uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	PostID  uuid.UUID `gorm:"not null;index" json:"post_id"`
-	Content string    `gorm:"type:text;not null" json:"content"`
-	Vector  []float32 `gorm:"type:float4[]" json:"vector"`
+	ID      uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	PostID  uuid.UUID       `gorm:"not null;index" json:"post_id"`
+	Content string          `gorm:"type:text;not null" json:"content"`
+	Vector  pq.Float64Array `gorm:"type:real[]" json:"vector"`
 	BaseModel
 
 	Post Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
