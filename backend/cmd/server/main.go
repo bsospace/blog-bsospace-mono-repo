@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"rag-searchbot-backend/api/v1/auth"
+	"rag-searchbot-backend/api/v1/post"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/handlers"
 	"rag-searchbot-backend/internal/cache"
@@ -53,7 +54,7 @@ func main() {
 
 	// CORS settings
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://192.168.1.105:5173"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://192.168.1.105:5173", "http://bobby.posyayee.com:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -70,6 +71,7 @@ func main() {
 
 	apiGroup := r.Group("/api/v1")
 	auth.RegisterRoutes(apiGroup, db, cacheService)
+	post.RegisterRoutes(apiGroup, db, cacheService)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
