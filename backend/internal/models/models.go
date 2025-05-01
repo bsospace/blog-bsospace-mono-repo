@@ -92,3 +92,18 @@ type Embedding struct {
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
+
+type Notification struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement"`
+	Title     string    `gorm:"not null"`
+	Content   string    `gorm:"type:text;not null"`
+	Link      string    `gorm:"not null"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
+	DeletedAt *time.Time
+
+	UserID string    `gorm:"index;not null"`
+	User   User      `gorm:"foreignKey:UserID"`
+	Seen   bool      `gorm:"default:false"`
+	SeenAt time.Time `gorm:"autoUpdateTime"`
+}
