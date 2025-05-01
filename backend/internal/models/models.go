@@ -2,6 +2,9 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserRole string
@@ -12,98 +15,131 @@ const (
 	AdminUser  UserRole = "ADMIN_USER"
 )
 
+type BaseModel struct {
+	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
 type User struct {
-	ID        string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Email     string `gorm:"uniqueIndex;not null"`
-	Password  *string
-	Image     *string
-	Name      *string
-	Bio       *string
-	Role      UserRole  `gorm:"type:varchar(20);default:NORMAL_USER"`
-	Posts     []Post    `gorm:"foreignKey:AuthorID"`
-	Comments  []Comment `gorm:"foreignKey:AuthorID"`
-	CreatedAt time.Time `gorm:"autoCreateTime"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime"`
-	DeletedAt *time.Time
+	ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Email    string    `gorm:"uniqueIndex;not null" json:"email"`
+	Avatar   string    `json:"avatar,omitempty"`
+	Password string    `gorm:"not null" json:"-"`
+	UserName string    `json:"username,omitempty"`
+	Image    string    `json:"image,omitempty"`
+	Bio      string    `json:"bio,omitempty"`
+	Role     UserRole  `gorm:"type:varchar(20);default:NORMAL_USER" json:"role"`
+	BaseModel
+
+	Posts         []Post         `gorm:"foreignKey:AuthorID;references:ID" json:"posts,omitempty"`
+	Comments      []Comment      `gorm:"foreignKey:AuthorID;references:ID" json:"comments,omitempty"`
+	AIUsageLogs   []AIUsageLog   `gorm:"foreignKey:UserID;references:ID" json:"ai_usage_logs,omitempty"`
+	Notifications []Notification `gorm:"foreignKey:UserID;references:ID" json:"notifications,omitempty"`
 }
 
 type Post struct {
-	ID          string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Slug        string `gorm:"uniqueIndex;not null"`
-	Title       string `gorm:"not null"`
-	Description string
-	Thumbnail   *string
-	Example     *string
-	Content     string `gorm:"type:text;not null"`
-	Published   bool   `gorm:"default:false"`
-	PublishedAt *time.Time
-	Keywords    []string `gorm:"type:text[]"`
-	Key         *string  // สำหรับ Embedding RAG
-	AuthorID    string
-	Author      User        `gorm:"foreignKey:AuthorID"`
-	Likes       int         `gorm:"default:0"`
-	Views       int         `gorm:"default:0"`
-	ReadTime    float64     `gorm:"default:0"`
-	Tags        []Tag       `gorm:"many2many:post_tags"`
-	Categories  []Category  `gorm:"many2many:post_categories"`
-	Comments    []Comment   `gorm:"foreignKey:PostID"`
-	Embeddings  []Embedding `gorm:"foreignKey:PostID"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   *time.Time
+	ID          uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Slug        string     `gorm:"uniqueIndex;not null" json:"slug"`
+	Title       string     `gorm:"not null" json:"title"`
+	Description string     `json:"description,omitempty"`
+	Thumbnail   string     `json:"thumbnail,omitempty"`
+	Example     string     `json:"example,omitempty"`
+	Content     string     `gorm:"type:text;not null" json:"content"`
+	Published   bool       `gorm:"default:false" json:"published"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	Keywords    []string   `gorm:"type:text[]" json:"keywords,omitempty"`
+	Key         string     `json:"key,omitempty"`
+	Likes       int        `gorm:"default:0" json:"likes"`
+	Views       int        `gorm:"default:0" json:"views"`
+	ReadTime    float64    `gorm:"default:0" json:"read_time"`
+	BaseModel
+
+	AuthorID   uuid.UUID   `gorm:"not null" json:"author_id"`
+	Author     User        `gorm:"foreignKey:AuthorID;references:ID" json:"author,omitempty"`
+	Tags       []Tag       `gorm:"many2many:post_tags" json:"tags,omitempty"`
+	Categories []Category  `gorm:"many2many:post_categories" json:"categories,omitempty"`
+	Comments   []Comment   `gorm:"foreignKey:PostID;references:ID" json:"comments,omitempty"`
+	Embeddings []Embedding `gorm:"foreignKey:PostID;references:ID" json:"embeddings,omitempty"`
 }
 
 type Comment struct {
-	ID        uint   `gorm:"primaryKey;autoIncrement"`
-	Content   string `gorm:"type:text;not null"`
-	PostID    string
-	Post      Post `gorm:"foreignKey:PostID"`
-	AuthorID  string
-	Author    User `gorm:"foreignKey:AuthorID"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID      uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	Content string `gorm:"type:text;not null" json:"content"`
+	BaseModel
+
+	PostID   uuid.UUID `gorm:"not null" json:"post_id"`
+	AuthorID uuid.UUID `gorm:"not null" json:"author_id"`
+	Post     Post      `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
+	Author   User      `gorm:"foreignKey:AuthorID;references:ID" json:"author,omitempty"`
 }
 
 type Tag struct {
-	ID        uint   `gorm:"primaryKey;autoIncrement"`
-	Name      string `gorm:"uniqueIndex;not null"`
-	Posts     []Post `gorm:"many2many:post_tags"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID   uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name string `gorm:"uniqueIndex;not null" json:"name"`
+	BaseModel
+
+	Posts []Post `gorm:"many2many:post_tags" json:"posts,omitempty"`
 }
 
 type Category struct {
-	ID        uint   `gorm:"primaryKey;autoIncrement"`
-	Name      string `gorm:"uniqueIndex;not null"`
-	Posts     []Post `gorm:"many2many:post_categories"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID   uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name string `gorm:"uniqueIndex;not null" json:"name"`
+	BaseModel
+
+	Posts []Post `gorm:"many2many:post_categories" json:"posts,omitempty"`
 }
 
 type Embedding struct {
-	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	PostID    string    `gorm:"index;not null"`
-	Post      Post      `gorm:"foreignKey:PostID"`
-	Content   string    `gorm:"type:text;not null"` // raw text ชิ้นนี้ (chunk)
-	Vector    []float32 `gorm:"type:float4[]"`      // embedding vector จาก LLM
-	CreatedAt time.Time `gorm:"autoCreateTime"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime"`
+	ID      uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	PostID  uuid.UUID `gorm:"not null;index" json:"post_id"`
+	Content string    `gorm:"type:text;not null" json:"content"`
+	Vector  []float32 `gorm:"type:float4[]" json:"vector"`
+	BaseModel
+
+	Post Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
 }
 
 type Notification struct {
-	ID        uint      `gorm:"primaryKey;autoIncrement"`
-	Title     string    `gorm:"not null"`
-	Content   string    `gorm:"type:text;not null"`
-	Link      string    `gorm:"not null"`
-	CreatedAt time.Time `gorm:"autoCreateTime"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime"`
-	DeletedAt *time.Time
+	ID      uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Title   string    `gorm:"not null" json:"title"`
+	Content string    `gorm:"type:text;not null" json:"content"`
+	Link    string    `gorm:"not null" json:"link"`
+	Seen    bool      `gorm:"default:false" json:"seen"`
+	SeenAt  time.Time `gorm:"autoUpdateTime" json:"seen_at,omitempty"`
+	BaseModel
 
-	UserID string    `gorm:"index;not null"`
-	User   User      `gorm:"foreignKey:UserID"`
-	Seen   bool      `gorm:"default:false"`
-	SeenAt time.Time `gorm:"autoUpdateTime"`
+	UserID uuid.UUID `gorm:"not null" json:"user_id"`
+	User   User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+}
+
+type AIUsageLog struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uuid.UUID `gorm:"index;not null" json:"user_id"`
+	UsedAt    time.Time `gorm:"autoCreateTime" json:"used_at"`
+	Action    string    `gorm:"type:varchar(50)" json:"action"`
+	TokenUsed int       `json:"token_used"`
+	Success   bool      `json:"success"`
+	Message   string    `json:"message,omitempty"`
+	BaseModel
+
+	User User `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+}
+
+type AIResponse struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	UserID      uuid.UUID `gorm:"not null" json:"user_id"`
+	PostID      uuid.UUID `gorm:"not null" json:"post_id"`
+	EmbeddingID uuid.UUID `gorm:"not null" json:"embedding_id"`
+	UsedAt      time.Time `gorm:"autoCreateTime" json:"used_at"`
+	Prompt      string    `gorm:"type:text" json:"prompt"`
+	Response    string    `gorm:"type:text" json:"response"`
+	TokenUsed   int       `json:"token_used"`
+	Success     bool      `json:"success"`
+	Message     string    `json:"message,omitempty"`
+	BaseModel
+
+	User      User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+	Post      Post      `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
+	Embedding Embedding `gorm:"foreignKey:EmbeddingID;references:ID" json:"embedding,omitempty"`
 }
