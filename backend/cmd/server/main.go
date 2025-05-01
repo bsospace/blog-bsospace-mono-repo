@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"rag-searchbot-backend/api/v1/auth"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/handlers"
 	"rag-searchbot-backend/internal/cache"
@@ -60,11 +61,15 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	r.GET("/health", func(c *gin.Context) {
+	r.GET("/api/v1", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status": "ok",
+			"message": "Welcome to Rag Search Bot API",
+			"status":  "ok",
 		})
 	})
+
+	apiGroup := r.Group("/api/v1")
+	auth.RegisterRoutes(apiGroup, db, cacheService)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
