@@ -37,6 +37,9 @@ func ConnectDatabase() *gorm.DB {
 		&models.Tag{},
 		&models.Category{},
 		&models.Embedding{},
+		&models.Notification{},
+		&models.AIUsageLog{},
+		&models.AIResponse{},
 	)
 
 	if err != nil {
