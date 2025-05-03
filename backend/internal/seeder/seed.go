@@ -19,7 +19,7 @@ func SeedDatabase(db *gorm.DB) {
 			ID:       uuid.New(),
 			Email:    "admin@blog.com",
 			UserName: "admin",
-			Avatar:   "/images/admin.png",
+			Avatar:   "https://png.pngtree.com/png-vector/20220817/ourmid/pngtree-women-cartoon-avatar-in-flat-style-png-image_6110776.png",
 			Bio:      "I write about tech and life.",
 			Role:     models.AdminUser,
 		}
@@ -53,6 +53,7 @@ func SeedDatabase(db *gorm.DB) {
 			Title:       "Welcome to My Blog",
 			Description: "This is the first blog post about starting a blog.",
 			Content:     "Lorem ipsum dolor sit amet...",
+			Thumbnail:   "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png",
 			Published:   true,
 			PublishedAt: ptrTime(time.Now()),
 			Keywords:    []string{"blog", "start", "intro"},
