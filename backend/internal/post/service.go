@@ -1,6 +1,7 @@
 package post
 
 import (
+	"math"
 	"rag-searchbot-backend/internal/models"
 	"strconv"
 
@@ -63,17 +64,22 @@ func (s *PostService) GetPosts(c *gin.Context) (*PostListResponse, error) {
 		return nil, err
 	}
 
+	var meta Meta
+
+	meta.Total = result.Total
+	meta.HasNextPage = result.HasNext
+	meta.Page = result.Page
+	meta.Limit = result.Limit
+	meta.TotalPage = int(math.Ceil(float64(result.Total) / float64(limit)))
+
 	var postDTOs []PostSummaryDTO
 	for _, post := range result.Posts {
 		postDTOs = append(postDTOs, MapPostToSummaryDTO(post))
 	}
 
 	return &PostListResponse{
-		Posts:       postDTOs,
-		Total:       result.Total,
-		HasNextPage: result.HasNext,
-		Page:        result.Page,
-		Limit:       result.Limit,
+		Posts: postDTOs,
+		Meta:  meta,
 	}, nil
 }
 
