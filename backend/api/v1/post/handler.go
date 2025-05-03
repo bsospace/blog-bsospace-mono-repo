@@ -35,7 +35,11 @@ func (h *PostHandler) GetAll(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, posts)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    posts,
+		"message": "Get all posts successfully.",
+	})
 }
 
 func (h *PostHandler) GetByID(c *gin.Context) {
