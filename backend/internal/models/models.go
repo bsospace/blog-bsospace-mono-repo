@@ -23,14 +23,14 @@ type BaseModel struct {
 }
 
 type User struct {
-	ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Email    string    `gorm:"uniqueIndex;not null" json:"email"`
-	Avatar   string    `json:"avatar,omitempty"`
-	Password string    `gorm:"not null" json:"-"`
-	UserName string    `json:"username,omitempty"`
-	Image    string    `json:"image,omitempty"`
-	Bio      string    `json:"bio,omitempty"`
-	Role     UserRole  `gorm:"type:varchar(20);default:NORMAL_USER" json:"role"`
+	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Email     string    `gorm:"uniqueIndex;not null" json:"email"`
+	FirstName string    `json:"first_name,omitempty"`
+	LastName  string    `json:"last_name,omitempty"`
+	Avatar    string    `json:"avatar,omitempty"`
+	UserName  string    `json:"username,omitempty"`
+	Bio       string    `json:"bio,omitempty"`
+	Role      UserRole  `gorm:"type:varchar(20);default:NORMAL_USER" json:"role"`
 	BaseModel
 
 	Posts         []Post         `gorm:"foreignKey:AuthorID;references:ID" json:"posts,omitempty"`
