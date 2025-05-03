@@ -51,7 +51,7 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 		return nil, err
 	}
 
-	total, err := r.getCount()
+	total, err := r.getCount(search)
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +70,14 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 	return result, nil
 }
 
-func (r *PostRepository) getCount() (int64, error) {
+func (r *PostRepository) getCount(search string) (int64, error) {
 	var count int64
-	err := r.DB.Model(&models.Post{}).Where("deleted_at IS NULL").Count(&count).Error
+	err := r.DB.Model(&models.Post{}).
+		Where("title LIKE ? OR description LIKE ?", "%"+search+"%", "%"+search+"%").
+		Where("published = ?", true).
+		Where("deleted_at IS NULL").
+		Where("published_at IS NOT NULL").
+		Count(&count).Error
 	return count, err
 }
 
