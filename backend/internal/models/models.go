@@ -41,7 +41,7 @@ type User struct {
 
 type Post struct {
 	ID          uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Slug        string         `gorm:"uniqueIndex;not null" json:"slug"`
+	Slug        string         `gorm:"uniqueIndex;not null;index" json:"slug"`
 	Title       string         `gorm:"not null" json:"title"`
 	Description string         `json:"description,omitempty"`
 	Thumbnail   string         `json:"thumbnail,omitempty"`
