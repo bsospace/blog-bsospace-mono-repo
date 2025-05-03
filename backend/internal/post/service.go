@@ -3,10 +3,8 @@ package post
 import (
 	"rag-searchbot-backend/internal/models"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type PostService struct {
@@ -15,25 +13,6 @@ type PostService struct {
 
 func NewPostService(repo *PostRepository) *PostService {
 	return &PostService{Repo: repo}
-}
-
-type PostSummaryDTO struct {
-	ID          uuid.UUID  `json:"id"`
-	Slug        string     `json:"slug"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Thumbnail   string     `json:"thumbnail,omitempty"`
-	PublishedAt *time.Time `json:"published_at,omitempty"`
-	Views       int        `json:"views"`
-	Likes       int        `json:"likes"`
-	ReadTime    float64    `json:"read_time"`
-	Author      struct {
-		ID       uuid.UUID `json:"id"`
-		UserName string    `json:"username"`
-		Avatar   string    `json:"avatar"`
-	} `json:"author"`
-	Tags       []TagDTO      `json:"tags,omitempty"`
-	Categories []CategoryDTO `json:"categories,omitempty"`
 }
 
 type TagDTO struct {
@@ -46,53 +25,26 @@ type CategoryDTO struct {
 	Name string `json:"name"`
 }
 
-type PostListResponse struct {
-	Posts       []PostSummaryDTO `json:"posts"`
-	Total       int64            `json:"total"`
-	HasNextPage bool             `json:"hasNextPage"`
-	Page        int              `json:"page"`
-	Limit       int              `json:"limit"`
-}
-
-func MapPostToSummaryDTO(post models.Post) PostSummaryDTO {
-	dto := PostSummaryDTO{
-		ID:          post.ID,
-		Slug:        post.Slug,
-		Title:       post.Title,
-		Description: post.Description,
-		Thumbnail:   post.Thumbnail,
-		PublishedAt: post.PublishedAt,
-		Views:       post.Views,
-		Likes:       post.Likes,
-		ReadTime:    post.ReadTime,
-		Author: struct {
-			ID       uuid.UUID `json:"id"`
-			UserName string    `json:"username"`
-			Avatar   string    `json:"avatar"`
-		}{
-			ID:       post.Author.ID,
-			UserName: post.Author.UserName,
-			Avatar:   post.Author.Avatar,
-		},
-	}
-
-	for _, t := range post.Tags {
-		dto.Tags = append(dto.Tags, TagDTO{ID: t.ID, Name: t.Name})
-	}
-	for _, c := range post.Categories {
-		dto.Categories = append(dto.Categories, CategoryDTO{ID: c.ID, Name: c.Name})
-	}
-
-	return dto
-}
-
 func (s *PostService) CreatePost(post *models.Post) error {
 	return s.Repo.Create(post)
 }
 
+/*
+*
+  - GetPosts retrieves a paginated list of posts.
+  - @param c *gin.Context - The Gin context
+  - @return *PostListResponse - The response containing the list of posts
+  - @return error - An error if occurred
+*/
+
 func (s *PostService) GetPosts(c *gin.Context) (*PostListResponse, error) {
 	limitStr := c.DefaultQuery("limit", "10")
 	pageStr := c.DefaultQuery("page", "1")
+	search := c.Query("search")
+
+	if search == "" {
+		search = " "
+	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
@@ -106,7 +58,7 @@ func (s *PostService) GetPosts(c *gin.Context) (*PostListResponse, error) {
 
 	offset := (page - 1) * limit
 
-	result, err := s.Repo.GetAll(limit, offset)
+	result, err := s.Repo.GetAll(limit, offset, search)
 	if err != nil {
 		return nil, err
 	}
