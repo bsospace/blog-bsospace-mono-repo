@@ -61,9 +61,10 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 
 			// ถ้าไม่พบ User ใน Database ให้สร้าง User ใหม่
 			newUser := &models.User{
-				Email:  claims.Email,
-				Avatar: userOpenID.Image,
-				Role:   models.UserRole("NORMAL_USER"),
+				Email:    claims.Email,
+				Avatar:   userOpenID.Image,
+				UserName: strings.Split(claims.Email, "@")[0],
+				Role:     models.UserRole("NORMAL_USER"),
 			}
 
 			if _, err = userService.RegisterUser(newUser); err != nil {
