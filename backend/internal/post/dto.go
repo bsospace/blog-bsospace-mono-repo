@@ -36,11 +36,16 @@ type PostSummaryDTO struct {
  * It contains a slice of PostSummaryDTO, total number of posts, pagination info.
 **/
 type PostListResponse struct {
-	Posts       []PostSummaryDTO `json:"posts"`
-	Total       int64            `json:"total"`
-	HasNextPage bool             `json:"hasNextPage"`
-	Page        int              `json:"page"`
-	Limit       int              `json:"limit"`
+	Posts []PostSummaryDTO `json:"posts"`
+	Meta  Meta             `json:"meta"`
+}
+
+type Meta struct {
+	Total       int64 `json:"total"`
+	HasNextPage bool  `json:"hasNextPage"`
+	Page        int   `json:"page"`
+	Limit       int   `json:"limit"`
+	TotalPage   int   `json:"totalPage"`
 }
 
 /**
