@@ -18,10 +18,8 @@ func SeedDatabase(db *gorm.DB) {
 		user := models.User{
 			ID:       uuid.New(),
 			Email:    "admin@blog.com",
-			Password: "hashed_password",
 			UserName: "admin",
 			Avatar:   "/images/admin.png",
-			Image:    "/images/admin.png",
 			Bio:      "I write about tech and life.",
 			Role:     models.AdminUser,
 		}
