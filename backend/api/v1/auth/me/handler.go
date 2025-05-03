@@ -27,22 +27,7 @@ func Me(c *gin.Context) {
 		return
 	}
 
-	// map data to response
-	resp := struct {
-		ID        string `json:"id"`
-		Email     string `json:"email"`
-		Avatar    string `json:"avatar"`
-		Role      string `json:"role"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-	}{
-		ID:        userData.ID.String(),
-		Email:     userData.Email,
-		Avatar:    userData.Avatar,
-		Role:      string(userData.Role),
-		CreatedAt: userData.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt: userData.UpdatedAt.Format("2006-01-02 15:04:05"),
-	}
+	resp := MapResponse(userData)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
