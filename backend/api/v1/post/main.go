@@ -15,8 +15,9 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 	handler := NewPostHandler(service)
 
 	// Protected Category Routes
-	categoryRoutes := router.Group("/posts")
+	postsRoutes := router.Group("/posts")
 	{
-		categoryRoutes.GET("", handler.GetAll)
+		postsRoutes.GET("", handler.GetAll)
+		postsRoutes.GET("/:slug", handler.GetBySlug)
 	}
 }
