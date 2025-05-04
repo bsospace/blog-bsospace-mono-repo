@@ -52,6 +52,24 @@ func (h *PostHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
+func (h *PostHandler) GetBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	post, err := h.service.GetPostBySlug(slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "post not found",
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    post,
+		"message": "Get post by slug successfully.",
+	})
+}
+
 // func (h *PostHandler) Update(c *gin.Context) {
 // 	id := c.Param("id")
 // 	var post models.Post
