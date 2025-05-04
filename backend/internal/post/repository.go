@@ -83,7 +83,41 @@ func (r *PostRepository) getCount(search string) (int64, error) {
 
 func (r *PostRepository) GetByID(id string) (*models.Post, error) {
 	var post models.Post
-	err := r.DB.Preload("Author").Preload("Tags").Preload("Categories").First(&post, "id = ?", id).Error
+
+	err := r.DB.
+		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
+		Where("deleted_at IS NULL").
+		Preload("Author", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "user_name", "avatar")
+		}).
+		Preload("Tags").
+		Preload("Categories").
+		Where("id = ?", id).
+		First(&post).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &post, err
+}
+
+func (r *PostRepository) GetBySlug(slug string) (*models.Post, error) {
+	var post models.Post
+
+	err := r.DB.
+		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
+		Where("deleted_at IS NULL").
+		Preload("Author", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "user_name", "avatar")
+		}).
+		Preload("Tags").
+		Preload("Categories").
+		Where("slug = ?", slug).
+		First(&post).Error
+	if err != nil {
+		return nil, err
+	}
+
 	return &post, err
 }
 
