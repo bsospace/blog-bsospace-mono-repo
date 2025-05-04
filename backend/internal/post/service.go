@@ -84,7 +84,43 @@ func (s *PostService) GetPosts(c *gin.Context) (*PostListResponse, error) {
 }
 
 func (s *PostService) GetPostByID(id string) (*models.Post, error) {
-	return s.Repo.GetByID(id)
+	post, err := s.Repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if post == nil {
+		return nil, nil
+	}
+
+	if post.Key != "" {
+		return nil, nil
+	}
+	return post, nil
+}
+
+/*
+* GetPostBySlug retrieves a post by its slug.
+* @param slug string - The slug of the post
+* @return *PostByIdResponse - The response containing the post
+ */
+
+func (s *PostService) GetPostBySlug(slug string) (*PostByIdResponse, error) {
+	post, err := s.Repo.GetBySlug(slug)
+	if err != nil {
+		return nil, err
+	}
+	if post == nil {
+		return nil, nil
+	}
+
+	if post.Key != "" {
+		return nil, nil
+	}
+	postDTO := MapPostToSummaryDTOWithContent(*post)
+
+	return &PostByIdResponse{
+		Post: postDTO,
+	}, nil
 }
 
 func (s *PostService) UpdatePost(post *models.Post) error {
