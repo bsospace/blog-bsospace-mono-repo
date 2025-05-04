@@ -84,3 +84,60 @@ func MapPostToSummaryDTO(post models.Post) PostSummaryDTO {
 
 	return dto
 }
+
+type PostByIdResponse struct {
+	Post PostByIdDTO `json:"post"`
+}
+
+type PostByIdDTO struct {
+	ID          uuid.UUID  `json:"id"`
+	Slug        string     `json:"slug"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Thumbnail   string     `json:"thumbnail,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	Content     string     `json:"content"`
+	Views       int        `json:"views"`
+	Likes       int        `json:"likes"`
+	ReadTime    float64    `json:"read_time"`
+	Author      struct {
+		ID       uuid.UUID `json:"id"`
+		UserName string    `json:"username"`
+		Avatar   string    `json:"avatar"`
+	} `json:"author"`
+	Tags       []TagDTO      `json:"tags,omitempty"`
+	Categories []CategoryDTO `json:"categories,omitempty"`
+}
+
+func MapPostToSummaryDTOWithContent(post models.Post) PostByIdDTO {
+	dto := PostByIdDTO{
+		ID:          post.ID,
+		Slug:        post.Slug,
+		Title:       post.Title,
+		Description: post.Description,
+		Thumbnail:   post.Thumbnail,
+		PublishedAt: post.PublishedAt,
+		Content:     post.Content,
+		Views:       post.Views,
+		Likes:       post.Likes,
+		ReadTime:    post.ReadTime,
+		Author: struct {
+			ID       uuid.UUID `json:"id"`
+			UserName string    `json:"username"`
+			Avatar   string    `json:"avatar"`
+		}{
+			ID:       post.Author.ID,
+			UserName: post.Author.UserName,
+			Avatar:   post.Author.Avatar,
+		},
+	}
+
+	for _, t := range post.Tags {
+		dto.Tags = append(dto.Tags, TagDTO{ID: t.ID, Name: t.Name})
+	}
+	for _, c := range post.Categories {
+		dto.Categories = append(dto.Categories, CategoryDTO{ID: c.ID, Name: c.Name})
+	}
+
+	return dto
+}
