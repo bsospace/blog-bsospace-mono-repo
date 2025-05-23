@@ -128,3 +128,7 @@ func (r *PostRepository) Update(post *models.Post) error {
 func (r *PostRepository) Delete(id string) error {
 	return r.DB.Delete(&models.Post{}, "id = ?", id).Error
 }
+
+func (r *PostRepository) CreatePost() {
+
+}

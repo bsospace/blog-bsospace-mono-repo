@@ -8,15 +8,18 @@ import (
 )
 
 type Config struct {
-	DatabaseURL   string
-	Port          string
-	AppEnv        string
-	AppUrl        string
-	RedisHost     string
-	RedisPort     string
-	RedisPassword string
-	OpenIDURL     string
-	OllamaHost    string
+	DatabaseURL      string
+	Port             string
+	AppEnv           string
+	AppUrl           string
+	RedisHost        string
+	RedisPort        string
+	RedisPassword    string
+	OpenIDURL        string
+	OllamaHost       string
+	ChibisafeURL     string
+	ChibisafeKey     string
+	ChibisafeAlbumId string
 }
 
 func LoadConfig() Config {
@@ -57,14 +60,17 @@ func LoadConfig() Config {
 	log.Println("REDIS_PORT:", redisPort)
 
 	return Config{
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		Port:          os.Getenv("PORT"),
-		AppEnv:        os.Getenv("APP_ENV"),
-		AppUrl:        os.Getenv("APP_URL"),
-		OpenIDURL:     os.Getenv("OPEN_ID_URL"),
-		OllamaHost:    os.Getenv("OLLAMA_HOST"),
-		RedisHost:     redisHost,
-		RedisPort:     redisPort,
-		RedisPassword: redisPassword,
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		Port:             os.Getenv("PORT"),
+		AppEnv:           os.Getenv("APP_ENV"),
+		AppUrl:           os.Getenv("APP_URL"),
+		OpenIDURL:        os.Getenv("OPEN_ID_URL"),
+		OllamaHost:       os.Getenv("OLLAMA_HOST"),
+		ChibisafeURL:     os.Getenv("CHIBISAFE_URL"),
+		ChibisafeKey:     os.Getenv("CHIBISAFE_KEY"),
+		ChibisafeAlbumId: os.Getenv("CHIBISAFE_ALBUM_ID"),
+		RedisHost:        redisHost,
+		RedisPort:        redisPort,
+		RedisPassword:    redisPassword,
 	}
 }

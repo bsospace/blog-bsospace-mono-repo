@@ -141,3 +141,19 @@ func MapPostToSummaryDTOWithContent(post models.Post) PostByIdDTO {
 
 	return dto
 }
+
+type PostContentStructure struct {
+	Type    string                 `json:"type"`
+	Attrs   map[string]string      `json:"attrs,omitempty"`
+	Marks   []map[string]string    `json:"marks,omitempty"`
+	Text    string                 `json:"text,omitempty"`
+	Content []PostContentStructure `json:"content,omitempty"`
+}
+
+func GroupByType(data []PostContentStructure) map[string][]PostContentStructure {
+	grouped := make(map[string][]PostContentStructure)
+	for _, item := range data {
+		grouped[item.Type] = append(grouped[item.Type], item)
+	}
+	return grouped
+}
