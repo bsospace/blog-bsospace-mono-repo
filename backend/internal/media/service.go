@@ -74,11 +74,6 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 		return "", fmt.Errorf("failed to copy file: %w", err)
 	}
 
-	// Add albumId
-	if err := writer.WriteField("albumuuid", albmnId); err != nil {
-		return "", fmt.Errorf("failed to write albumId: %w", err)
-	}
-
 	writer.Close()
 
 	// Create request
@@ -88,6 +83,7 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("x-api-key", chibisafeToken)
+	req.Header.Set("albumuuid", albmnId)
 
 	// Execute request
 	client := &http.Client{}
