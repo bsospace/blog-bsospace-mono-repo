@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"rag-searchbot-backend/api/v1/auth"
+	"rag-searchbot-backend/api/v1/media"
 	"rag-searchbot-backend/api/v1/post"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/handlers"
@@ -72,6 +73,7 @@ func main() {
 	apiGroup := r.Group("/api/v1")
 	auth.RegisterRoutes(apiGroup, db, cacheService)
 	post.RegisterRoutes(apiGroup, db, cacheService)
+	media.RegisterRoutes(apiGroup, db, cacheService)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)

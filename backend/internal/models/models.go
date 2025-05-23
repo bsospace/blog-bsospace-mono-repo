@@ -144,3 +144,19 @@ type AIResponse struct {
 	Post      Post      `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
 	Embedding Embedding `gorm:"foreignKey:EmbeddingID;references:ID" json:"embedding,omitempty"`
 }
+
+// image upload
+
+type ImageUpload struct {
+	ID         uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	UserID     uuid.UUID  `gorm:"index;not null" json:"user_id"`       // ใครอัปโหลด
+	ImageURL   string     `gorm:"not null" json:"image_url"`           // URL ที่เข้าถึงรูป
+	FileName   string     `json:"file_name"`                           // ชื่อไฟล์ต้นฉบับ
+	IsUsed     bool       `gorm:"default:false" json:"is_used"`        // ถูกใช้ในระบบแล้วหรือยัง (insert ลง editor)
+	UsedReason string     `gorm:"type:varchar(50)" json:"used_reason"` // ใช้ทำอะไร (optional: "avatar", "editor", "comment", etc.)
+	UsedAt     *time.Time `json:"used_at,omitempty"`                   // เวลาใช้ล่าสุด
+	UploadedAt time.Time  `gorm:"autoCreateTime" json:"uploaded_at"`   // เวลาอัปโหลด
+	BaseModel
+
+	User User `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+}
