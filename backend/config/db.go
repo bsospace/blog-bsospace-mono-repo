@@ -40,6 +40,7 @@ func ConnectDatabase() *gorm.DB {
 		&models.Notification{},
 		&models.AIUsageLog{},
 		&models.AIResponse{},
+		&models.ImageUpload{},
 	)
 
 	if err != nil {
