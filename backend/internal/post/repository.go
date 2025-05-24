@@ -122,13 +122,34 @@ func (r *PostRepository) GetBySlug(slug string) (*models.Post, error) {
 }
 
 func (r *PostRepository) Update(post *models.Post) error {
-	return r.DB.Save(post).Error
+	existinPost := &models.Post{}
+	err := r.DB.First(existinPost, "id = ?", post.ID).Error
+	if err != nil {
+		return err
+	}
+	return r.DB.Model(existinPost).Updates(post).Error
 }
 
 func (r *PostRepository) Delete(id string) error {
 	return r.DB.Delete(&models.Post{}, "id = ?", id).Error
 }
 
-func (r *PostRepository) CreatePost() {
+func (r *PostRepository) GetByShortSlug(shortSlug string) (*models.Post, error) {
+	var post models.Post
 
+	err := r.DB.
+		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
+		Where("deleted_at IS NULL").
+		Preload("Author", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "user_name", "avatar")
+		}).
+		Preload("Tags").
+		Preload("Categories").
+		Where("short_slug = ?", shortSlug).
+		First(&post).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &post, err
 }
