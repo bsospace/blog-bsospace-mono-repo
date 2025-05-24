@@ -17,16 +17,83 @@ func NewPostHandler(service *post.PostService) *PostHandler {
 }
 
 func (h *PostHandler) Create(c *gin.Context) {
-	var post models.Post
+	var post post.CreatePostRequest
 	if err := c.ShouldBindJSON(&post); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.CreatePost(&post); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "User not found in context",
+		})
 		return
 	}
-	c.JSON(http.StatusCreated, post)
+
+	userData, ok := user.(*models.User)
+	if !ok || userData == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Invalid user data",
+		})
+		return
+	}
+
+	if err := h.service.CreatePost(post, userData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create post",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "Post created successfully",
+		"data":    post,
+	})
+}
+
+func (h *PostHandler) GetByShortSlug(c *gin.Context) {
+
+	shortSlug := c.Param("short_slug")
+
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "User not found in context",
+		})
+		return
+	}
+
+	userData, ok := user.(*models.User)
+	if !ok || userData == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Invalid user data",
+		})
+		return
+	}
+
+	post, err := h.service.GetByShortSlug(shortSlug + "-" + userData.ID.String())
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    post,
+		"message": "Get post by short slug successfully.",
+	})
+}
+
+func (h *PostHandler) Update(c *gin.Context) {
+
 }
 
 func (h *PostHandler) GetAll(c *gin.Context) {
