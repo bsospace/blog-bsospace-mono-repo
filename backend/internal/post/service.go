@@ -1,11 +1,14 @@
 package post
 
 import (
+	"encoding/json"
+	"errors"
 	"math"
 	"rag-searchbot-backend/internal/models"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type PostService struct {
@@ -26,8 +29,42 @@ type CategoryDTO struct {
 	Name string `json:"name"`
 }
 
-func (s *PostService) CreatePost(post *models.Post) error {
-	return s.Repo.Create(post)
+func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) error {
+	slug := post.ShortSlug + "-" + user.ID.String()
+
+	// 1. Marshal content
+	contentJSON, err := json.Marshal(post.Content)
+	if err != nil {
+		return err
+	}
+
+	// 2. check if a post with the same short slug already exists
+	existingPost, err := s.Repo.GetByShortSlug(slug)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	// 3. if a post with the same short slug exists, update it
+	if existingPost != nil {
+		existingPost.Content = string(contentJSON)
+		return s.Repo.Update(existingPost)
+	}
+
+	// 4. if no post with the same short slug exists, create a new one
+	newPost := &models.Post{
+		Slug:        slug,
+		ShortSlug:   slug,
+		Content:     string(contentJSON),
+		AuthorID:    user.ID,
+		Published:   false,
+		PublishedAt: nil,
+	}
+
+	return s.Repo.Create(newPost)
+}
+
+func (s *PostService) GetByShortSlug(shortSlug string) (*models.Post, error) {
+	return s.Repo.GetByShortSlug(shortSlug)
 }
 
 /*
