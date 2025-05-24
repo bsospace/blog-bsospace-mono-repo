@@ -144,10 +144,14 @@ func MapPostToSummaryDTOWithContent(post models.Post) PostByIdDTO {
 
 type PostContentStructure struct {
 	Type    string                 `json:"type"`
-	Attrs   map[string]string      `json:"attrs,omitempty"`
-	Marks   []map[string]string    `json:"marks,omitempty"`
-	Text    string                 `json:"text,omitempty"`
 	Content []PostContentStructure `json:"content,omitempty"`
+	Attrs   map[string]interface{} `json:"attrs,omitempty"`
+	Text    string                 `json:"text,omitempty"`
+	Marks   []Mark                 `json:"marks,omitempty"`
+}
+
+type Mark struct {
+	Type string `json:"type"`
 }
 
 func GroupByType(data []PostContentStructure) map[string][]PostContentStructure {
@@ -156,4 +160,9 @@ func GroupByType(data []PostContentStructure) map[string][]PostContentStructure 
 		grouped[item.Type] = append(grouped[item.Type], item)
 	}
 	return grouped
+}
+
+type CreatePostRequest struct {
+	ShortSlug string               `json:"short_slug" binding:"required"`
+	Content   PostContentStructure `json:"content" binding:"required"`
 }
