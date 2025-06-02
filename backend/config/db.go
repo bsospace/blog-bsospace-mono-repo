@@ -8,7 +8,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // ตัวแปร DB ใช้เก็บ instance ของฐานข้อมูล
@@ -22,7 +21,7 @@ func ConnectDatabase() *gorm.DB {
 	// ใช้ DATABASE_URL จาก .env
 	dsn := config.DatabaseURL
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(map[bool]logger.LogLevel{true: logger.Silent, false: logger.Info}[config.AppEnv == "production"]),
+		// Logger: logger.Default.LogMode(map[bool]logger.LogLevel{true: logger.Silent, false: logger.Info}[config.AppEnv == "production"]),
 	})
 
 	if err != nil {
