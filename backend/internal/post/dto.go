@@ -2,6 +2,7 @@ package post
 
 import (
 	"rag-searchbot-backend/internal/models"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -165,4 +166,45 @@ func GroupByType(data []PostContentStructure) map[string][]PostContentStructure 
 type CreatePostRequest struct {
 	ShortSlug string               `json:"short_slug" binding:"required"`
 	Content   PostContentStructure `json:"content" binding:"required"`
+}
+
+type MyPostsDTO struct {
+	ID          uuid.UUID  `json:"id"`
+	Slug        string     `json:"slug"`
+	ShortSlug   string     `json:"short_slug"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Thumbnail   string     `json:"thumbnail,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	Views       int        `json:"views"`
+	Likes       int        `json:"likes"`
+	ReadTime    float64    `json:"read_time"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+func MapMyPostToSummaryDTO(post models.Post) MyPostsDTO {
+
+	// spilt short slug
+	shortSlugParts := strings.Split(post.ShortSlug, "-")
+	shortSlug := post.ShortSlug
+
+	if len(shortSlugParts) > 0 {
+		shortSlug = shortSlugParts[0]
+	}
+
+	dto := MyPostsDTO{
+		ID:          post.ID,
+		Slug:        post.Slug,
+		ShortSlug:   shortSlug,
+		Title:       post.Title,
+		Description: post.Description,
+		Thumbnail:   post.Thumbnail,
+		PublishedAt: post.PublishedAt,
+		Views:       post.Views,
+		Likes:       post.Likes,
+		ReadTime:    post.ReadTime,
+		CreatedAt:   post.CreatedAt,
+	}
+
+	return dto
 }
