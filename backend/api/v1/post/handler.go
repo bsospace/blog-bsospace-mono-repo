@@ -53,7 +53,6 @@ func (h *PostHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"message": "Post created successfully",
-		"data":    post,
 	})
 }
 
