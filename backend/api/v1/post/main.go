@@ -45,6 +45,6 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 	{
 		postsRoutes.POST("", handler.Create)
 		postsRoutes.GET("/:short_slug", handler.GetByShortSlug)
-
+		postsRoutes.GET("/my-posts", handler.MyPost)
 	}
 }
