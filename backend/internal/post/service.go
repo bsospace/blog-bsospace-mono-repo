@@ -167,3 +167,23 @@ func (s *PostService) UpdatePost(post *models.Post) error {
 func (s *PostService) DeletePost(id string) error {
 	return s.Repo.Delete(id)
 }
+
+type MyPostsResponseDTO struct {
+	Posts []MyPostsDTO `json:"posts"`
+}
+
+func (s *PostService) MyPosts(user *models.User) (*MyPostsResponseDTO, error) {
+	rawPosts, err := s.Repo.getMyPosts(user)
+	if err != nil {
+		return nil, err
+	}
+
+	var postDTOs []MyPostsDTO
+	for _, post := range rawPosts {
+		postDTOs = append(postDTOs, MapMyPostToSummaryDTO(*post))
+	}
+
+	return &MyPostsResponseDTO{
+		Posts: postDTOs,
+	}, nil
+}
