@@ -130,6 +130,14 @@ func (r *PostRepository) Update(post *models.Post) error {
 	return r.DB.Model(existinPost).Updates(post).Error
 }
 
+func (r *PostRepository) getMyPosts(user *models.User) ([]*models.Post, error) {
+	var posts []*models.Post
+	err := r.DB.
+		Where("author_id = ? AND deleted_at IS NULL", user.ID).
+		Find(&posts).Error
+	return posts, err
+}
+
 func (r *PostRepository) Delete(id string) error {
 	return r.DB.Delete(&models.Post{}, "id = ?", id).Error
 }
