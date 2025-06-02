@@ -137,6 +137,42 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 	})
 }
 
+func (h *PostHandler) MyPost(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "User not found in context",
+		})
+		return
+	}
+
+	userData, ok := user.(*models.User)
+	if !ok || userData == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Invalid user data",
+		})
+		return
+	}
+
+	posts, err := h.service.MyPosts(userData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Failed to fetch posts",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Fetched posts successfully",
+		"data":    posts,
+	})
+}
+
 // func (h *PostHandler) Update(c *gin.Context) {
 // 	id := c.Param("id")
 // 	var post models.Post
