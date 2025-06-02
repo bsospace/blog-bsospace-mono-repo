@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"errors"
-	"fmt"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/user"
@@ -34,8 +33,6 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 		// ตรวจสอบ Token ผ่าน CryptoService (ใช้ Dependency Injection)
 		claims, err := verifyToken(tokenString, cryptoService)
 
-		fmt.Printf("claims:%+v\n", claims)
-		fmt.Print("err: \n", err)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -44,9 +41,6 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 
 		// ค้นหา User ใน Database
 		userDB, err := userService.GetUserByEmail(claims.Email)
-
-		fmt.Printf("userDB: %+v\n", userDB)
-		fmt.Printf("err: %v\n", err)
 
 		if err != nil {
 
@@ -87,9 +81,7 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 func extractToken(c *gin.Context) string {
 	authHeader := c.GetHeader("Authorization")
 
-	fmt.Println("authHeader: ", authHeader)
 	// ตรวจสอบว่า Header มีค่าเป็น Bearer Token หรือไม่
-	// fmt.Println("authHeader: ", authHeader)
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		return strings.TrimPrefix(authHeader, "Bearer ")
 	}
@@ -108,7 +100,6 @@ type TokenClaims struct {
 // Verify JWT Token (ใช้ Dependency Injection)
 func verifyToken(tokenString string, cryptoService *crypto.CryptoService) (*TokenClaims, error) {
 
-	fmt.Println("tokenString: ", tokenString)
 	token, err := cryptoService.SmartVerifyToken(tokenString, "Access")
 	if err != nil {
 		log.Println("Invalid token:", err)

@@ -107,7 +107,6 @@ func (cs *CryptoService) SmartVerifyToken(tokenString, keyType string) (*jwt.Tok
 	// แกะ token ก่อน verify เพื่อดูว่าเป็นของ service ไหน
 	parsedToken, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 
-	fmt.Println("parsedToken: ", parsedToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token for service detection: %w", err)
 	}
