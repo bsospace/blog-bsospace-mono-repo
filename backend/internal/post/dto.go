@@ -166,6 +166,7 @@ func GroupByType(data []PostContentStructure) map[string][]PostContentStructure 
 type CreatePostRequest struct {
 	ShortSlug string               `json:"short_slug" binding:"required"`
 	Content   PostContentStructure `json:"content" binding:"required"`
+	Title     string               `json:"title" binding:"required"`
 }
 
 type MyPostsDTO struct {

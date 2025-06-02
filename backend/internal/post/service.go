@@ -47,6 +47,7 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) erro
 	// 3. if a post with the same short slug exists, update it
 	if existingPost != nil {
 		existingPost.Content = string(contentJSON)
+		existingPost.Title = post.Title
 		return s.Repo.Update(existingPost)
 	}
 
@@ -55,6 +56,7 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) erro
 		Slug:        slug,
 		ShortSlug:   slug,
 		Content:     string(contentJSON),
+		Title:       post.Title,
 		AuthorID:    user.ID,
 		Published:   false,
 		PublishedAt: nil,
@@ -184,6 +186,6 @@ func (s *PostService) MyPosts(user *models.User) (*MyPostsResponseDTO, error) {
 	}
 
 	return &MyPostsResponseDTO{
-		Posts: postDTOs,
+		postDTOs,
 	}, nil
 }
