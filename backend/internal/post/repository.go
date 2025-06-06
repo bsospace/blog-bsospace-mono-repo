@@ -161,3 +161,36 @@ func (r *PostRepository) GetByShortSlug(shortSlug string) (*models.Post, error) 
 
 	return &post, err
 }
+
+func (r *PostRepository) GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error) {
+	var post models.Post
+
+	err := r.DB.
+		Select("posts.id", "posts.slug", "posts.title", "posts.content", "posts.description", "posts.thumbnail", "posts.published", "posts.published_at", "posts.author_id", "posts.likes", "posts.views", "posts.read_time").
+		Where("posts.deleted_at IS NULL").
+		Preload("Author", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "user_name", "avatar")
+		}).
+		Preload("Tags").
+		Preload("Categories").
+		Joins("JOIN users ON users.id = posts.author_id").
+		Where("posts.slug = ? AND users.user_name = ?", slug, username).
+		First(&post).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &post, err
+}
+
+func (r *PostRepository) PublishPost(post *models.Post) error {
+	// Ensure the post is not already published
+	if post.Published {
+		return nil // or return an error if you prefer
+	}
+
+	post.Published = true
+	post.PublishedAt = &post.CreatedAt
+
+	return r.DB.Save(post).Error
+}
