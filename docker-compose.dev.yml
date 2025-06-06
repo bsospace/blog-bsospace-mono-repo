@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16
-    container_name: rag-postgres
+    container_name: dev-blog-postgres
     restart: always
     env_file:
       - .env
@@ -16,14 +16,14 @@ services:
 
   redis:
     image: redis:7
-    container_name: rag-redis
+    container_name: dev-blog-redis
     restart: always
     ports:
       - "${REDIS_EXTERNAL_PORT}:6379"
 
   pgadmin:
     image: dpage/pgadmin4
-    container_name: rag-pgadmin
+    container_name: dev-blog-pgadmin
     restart: always
     env_file:
       - .env
@@ -37,7 +37,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: rag-backend
+    container_name: dev-backend-go-app
     env_file:
       - .env
     environment:
@@ -51,6 +51,7 @@ services:
       - "${PORT}:${PORT}"
     volumes:
       - ./backend:/app
+    restart: always
     depends_on:
       - db
       - redis
@@ -61,7 +62,8 @@ services:
     build:
       context: ./extractor
       dockerfile: Dockerfile
-    container_name: rag-extractor
+    container_name: dev-blog-extractor-python-app
+    restart: always
     ports:
       - "5002:5002"
 
