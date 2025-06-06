@@ -6,6 +6,7 @@ import (
 	"math"
 	"rag-searchbot-backend/internal/models"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -188,4 +189,49 @@ func (s *PostService) MyPosts(user *models.User) (*MyPostsResponseDTO, error) {
 	return &MyPostsResponseDTO{
 		postDTOs,
 	}, nil
+}
+
+func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User, shortSlug string) error {
+
+	shortSlug = shortSlug + "-" + user.ID.String()
+
+	existingPost, err := s.Repo.GetByShortSlug(shortSlug)
+
+	if err != nil {
+		return err
+	}
+
+	if existingPost == nil {
+		return errors.New("post not found")
+	}
+
+	// if existingPost.Published {
+	// 	return errors.New("post is already published")
+	// }
+
+	if existingPost.AuthorID != user.ID {
+		return errors.New("you are not the author of this post")
+	}
+
+	existingPost.Published = true
+	now := time.Now()
+	existingPost.PublishedAt = &now
+	existingPost.Slug = post.Slug
+
+	return s.Repo.Update(existingPost)
+}
+
+func (s *PostService) GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error) {
+	post, err := s.Repo.GetPublicPostBySlugAndUsername(slug, username)
+	if err != nil {
+		return nil, err
+	}
+	if post == nil {
+		return nil, nil
+	}
+
+	if post.Key != "" {
+		return nil, nil
+	}
+	return post, nil
 }
