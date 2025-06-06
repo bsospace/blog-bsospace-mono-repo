@@ -36,9 +36,10 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 
 	// Protected Category Routes
 	postsRoutes := router.Group("/posts")
+	// Public routes (no authentication required)
 	{
 		postsRoutes.GET("", handler.GetAll)
-		// postsRoutes.GET("/:slug", handler.GetBySlug)
+		postsRoutes.GET("/public/:username/:slug", handler.GetPublicPostBySlugAndUsername)
 	}
 
 	postsRoutes.Use(authMiddleware)
@@ -46,5 +47,6 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 		postsRoutes.POST("", handler.Create)
 		postsRoutes.GET("/:short_slug", handler.GetByShortSlug)
 		postsRoutes.GET("/my-posts", handler.MyPost)
+		postsRoutes.PUT("/publish/:short_slug", handler.Publish)
 	}
 }
