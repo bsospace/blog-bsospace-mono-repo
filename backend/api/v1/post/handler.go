@@ -172,21 +172,6 @@ func (h *PostHandler) MyPost(c *gin.Context) {
 	})
 }
 
-// func (h *PostHandler) Update(c *gin.Context) {
-// 	id := c.Param("id")
-// 	var post models.Post
-// 	if err := c.ShouldBindJSON(&post); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-// 	post.ID = post.ID // keep existing UUID
-// 	if err := h.service.UpdatePost(&post); err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, post)
-// }
-
 func (h *PostHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.service.DeletePost(id); err != nil {
@@ -194,4 +179,71 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *PostHandler) Publish(c *gin.Context) {
+
+	var post post.PublishPostRequestDTO
+	var shortSlug = c.Param("short_slug")
+
+	if err := c.ShouldBindJSON(&post); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "User not found in context",
+		})
+		return
+	}
+
+	userData, ok := user.(*models.User)
+	if !ok || userData == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Invalid user data",
+		})
+		return
+	}
+
+	published := h.service.PublishPost(&post, userData, shortSlug)
+
+	if published != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Failed to publish post",
+			"error":   published.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Post published successfully",
+		"data":    post,
+	})
+}
+
+func (h *PostHandler) GetPublicPostBySlugAndUsername(c *gin.Context) {
+	slug := c.Param("slug")
+	username := c.Param("username")
+
+	post, err := h.service.GetPublicPostBySlugAndUsername(slug, username)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "post not found",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    post,
+		"message": "Get public post by slug and username successfully.",
+	})
 }

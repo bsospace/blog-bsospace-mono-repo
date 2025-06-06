@@ -209,3 +209,13 @@ func MapMyPostToSummaryDTO(post models.Post) MyPostsDTO {
 
 	return dto
 }
+
+type PublishPostRequestDTO struct {
+	Slug        string   `json:"slug"`
+	Keywords    []string `json:"keywords"`
+	Categories  []string `json:"categories"`
+	Tags        []string `json:"tags"`
+	Title       string   `json:"title" binding:"required"`
+	Description string   `json:"description"`
+	Thumbnail   string   `json:"thumbnail"`
+}
