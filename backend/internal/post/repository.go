@@ -39,7 +39,6 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 		Preload("Tags").
 		Preload("Categories").
 		Order("published_at DESC").
-		Where("title LIKE ? OR description LIKE ?", "%"+search+"%", "%"+search+"%").
 		Where("published = ?", true).
 		Where("deleted_at IS NULL").
 		Where("published_at IS NOT NULL").
