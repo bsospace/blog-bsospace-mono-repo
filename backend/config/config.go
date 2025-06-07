@@ -52,13 +52,6 @@ func LoadConfig() Config {
 
 	redisPassword := os.Getenv("REDIS_PASSWORD")
 
-	// Debug print (optional)
-	log.Println("DATABASE_URL:", os.Getenv("DATABASE_URL"))
-	log.Println("PORT:", os.Getenv("PORT"))
-	log.Println("APP_ENV:", os.Getenv("APP_ENV"))
-	log.Println("REDIS_HOST:", redisHost)
-	log.Println("REDIS_PORT:", redisPort)
-
 	return Config{
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		Port:             os.Getenv("PORT"),
