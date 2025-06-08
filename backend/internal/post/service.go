@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -205,19 +206,35 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 		return errors.New("post not found")
 	}
 
-	// if existingPost.Published {
-	// 	return errors.New("post is already published")
-	// }
+	if existingPost.Published {
+		return errors.New("post is already published")
+	}
 
 	if existingPost.AuthorID != user.ID {
 		return errors.New("you are not the author of this post")
+	}
+
+	// Validate Slug is not duplicate
+	existingPostBySlug, err := s.Repo.GetBySlug(post.Slug)
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	// If a post with the same slug exists, append user ID and a random UUID to the slug
+	if existingPostBySlug != nil {
+		if existingPostBySlug.ID != existingPost.ID {
+			existingPost.Slug = post.Slug + "-" + "-" + uuid.New().String()[:8]
+		}
+	} else {
+		// If no post with the same slug exists, use the provided slug
+		existingPost.Slug = post.Slug
 	}
 
 	existingPost.Published = true
 	now := time.Now()
 	existingPost.Title = post.Title
 	existingPost.PublishedAt = &now
-	existingPost.Slug = post.Slug
 	existingPost.Description = post.Description
 	existingPost.Thumbnail = post.Thumbnail
 
