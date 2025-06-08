@@ -15,8 +15,12 @@ type Error struct {
 }
 
 // Response helper
-func JSONSuccess(c *gin.Context, message string, data interface{}) {
-	c.JSON(200, Success{
+func JSONSuccess(c *gin.Context, status int, message string, data interface{}) {
+	if status == 0 {
+		status = 200
+	}
+
+	c.JSON(status, Success{
 		Success: true,
 		Message: message,
 		Data:    data,
