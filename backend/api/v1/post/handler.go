@@ -41,7 +41,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 		return
 	}
 
-	response.JSONSuccess(c, "Post created successfully", nil)
+	response.JSONSuccess(c, 201, "Post created successfully", nil)
 }
 
 func (h *PostHandler) GetByShortSlug(c *gin.Context) {
