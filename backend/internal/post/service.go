@@ -215,10 +215,34 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 
 	existingPost.Published = true
 	now := time.Now()
+	existingPost.Title = post.Title
 	existingPost.PublishedAt = &now
 	existingPost.Slug = post.Slug
+	existingPost.Description = post.Description
+	existingPost.Thumbnail = post.Thumbnail
 
 	return s.Repo.Update(existingPost)
+}
+
+func (s *PostService) UnpublishPost(user *models.User, shortSlug string) error {
+
+	shortSlug = shortSlug + "-" + user.ID.String()
+
+	existingPost, err := s.Repo.GetByShortSlug(shortSlug)
+
+	if err != nil {
+		return err
+	}
+
+	if existingPost == nil {
+		return errors.New("post not found")
+	}
+
+	if existingPost.AuthorID != user.ID {
+		return errors.New("you are not the author of this post")
+	}
+
+	return s.Repo.UnpublishPost(existingPost)
 }
 
 func (s *PostService) GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error) {
