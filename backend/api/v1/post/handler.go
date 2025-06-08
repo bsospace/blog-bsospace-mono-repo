@@ -227,6 +227,53 @@ func (h *PostHandler) Publish(c *gin.Context) {
 	})
 }
 
+func (h *PostHandler) Unpublish(c *gin.Context) {
+
+	var shortSlug = c.Param("short_slug")
+
+	if shortSlug == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Short slug is required",
+			"error":   "Short slug cannot be empty",
+		})
+		return
+	}
+
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "User not found in context",
+		})
+		return
+	}
+
+	userData, ok := user.(*models.User)
+	if !ok || userData == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Invalid user data",
+		})
+		return
+	}
+
+	unpublished := h.service.UnpublishPost(userData, shortSlug)
+
+	if unpublished != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Failed to unpublish post",
+			"error":   unpublished.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Post unpublished successfully",
+	})
+}
 func (h *PostHandler) GetPublicPostBySlugAndUsername(c *gin.Context) {
 	slug := c.Param("slug")
 	username := c.Param("username")
@@ -241,9 +288,11 @@ func (h *PostHandler) GetPublicPostBySlugAndUsername(c *gin.Context) {
 		return
 	}
 
+	response := MapGetPublicPostBySlugAndUsernameResponse(post)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    post,
+		"data":    response,
 		"message": "Get public post by slug and username successfully.",
 	})
 }
