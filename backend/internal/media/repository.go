@@ -29,3 +29,14 @@ func (r *MediaRepository) GetByID(id uint) (*models.ImageUpload, error) {
 	}
 	return &media, nil
 }
+
+func (r *MediaRepository) DeleteByID(id string) error {
+	return r.DB.Where("id = ?", id).Delete(&models.ImageUpload{}).Error
+}
+
+func (r *MediaRepository) MakeAsUsed(id uint, reason string) error {
+	return r.DB.Model(&models.ImageUpload{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"IsUsed":     true,
+		"UsedReason": reason,
+	}).Error
+}

@@ -117,3 +117,36 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 	// Return full URL
 	return chibiResp.URL, nil
 }
+
+func (s *MediaService) DeleteFromChibisafe(image *models.ImageUpload) error {
+	cfg := config.LoadConfig()
+	chibisafeURL := cfg.ChibisafeURL
+	chibisafeToken := cfg.ChibisafeKey
+
+	// Create request to delete image
+	req, err := http.NewRequest("DELETE", chibisafeURL+"/api/delete/"+image.ID.String(), nil)
+	if err != nil {
+		return fmt.Errorf("failed to create delete request: %w", err)
+	}
+	req.Header.Set("x-api-key", chibisafeToken)
+
+	// Execute request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("delete failed: %s", respBody)
+	}
+
+	err = s.Repo.DeleteByID(image.ID.String())
+	if err != nil {
+		return fmt.Errorf("failed to delete from database: %w", err)
+	}
+
+	return nil
+}
