@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
+	"rag-searchbot-backend/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,41 +20,28 @@ func NewPostHandler(service *post.PostService) *PostHandler {
 func (h *PostHandler) Create(c *gin.Context) {
 	var post post.CreatePostRequest
 	if err := c.ShouldBindJSON(&post); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.JSONError(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
 	user, exists := c.Get("user")
 	if !exists || user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"message": "User not found in context",
-		})
+		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
 		return
 	}
 
 	userData, ok := user.(*models.User)
 	if !ok || userData == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Invalid user data",
-		})
+		response.JSONError(c, http.StatusInternalServerError, "Invalid user data", "User data is not of type *models.User")
 		return
 	}
 
 	if err := h.service.CreatePost(post, userData); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to create post",
-			"message": err.Error(),
-		})
+		response.JSONError(c, http.StatusInternalServerError, "Failed to create post", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"message": "Post created successfully",
-	})
+	response.JSONSuccess(c, "Post created successfully", nil)
 }
 
 func (h *PostHandler) GetByShortSlug(c *gin.Context) {
@@ -98,7 +86,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 func (h *PostHandler) GetAll(c *gin.Context) {
 	posts, err := h.service.GetPosts(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
