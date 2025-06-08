@@ -165,21 +165,21 @@ func (r *PostRepository) GetPublicPostBySlugAndUsername(slug string, username st
 	var post models.Post
 
 	err := r.DB.
-		Select("posts.id", "posts.slug", "posts.title", "posts.content", "posts.description", "posts.thumbnail", "posts.published", "posts.published_at", "posts.author_id", "posts.likes", "posts.views", "posts.read_time").
+		Select("posts.id", "posts.slug", "posts.title", "posts.content", "posts.description", "posts.thumbnail", "posts.published", "posts.published_at", "posts.author_id", "posts.likes", "posts.views", "posts.read_time", "posts.created_at", "posts.updated_at").
 		Where("posts.deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_name", "avatar")
+			return db.Select("id", "user_name", "avatar", "bio")
 		}).
 		Preload("Tags").
 		Preload("Categories").
 		Joins("JOIN users ON users.id = posts.author_id").
-		Where("posts.slug = ? AND users.user_name = ?", slug, username).
+		Where("posts.slug = ? AND users.user_name = ? AND posts.published = ?", slug, username, true).
 		First(&post).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return &post, err
+	return &post, nil
 }
 
 func (r *PostRepository) PublishPost(post *models.Post) error {
@@ -192,4 +192,13 @@ func (r *PostRepository) PublishPost(post *models.Post) error {
 	post.PublishedAt = &post.CreatedAt
 
 	return r.DB.Save(post).Error
+}
+
+func (r *PostRepository) UnpublishPost(post *models.Post) error {
+	// Ensure the post is published before unpublishing
+	return r.DB.Model(post).Updates(map[string]interface{}{
+		"published":    false,
+		"published_at": nil,
+	}).Error
+
 }
