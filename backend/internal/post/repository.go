@@ -6,6 +6,20 @@ import (
 	"gorm.io/gorm"
 )
 
+type PostRepositoryInterface interface {
+	Create(post *models.Post) error
+	GetAll(limit, offset int, search string) (*PostRepositoryQuery, error)
+	GetByID(id string) (*models.Post, error)
+	GetBySlug(slug string) (*models.Post, error)
+	Update(post *models.Post) error
+	GetMyPosts(user *models.User) ([]*models.Post, error)
+	Delete(id string) error
+	GetByShortSlug(shortSlug string) (*models.Post, error)
+	GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error)
+	PublishPost(post *models.Post) error
+	UnpublishPost(post *models.Post) error
+}
+
 type PostRepository struct {
 	DB *gorm.DB
 }
@@ -129,7 +143,7 @@ func (r *PostRepository) Update(post *models.Post) error {
 	return r.DB.Model(existinPost).Updates(post).Error
 }
 
-func (r *PostRepository) getMyPosts(user *models.User) ([]*models.Post, error) {
+func (r *PostRepository) GetMyPosts(user *models.User) ([]*models.Post, error) {
 	var posts []*models.Post
 	err := r.DB.
 		Where("author_id = ? AND deleted_at IS NULL", user.ID).

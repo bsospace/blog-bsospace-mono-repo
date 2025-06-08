@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
 	"strconv"
 	"time"
@@ -14,11 +15,12 @@ import (
 )
 
 type PostService struct {
-	Repo *PostRepository
+	Repo         PostRepositoryInterface
+	MediaService *media.MediaService
 }
 
-func NewPostService(repo *PostRepository) *PostService {
-	return &PostService{Repo: repo}
+func NewPostService(repo PostRepositoryInterface, mediaRepo *media.MediaService) *PostService {
+	return &PostService{Repo: repo, MediaService: mediaRepo}
 }
 
 type TagDTO struct {
@@ -177,7 +179,7 @@ type MyPostsResponseDTO struct {
 }
 
 func (s *PostService) MyPosts(user *models.User) (*MyPostsResponseDTO, error) {
-	rawPosts, err := s.Repo.getMyPosts(user)
+	rawPosts, err := s.Repo.GetMyPosts(user)
 	if err != nil {
 		return nil, err
 	}
