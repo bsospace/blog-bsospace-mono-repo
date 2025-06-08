@@ -177,6 +177,7 @@ type MyPostsDTO struct {
 	Description string     `json:"description"`
 	Thumbnail   string     `json:"thumbnail,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
+	Published   bool       `json:"published"`
 	Views       int        `json:"views"`
 	Likes       int        `json:"likes"`
 	ReadTime    float64    `json:"read_time"`
