@@ -2,6 +2,7 @@ package post
 
 import (
 	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/middleware"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/internal/user"
@@ -13,8 +14,13 @@ import (
 
 func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) {
 	// Inject dependencies
-	repo := post.NewPostRepository(db)
-	service := post.NewPostService(repo)
+
+	mediaRepo := media.NewMediaRepository(db)
+	mediaService := media.NewMediaService(mediaRepo)
+
+	var postRepo post.PostRepositoryInterface = post.NewPostRepository(db)
+	service := post.NewPostService(postRepo, mediaService)
+
 	handler := NewPostHandler(service)
 
 	// สร้าง Repository ที่ใช้ GORM
