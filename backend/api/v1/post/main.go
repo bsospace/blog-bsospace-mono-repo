@@ -55,5 +55,6 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 		postsRoutes.GET("/my-posts", handler.MyPost)
 		postsRoutes.PUT("/publish/:short_slug", handler.Publish)
 		postsRoutes.PUT("/unpublish/:short_slug", handler.Unpublish)
+		postsRoutes.DELETE("/:id", handler.Delete)
 	}
 }
