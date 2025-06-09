@@ -1,9 +1,12 @@
 package post
 
 import (
+	"errors"
 	"net/http"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
+	"rag-searchbot-backend/pkg/errs"
+	"rag-searchbot-backend/pkg/ginctx"
 	"rag-searchbot-backend/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -24,19 +27,12 @@ func (h *PostHandler) Create(c *gin.Context) {
 		return
 	}
 
-	user, exists := c.Get("user")
-	if !exists || user == nil {
+	user, ok := ginctx.GetUserFromContext(c)
+	if !ok || user == nil {
 		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
-		return
 	}
 
-	userData, ok := user.(*models.User)
-	if !ok || userData == nil {
-		response.JSONError(c, http.StatusInternalServerError, "Invalid user data", "User data is not of type *models.User")
-		return
-	}
-
-	if err := h.service.CreatePost(post, userData); err != nil {
+	if err := h.service.CreatePost(post, user); err != nil {
 		response.JSONError(c, http.StatusInternalServerError, "Failed to create post", err.Error())
 		return
 	}
@@ -48,25 +44,12 @@ func (h *PostHandler) GetByShortSlug(c *gin.Context) {
 
 	shortSlug := c.Param("short_slug")
 
-	user, exists := c.Get("user")
-	if !exists || user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"message": "User not found in context",
-		})
-		return
+	user, ok := ginctx.GetUserFromContext(c)
+	if !ok || user == nil {
+		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
 	}
 
-	userData, ok := user.(*models.User)
-	if !ok || userData == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Invalid user data",
-		})
-		return
-	}
-
-	post, err := h.service.GetByShortSlug(shortSlug + "-" + userData.ID.String())
+	post, err := h.service.GetByShortSlug(shortSlug + "-" + user.ID.String())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
 		return
@@ -125,25 +108,13 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 }
 
 func (h *PostHandler) MyPost(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists || user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"message": "User not found in context",
-		})
-		return
+
+	user, ok := ginctx.GetUserFromContext(c)
+	if !ok || user == nil {
+		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
 	}
 
-	userData, ok := user.(*models.User)
-	if !ok || userData == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Invalid user data",
-		})
-		return
-	}
-
-	posts, err := h.service.MyPosts(userData)
+	posts, err := h.service.MyPosts(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -162,10 +133,29 @@ func (h *PostHandler) MyPost(c *gin.Context) {
 
 func (h *PostHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.service.DeletePost(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+	user, ok := ginctx.GetUserFromContext(c)
+	if !ok || user == nil {
+		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
+	}
+
+	err := h.service.DeletePostByID(id, user)
+
+	if errors.Is(err, errs.ErrPostNotFound) {
+		response.JSONError(c, http.StatusNotFound, "Post not found", "The post you are trying to delete does not exist")
 		return
 	}
+
+	if errors.Is(err, errs.ErrUnauthorized) {
+		response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "You are not the author of this post")
+		return
+	}
+
+	if err != nil {
+		response.JSONError(c, http.StatusInternalServerError, "Failed to delete post", err.Error())
+		return
+	}
+
 	c.Status(http.StatusNoContent)
 }
 
