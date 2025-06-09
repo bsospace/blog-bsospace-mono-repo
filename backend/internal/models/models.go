@@ -151,6 +151,7 @@ type AIResponse struct {
 type ImageUpload struct {
 	ID         uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	UserID     uuid.UUID  `gorm:"index;not null" json:"user_id"`       // ใครอัปโหลด
+	PostID     *uuid.UUID `gorm:"index" json:"post_id,omitempty"`      // ถ้าอัปโหลดเพื่อใช้ในโพสต์
 	ImageURL   string     `gorm:"not null" json:"image_url"`           // URL ที่เข้าถึงรูป
 	FileName   string     `json:"file_name"`                           // ชื่อไฟล์ต้นฉบับ
 	IsUsed     bool       `gorm:"default:false" json:"is_used"`        // ถูกใช้ในระบบแล้วหรือยัง (insert ลง editor)
@@ -159,5 +160,6 @@ type ImageUpload struct {
 	UploadedAt time.Time  `gorm:"autoCreateTime" json:"uploaded_at"`   // เวลาอัปโหลด
 	BaseModel
 
-	User User `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+	User User  `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+	Post *Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"` // ถ้าอัปโหลดเพื่อใช้ในโพสต์
 }
