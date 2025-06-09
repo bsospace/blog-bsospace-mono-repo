@@ -71,6 +71,10 @@ func (m *MockPostRepository) GetPublicPostBySlugAndUsername(slug, username strin
 	return args.Get(0).(*models.Post), args.Error(1)
 }
 
+func (m *MockPostRepository) DeletePost(post *models.Post) error {
+	return m.Called(post).Error(0)
+}
+
 // -------- TESTS --------
 
 func TestCreateNewPost(t *testing.T) {
@@ -178,9 +182,10 @@ func TestGetPostByID(t *testing.T) {
 func TestDeletePost(t *testing.T) {
 	repo := new(MockPostRepository)
 	svc := post.NewPostService(repo, nil)
+	user := &models.User{ID: uuid.New()}
 
 	repo.On("Delete", "abc").Return(nil)
 
-	err := svc.DeletePost("abc")
+	err := svc.DeletePostByID("abc", user)
 	assert.NoError(t, err)
 }
