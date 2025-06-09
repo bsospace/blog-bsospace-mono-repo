@@ -6,6 +6,7 @@ import (
 	"math"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
+	"rag-searchbot-backend/pkg/errs"
 	"strconv"
 	"time"
 
@@ -170,10 +171,6 @@ func (s *PostService) UpdatePost(post *models.Post) error {
 	return s.Repo.Update(post)
 }
 
-func (s *PostService) DeletePost(id string) error {
-	return s.Repo.Delete(id)
-}
-
 type MyPostsResponseDTO struct {
 	Posts []MyPostsDTO `json:"posts"`
 }
@@ -277,4 +274,20 @@ func (s *PostService) GetPublicPostBySlugAndUsername(slug string, username strin
 		return nil, nil
 	}
 	return post, nil
+}
+
+func (s *PostService) DeletePostByID(id string, user *models.User) error {
+	existingPost, err := s.Repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	if existingPost == nil || existingPost.ID == uuid.Nil {
+		return errs.ErrPostNotFound
+	}
+	if existingPost.AuthorID != user.ID {
+		return errs.ErrUnauthorized
+	}
+
+	return s.Repo.DeletePost(existingPost)
 }
