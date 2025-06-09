@@ -13,7 +13,6 @@ type PostRepositoryInterface interface {
 	GetBySlug(slug string) (*models.Post, error)
 	Update(post *models.Post) error
 	GetMyPosts(user *models.User) ([]*models.Post, error)
-	Delete(id string) error
 	GetByShortSlug(shortSlug string) (*models.Post, error)
 	GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error)
 	PublishPost(post *models.Post) error
@@ -152,10 +151,6 @@ func (r *PostRepository) GetMyPosts(user *models.User) ([]*models.Post, error) {
 	return posts, err
 }
 
-func (r *PostRepository) Delete(id string) error {
-	return r.DB.Delete(&models.Post{}, "id = ?", id).Error
-}
-
 func (r *PostRepository) GetByShortSlug(shortSlug string) (*models.Post, error) {
 	var post models.Post
 
@@ -219,5 +214,5 @@ func (r *PostRepository) UnpublishPost(post *models.Post) error {
 }
 
 func (r *PostRepository) DeletePost(post *models.Post) error {
-	return r.DB.Delete(post).Error
+	return r.DB.Unscoped().Delete(&models.Post{}, "id = ?", post.ID).Error
 }
