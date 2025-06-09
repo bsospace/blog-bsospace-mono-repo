@@ -183,8 +183,10 @@ func TestDeletePost(t *testing.T) {
 	repo := new(MockPostRepository)
 	svc := post.NewPostService(repo, nil)
 	user := &models.User{ID: uuid.New()}
+	post := &models.Post{ID: uuid.New(), AuthorID: user.ID}
 
-	repo.On("Delete", "abc").Return(nil)
+	repo.On("GetByID", "abc").Return(post, nil)
+	repo.On("DeletePost", post).Return(nil)
 
 	err := svc.DeletePostByID("abc", user)
 	assert.NoError(t, err)
