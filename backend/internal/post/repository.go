@@ -18,6 +18,7 @@ type PostRepositoryInterface interface {
 	GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error)
 	PublishPost(post *models.Post) error
 	UnpublishPost(post *models.Post) error
+	DeletePost(post *models.Post) error
 }
 
 type PostRepository struct {
@@ -215,4 +216,8 @@ func (r *PostRepository) UnpublishPost(post *models.Post) error {
 		"published_at": nil,
 	}).Error
 
+}
+
+func (r *PostRepository) DeletePost(post *models.Post) error {
+	return r.DB.Delete(post).Error
 }
