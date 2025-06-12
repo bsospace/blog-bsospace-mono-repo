@@ -100,13 +100,14 @@ Question: ` + question + `
 Answer:
 `
 
+	llmModel := os.Getenv("AI_MODEL")
 	reqBody := ChatRequest{
-		Model:  "scb10x/llama3.1-typhoon2-8b-instruct:latest",
+		Model:  llmModel,
 		Prompt: prompt,
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 
-	ollamaURL := os.Getenv("OLLAMA_HOST")
+	ollamaURL := os.Getenv("AI_HOST")
 	resp, err := http.Post(ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return "", err

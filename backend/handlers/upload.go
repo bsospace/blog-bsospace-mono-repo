@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 
 	"rag-searchbot-backend/internal/ollama"
 	"rag-searchbot-backend/internal/storage"
@@ -14,8 +15,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var isSelfHost = os.Getenv("AI_SELF_HOST") == "true"
+var externalAPIKey = os.Getenv("AI_API_KEY")
+var externalModel = os.Getenv("AI_MODEL")
+
 func UploadHandler(c *gin.Context) {
-	// รับไฟล์จากฟอร์ม
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file"})
@@ -29,7 +33,7 @@ func UploadHandler(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// เตรียม multipart สำหรับส่งไป Extractor
+	// ส่งไป extractor
 	var buffer bytes.Buffer
 	writer := multipart.NewWriter(&buffer)
 	part, err := writer.CreateFormFile("file", fileHeader.Filename)
@@ -43,8 +47,7 @@ func UploadHandler(c *gin.Context) {
 	}
 	writer.Close()
 
-	// เรียก Python Extractor API
-	resp, err := http.Post("http://192.168.1.105:5002/extract-text", writer.FormDataContentType(), &buffer)
+	resp, err := http.Post("http://bobby.posyayee.com:5002/extract-text", writer.FormDataContentType(), &buffer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call extractor"})
 		return
@@ -54,38 +57,38 @@ func UploadHandler(c *gin.Context) {
 	var result struct {
 		Text string `json:"text"`
 	}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode extractor response"})
 		return
 	}
 
 	text := result.Text
-
 	fmt.Println("Extracted text:", text)
 
-	// ✨ Text Chunking (500 words ต่อ chunk)
 	chunks := splitText(text, 500)
-
-	// ✨ ทำ Embedding ให้แต่ละ Chunk และเก็บเข้า Memory
 	var chunkObjs []storage.Chunk
+
 	for _, ch := range chunks {
-		embedding, err := ollama.GetEmbedding(ch)
+		embedding, err := getEmbedding(ch)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create embedding", "message": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to create embedding",
+				"message": err.Error(),
+			})
 			return
+		}
+		float32Embedding := make([]float32, len(embedding))
+		for i, v := range embedding {
+			float32Embedding[i] = float32(v)
 		}
 		chunkObjs = append(chunkObjs, storage.Chunk{
 			Text:      ch,
-			Embedding: embedding,
+			Embedding: float32Embedding,
 		})
 	}
 
-	// Save ลง Memory
 	storage.SaveChunksWithEmbeddings(chunkObjs)
 
-	// ตอบกลับ Frontend
 	c.JSON(http.StatusOK, gin.H{
 		"message": "File processed successfully",
 		"chunks":  len(chunkObjs),
@@ -95,7 +98,6 @@ func UploadHandler(c *gin.Context) {
 func splitText(text string, chunkSize int) []string {
 	var chunks []string
 	runes := []rune(text)
-
 	for i := 0; i < len(runes); i += chunkSize {
 		end := i + chunkSize
 		if end > len(runes) {
@@ -104,4 +106,20 @@ func splitText(text string, chunkSize int) []string {
 		chunks = append(chunks, string(runes[i:end]))
 	}
 	return chunks
+}
+
+func getEmbedding(text string) ([]float64, error) {
+	// ใช้ embedding จาก Ollama local เท่านั้น
+	embedding32, err := ollama.GetEmbedding(text)
+	if err != nil {
+		return nil, err
+	}
+
+	// แปลง []float32 → []float64 หากระบบ downstream ต้องการ
+	embedding64 := make([]float64, len(embedding32))
+	for i, v := range embedding32 {
+		embedding64[i] = float64(v)
+	}
+
+	return embedding64, nil
 }
