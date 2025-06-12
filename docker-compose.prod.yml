@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16
+    image: pgvector/pgvector:pg17
     container_name: blog-postgres-db
     restart: always
     env_file:
