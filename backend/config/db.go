@@ -28,6 +28,10 @@ func ConnectDatabase() *gorm.DB {
 		log.Fatal("[ERROR] Failed to connect to database: ", err)
 	}
 
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS vector").Error; err != nil {
+		log.Fatalf("Failed to create extension vector: %v", err)
+	}
+
 	// ทำ Migration ให้กับทุกตาราง
 	err = db.Set("gorm:foreign_key_constraints", true).AutoMigrate(
 		&models.User{},
