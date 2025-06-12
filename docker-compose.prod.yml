@@ -54,6 +54,16 @@ services:
       - redis
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env
+    ports:
+        - "9009:3000"
+    depends_on:
+      - backend
 
   extractor:
     build:
