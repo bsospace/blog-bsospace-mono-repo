@@ -1,57 +1,69 @@
-# 🧠 RAG-SearchBot (Backend)
+# ✨ BSO Blog – Be Simple but Outstanding 📝
 
-RAG-SearchBot เป็นระบบ Chatbot สำหรับตอบคำถามจากบทความบนบล็อก โดยใช้เทคนิค **RAG (Retrieval-Augmented Generation)** ที่ผสานการดึงข้อมูลที่เกี่ยวข้องจากฐานความรู้ แล้วส่งให้ LLM (เช่น LLaMA3) เพื่อตอคำตอบที่แม่นยำ
+**BSO Blog** is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences. The system is designed with professionalism in mind, featuring CI/CD pipelines, clean backend architecture, and a modern user interface.
 
----
-
-## ✨ Features
-
-- 🧾 **PDF Upload**: รองรับอัปโหลดบทความในรูปแบบ PDF
-- 📚 **Text Extraction**: ใช้ Flask (PyMuPDF + OCR) แปลง PDF เป็นข้อความ
-- 🧠 **Text Chunking + Embedding**: แบ่งข้อความเป็น Chunk แล้วฝัง (Embed) ด้วย Ollama API
-- 🔍 **Context Retrieval**: ดึง Context ที่เกี่ยวข้องด้วย Cosine Similarity
-- 🤖 **LLM Answering**: ใช้ LLaMA3 (via Ollama) ตอบคำถามจาก Context
-- 🗃️ **PostgreSQL + Redis**: จัดการฐานข้อมูลผู้ใช้, โพสต์, Embedding, และแคช
-- 🐳 **Dockerized**: รองรับ Dev/Prod ด้วย Docker Compose
+> “Be Simple but Outstanding.”
 
 ---
 
-## 📦 Tech Stack
+## 📌 Features
 
-| Layer        | Tech                                |
-| ------------ | ----------------------------------- |
-| Language     | Go 1.22+, Python 3.10+              |
-| Backend      | [Gin](https://gin-gonic.com/), GORM |
-| Vector Embed | Ollama (LLaMA3, Typhoon)            |
-| Database     | PostgreSQL + pgAdmin                |
-| Caching      | Redis                               |
-| Extraction   | Flask + PyMuPDF + pytesseract (OCR) |
-| Dev Tools    | Air (Hot Reload), Docker Compose    |
+- 📰 **Write & Share Blog Posts** – Supports Markdown with syntax highlighting
+- 🪄 **Real-Time Editing** – Built with Tiptap Editor + Image Upload with Preview
+- 🧠 **RAG-powered Search** – Search blog content using Retrieval-Augmented Generation (Coming Soon)
+- 🔐 **Authentication** – Supports OAuth (Google/GitHub, Discord)
+- 🚀 **CI/CD** – Jenkins, Jest, SonarQube, and Docker for deployment
+- 📊 **Dashboard** – Admin panel for posts and analytics
+- 🌐 **Multilang Ready** – Supports both EN and TH
 
 ---
 
-## 🏁 Getting Started
+## 🏗 Tech Stack
 
-### 1. Clone Project
+| Layer         | Tech Stack                                  |
+| ------------- | ------------------------------------------- |
+| Frontend      | Next.js 15, TypeScript, ShadCN UI, Tailwind |
+| Editor        | Tiptap (Custom Nodes & Image Upload)        |
+| Backend       | GO, Gin                                     |
+| Database      | PostgreSQL17 + GORM                         |
+| CI/CD         | Jenkins + Docker                            |
+| Lint & Scan   | SonarQube                                   |
+| Deployment    | Docker Compose (Multi-container)            |
+| Auth          | OAuth (Google, GitHub, Discord)             |
+| Cache         | Redis                                       |
+| Image Storage | Chibisafe                                   |
 
-```bash
-git clone https://github.com/boytur/rag-searchbot.git
+---
 
-cd rag-searchbot
-```
+## 🧪 CI/CD Pipeline
 
-📂 Structure:
-```
-backend/
-├── cmd/server # Main app entry
-├── internal/ # Business logic
-├── handlers/ # Gin route handlers
-├── models/ # GORM models
-├── storage/ # Embedding in-memory store
-├── config/ # Configs
-├── utils/  # helpers
-├── air.toml # Hot reload config
-extractor/
-├── extractor.py # Flask OCR & Text extraction
+- ✅ **Test**: Run with Jest
+- 🧹 **Lint & Scan**: SonarQube
+- 🐳 **Deploy**: Docker + Jenkins
+- 🐾 **Auto Deploy**: Pull Request -> Merge -> Deploy
 
-```
+---
+
+## 🧠 Future Plans
+
+- [ ] ✍️ AI Assistant: Auto-summarize / Suggest blog topics
+- [ ] 🧠 RAG Search: LLM (LLaMA3)
+- [ ] 🧪 Enhanced Analytics Dashboard
+- [ ] 📱 Mobile-first UX Improvements
+
+---
+
+## 🤝 Contributors
+
+Powered by BSO Club, Burapha University SE Students ❤️  
+Maintained by: [@yamroll](https://github.com/LordEaster) and team.
+
+---
+
+> "Be Simple but Outstanding." – A platform born from the passion of those who love sharing knowledge.
+
+---
+
+## 🤖 AI-Generated Notice
+
+This README file was generated with assistance from **ChatGPT-4o** (OpenAI) based on the project details and requirements provided by the BSO Blog team.
