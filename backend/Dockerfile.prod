@@ -1,6 +1,4 @@
-# backend/Dockerfile.prod
-
-FROM golang:lastes AS builder
+FROM golang:1.24.4 AS builder
 
 WORKDIR /app
 
@@ -9,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o app ./cmd
+RUN go build -o app ./cmd/server
 
 # Production stage
 FROM debian:bullseye-slim
