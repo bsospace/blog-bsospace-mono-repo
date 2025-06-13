@@ -31,6 +31,7 @@ type User struct {
 	UserName  string    `json:"username,omitempty"`
 	Bio       string    `json:"bio,omitempty"`
 	Role      UserRole  `gorm:"type:varchar(20);default:NORMAL_USER" json:"role"`
+	NewUser   bool      `gorm:"default:true" json:"new_user"`
 	BaseModel
 
 	Posts         []Post         `gorm:"foreignKey:AuthorID;references:ID" json:"posts,omitempty"`
