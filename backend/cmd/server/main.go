@@ -36,29 +36,29 @@ func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service) {
 	c := cron.New(cron.WithSeconds())
 
 	// เรียกตอนเริ่ม server ทันที
-	// go func() {
-	// 	log.Println("[Startup] ลบรูปภาพที่ไม่ได้ใช้งานทันทีตอนเริ่มเซิร์ฟเวอร์...")
-	// 	err := service.DeleteUnusedImages()
-	// 	if err != nil {
-	// 		log.Println("[Startup] ลบรูปภาพล้มเหลว:", err)
-	// 	} else {
-	// 		log.Println("[Startup] ลบรูปภาพที่ไม่ได้ใช้งานสำเร็จ")
-	// 	}
-	// }()
+	go func() {
+		log.Println("[Startup] Deleting unused images...")
+		err := service.DeleteUnusedImages()
+		if err != nil {
+			log.Println("[Startup] Fail to deleting image", err)
+		} else {
+			log.Println("[Startup] Deleted unused images successfully")
+		}
+	}()
 
 	// ตั้ง Cron ให้ลบทุกเที่ยงคืน
 	_, err := c.AddFunc("0 0 0 * * *", func() {
-		log.Println("[Cron] เริ่มลบรูปภาพที่ไม่ได้ใช้งาน...")
+		log.Println("[Cron] Starting to delete unused images...")
 		err := service.DeleteUnusedImages()
 		if err != nil {
-			log.Println("[Cron] ลบรูปภาพล้มเหลว:", err)
+			log.Println("[Cron] Fail to deleting image: ", err)
 		} else {
-			log.Println("[Cron] ลบรูปภาพที่ไม่ได้ใช้งานสำเร็จ")
+			log.Println("[Cron] Deleted unused images successfully")
 		}
 	})
 
 	if err != nil {
-		log.Fatalln("ไม่สามารถตั้ง Cron Job ได้:", err)
+		log.Fatalln("Can't start CRON :", err)
 	}
 
 	c.Start()
