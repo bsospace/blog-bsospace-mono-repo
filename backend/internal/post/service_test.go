@@ -16,8 +16,9 @@ type MockPostRepository struct {
 	mock.Mock
 }
 
-func (m *MockPostRepository) Create(p *models.Post) error {
-	return m.Called(p).Error(0)
+func (m *MockPostRepository) Create(p *models.Post) (string, error) {
+	args := m.Called(p)
+	return args.String(0), args.Error(1)
 }
 func (m *MockPostRepository) Update(p *models.Post) error {
 	return m.Called(p).Error(0)
@@ -94,7 +95,7 @@ func TestCreateNewPost(t *testing.T) {
 		return p.Slug == slug && p.Content == string(contentJSON)
 	})).Return(nil)
 
-	err := svc.CreatePost(post.CreatePostRequest{
+	_, err := svc.CreatePost(post.CreatePostRequest{
 		ShortSlug: "testslug",
 		Title:     "Hello World",
 		Content:   content,
@@ -120,7 +121,7 @@ func TestUpdateExistingPost(t *testing.T) {
 		return p.Content == string(contentJSON)
 	})).Return(nil)
 
-	err := svc.CreatePost(post.CreatePostRequest{
+	_, err := svc.CreatePost(post.CreatePostRequest{
 		ShortSlug: "exist",
 		Title:     "Updated",
 		Content:   content,
