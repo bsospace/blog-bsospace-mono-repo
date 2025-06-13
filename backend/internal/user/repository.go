@@ -55,12 +55,26 @@ func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
 
 func (r *Repository) GetUserByUsername(username string) (bool, error) {
 	var user models.User
-	err := r.preloadUserRelations(r.DB).
+	err := r.DB.
 		Where("username = ?", username).
 		Where("deleted_at IS NULL").
 		First(&user).Error
-	if err != nil {
-		return false, err
+	if err == gorm.ErrRecordNotFound {
+		return false, nil // Username not found
+	} else if err != nil {
+		return false, err // Other error occurred
 	}
+
 	return true, nil
+}
+
+// Update
+func (r *Repository) UpdateUser(user *models.User) error {
+	existinUser := &models.User{}
+	err := r.DB.First(existinUser, "id = ?", user.ID).Error
+	if err != nil {
+		return err
+	}
+
+	return r.DB.Model(existinUser).Updates(user).Error
 }
