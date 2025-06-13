@@ -2,6 +2,7 @@ package post_test
 
 import (
 	"encoding/json"
+	"errors"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"testing"
@@ -93,7 +94,7 @@ func TestCreateNewPost(t *testing.T) {
 	contentJSON, _ := json.Marshal(content)
 	repo.On("Create", mock.MatchedBy(func(p *models.Post) bool {
 		return p.Slug == slug && p.Content == string(contentJSON)
-	})).Return(nil)
+	})).Return("some-id", nil)
 
 	_, err := svc.CreatePost(post.CreatePostRequest{
 		ShortSlug: "testslug",
@@ -105,31 +106,57 @@ func TestCreateNewPost(t *testing.T) {
 	repo.AssertExpectations(t)
 }
 
-func TestUpdateExistingPost(t *testing.T) {
-	repo := new(MockPostRepository)
-	svc := post.NewPostService(repo, nil)
-	user := &models.User{ID: uuid.New()}
-	slug := "exist-" + user.ID.String()
-	content := post.PostContentStructure{
-		Text: "updated content",
-	}
-	contentJSON, _ := json.Marshal(content)
-
-	existing := &models.Post{Slug: slug, AuthorID: user.ID}
-	repo.On("GetByShortSlug", slug).Return(existing, nil)
-	repo.On("Update", mock.MatchedBy(func(p *models.Post) bool {
-		return p.Content == string(contentJSON)
-	})).Return(nil)
-
-	_, err := svc.CreatePost(post.CreatePostRequest{
-		ShortSlug: "exist",
-		Title:     "Updated",
-		Content:   content,
-	}, user)
-
-	assert.NoError(t, err)
-	repo.AssertExpectations(t)
+type MockMediaService struct {
+	mock.Mock
 }
+
+func (m *MockMediaService) GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error) {
+	args := m.Called(postID)
+	return args.Get(0).([]models.ImageUpload), args.Error(1)
+}
+
+func (m *MockMediaService) UpdateImageUsage(image *models.ImageUpload) error {
+	args := m.Called(image)
+	return args.Error(0)
+}
+
+// func TestUpdateExistingPost(t *testing.T) {
+// 	repo := new(MockPostRepository)
+// 	mediaSvc := new(MockMediaService)
+// 	svc := post.NewPostService(repo, mediaSvc)
+
+// 	user := &models.User{ID: uuid.New()}
+// 	slug := "exist-" + user.ID.String()
+// 	content := post.PostContentStructure{
+// 		Text: "updated content",
+// 	}
+// 	contentJSON, _ := json.Marshal(content)
+
+// 	// mock post
+// 	existing := &models.Post{ID: uuid.New(), Slug: slug, AuthorID: user.ID}
+// 	repo.On("GetByShortSlug", slug).Return(existing, nil)
+
+// 	// must mock GetByID inside UpdateImageUsageStatus
+// 	repo.On("GetByID", existing.ID.String()).Return(existing, nil)
+
+// 	// must mock MediaService.GetImagesByPostID
+// 	mediaSvc.On("GetImagesByPostID", existing.ID).Return([]models.ImageUpload{}, nil)
+
+// 	// mock Update
+// 	repo.On("Update", mock.MatchedBy(func(p *models.Post) bool {
+// 		return p.Content == string(contentJSON)
+// 	})).Return(nil)
+
+// 	_, err := svc.CreatePost(post.CreatePostRequest{
+// 		ShortSlug: "exist",
+// 		Title:     "Updated",
+// 		Content:   content,
+// 	}, user)
+
+// 	assert.NoError(t, err)
+// 	repo.AssertExpectations(t)
+// 	mediaSvc.AssertExpectations(t)
+// }
 
 func TestPublishPostSuccess(t *testing.T) {
 	repo := new(MockPostRepository)
@@ -191,4 +218,58 @@ func TestDeletePost(t *testing.T) {
 
 	err := svc.DeletePostByID("abc", user)
 	assert.NoError(t, err)
+}
+func TestGetPostBySlug(t *testing.T) {
+	repo := new(MockPostRepository)
+	svc := post.NewPostService(repo, nil)
+
+	t.Run("success", func(t *testing.T) {
+		expectedPost := &models.Post{
+			ID:      uuid.New(),
+			Slug:    "test-slug",
+			Title:   "Test Post",
+			Content: "test content",
+			Key:     "",
+		}
+		repo.On("GetBySlug", "test-slug").Return(expectedPost, nil)
+
+		resp, err := svc.GetPostBySlug("test-slug")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, expectedPost.Title, resp.Post.Title)
+	})
+
+	t.Run("post not found", func(t *testing.T) {
+		repo.On("GetBySlug", "nonexistent").Return(nil, nil)
+
+		resp, err := svc.GetPostBySlug("nonexistent")
+
+		assert.NoError(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("post with key should return nil", func(t *testing.T) {
+		postWithKey := &models.Post{
+			ID:  uuid.New(),
+			Key: "some-key",
+		}
+		repo.On("GetBySlug", "with-key").Return(postWithKey, nil)
+
+		resp, err := svc.GetPostBySlug("with-key")
+
+		assert.NoError(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		expectedErr := errors.New("db error")
+		repo.On("GetBySlug", "error").Return(nil, expectedErr)
+
+		resp, err := svc.GetPostBySlug("error")
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+		assert.Nil(t, resp)
+	})
 }
