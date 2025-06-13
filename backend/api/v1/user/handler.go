@@ -70,6 +70,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	user.FirstName = updateData.FirstName
 	user.LastName = updateData.LastName
 	user.Bio = updateData.Bio
+	user.NewUser = false
 	updatedUser, err := h.userService.UpdateUser(user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
