@@ -11,6 +11,7 @@ import (
 	"rag-searchbot-backend/internal/cache"
 	mediaInternal "rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/pkg/logger"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -105,8 +106,11 @@ func main() {
 
 	var coreUrl string
 
-	if cfg.AppEnv == "production" {
+	if cfg.AppEnv == "release" || cfg.AppEnv == "production" {
 		coreUrl = cfg.CoreUrl
+		if !strings.HasPrefix(coreUrl, "http://") && !strings.HasPrefix(coreUrl, "https://") {
+			log.Fatalf("Invalid CORE_URL: must start with http:// or https://, got: %s", coreUrl)
+		}
 	} else {
 		coreUrl = "http://bobby.posyayee.com:3000"
 	}
