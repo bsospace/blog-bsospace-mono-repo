@@ -55,7 +55,7 @@ func LoadConfig() Config {
 
 	return Config{
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		Port:             os.Getenv("PORT"),
+		Port:             os.Getenv("APP_PORT"),
 		AppEnv:           os.Getenv("APP_ENV"),
 		AppUrl:           os.Getenv("APP_URL"),
 		OpenIDURL:        os.Getenv("OPEN_ID_URL"),
