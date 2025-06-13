@@ -22,7 +22,7 @@ func (r *MediaRepository) Create(media *models.ImageUpload) error {
 	return r.DB.Preload("User").First(media, "id = ?", media.ID).Error
 }
 
-func (r *MediaRepository) GetByID(id uint) (*models.ImageUpload, error) {
+func (r *MediaRepository) GetByID(id uuid.UUID) (*models.ImageUpload, error) {
 	var media models.ImageUpload
 	err := r.DB.Where("id = ?", id).First(&media).Error
 	if err != nil {
@@ -58,4 +58,13 @@ func (m *MediaRepository) DeleteImagesWhereUnused() error {
 	return m.DB.
 		Where("is_used = ?", false).
 		Delete(&models.ImageUpload{}).Error
+}
+
+func (m *MediaRepository) GetUnusedImages() ([]models.ImageUpload, error) {
+	var images []models.ImageUpload
+	err := m.DB.Where("is_used = ?", false).Find(&images).Error
+	if err != nil {
+		return nil, err
+	}
+	return images, nil
 }
