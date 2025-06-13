@@ -168,7 +168,13 @@ func (s *PostService) GetPostBySlug(slug string) (*PostByIdResponse, error) {
 }
 
 func (s *PostService) UpdatePost(post *models.Post) error {
-	return s.Repo.Update(post)
+	err := s.Repo.Update(post)
+	if err != nil {
+		return err
+	}
+
+	// ตรวจสอบการใช้งานรูป
+	return s.updateImageUsageStatus(post.ID, post.Content, post.Thumbnail)
 }
 
 type MyPostsResponseDTO struct {
@@ -290,4 +296,72 @@ func (s *PostService) DeletePostByID(id string, user *models.User) error {
 	}
 
 	return s.Repo.DeletePost(existingPost)
+}
+
+// updateImageUsageStatus checks which images in content or thumbnail are used
+// and updates the is_used flag accordingly for all images related to the post
+func (s *PostService) updateImageUsageStatus(postID uuid.UUID, content string, thumbnail string) error {
+	// แปลง content JSON -> PostContentStructure
+	var parsedContent PostContentStructure
+	if content != "" {
+		if err := json.Unmarshal([]byte(content), &parsedContent); err != nil {
+			return err
+		}
+	}
+
+	// ดึงภาพทั้งหมดในโพสต์
+	images, err := s.MediaService.GetImagesByPostID(postID)
+	if err != nil {
+		return err
+	}
+
+	// ดึง URL รูปทั้งหมดจาก content
+	contentImageURLs := ExtractImageURLsFromContent(parsedContent)
+	urlSet := make(map[string]bool)
+	for _, url := range contentImageURLs {
+		urlSet[url] = true
+	}
+	if thumbnail != "" {
+		urlSet[thumbnail] = true
+	}
+
+	// ตรวจสอบแต่ละรูป ว่ายังถูกใช้หรือไม่
+	for _, img := range images {
+		isUsed := urlSet[img.ImageURL]
+
+		if img.IsUsed != isUsed {
+			img.IsUsed = isUsed
+			now := time.Now()
+			img.UsedAt = &now
+			if err := s.MediaService.UpdateImageUsage(&img); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func ExtractImageURLsFromContent(content PostContentStructure) []string {
+	var urls []string
+	var walk func(node PostContentStructure)
+
+	walk = func(node PostContentStructure) {
+		// ถ้า type คือ image และมี src ใน attrs
+		if node.Type == "image" && node.Attrs != nil {
+			if srcRaw, ok := node.Attrs["src"]; ok {
+				if src, ok := srcRaw.(string); ok {
+					urls = append(urls, src)
+				}
+			}
+		}
+
+		// ถ้ามี children ซ้อน
+		for _, child := range node.Content {
+			walk(child)
+		}
+	}
+
+	walk(content)
+	return urls
 }
