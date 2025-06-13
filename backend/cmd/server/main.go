@@ -107,7 +107,7 @@ func main() {
 	var coreUrl []string
 
 	if cfg.AppEnv == "release" || cfg.AppEnv == "production" {
-		coreUrl = []string{"https://*.bsospace.com", "https://agentp.withyamroll.com"}
+		coreUrl = []string{"https://blog.bsospace.com", "https://bsospace.com", "https://agentp.withyamroll.com"}
 	} else {
 		coreUrl = []string{"http://bobby.posyayee.com:3000", "http://localhost:3000"}
 	}
