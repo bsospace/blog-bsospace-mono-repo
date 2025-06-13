@@ -36,15 +36,15 @@ func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service) {
 	c := cron.New(cron.WithSeconds())
 
 	// เรียกตอนเริ่ม server ทันที
-	go func() {
-		log.Println("[Startup] ลบรูปภาพที่ไม่ได้ใช้งานทันทีตอนเริ่มเซิร์ฟเวอร์...")
-		err := service.DeleteUnusedImages()
-		if err != nil {
-			log.Println("[Startup] ลบรูปภาพล้มเหลว:", err)
-		} else {
-			log.Println("[Startup] ลบรูปภาพที่ไม่ได้ใช้งานสำเร็จ")
-		}
-	}()
+	// go func() {
+	// 	log.Println("[Startup] ลบรูปภาพที่ไม่ได้ใช้งานทันทีตอนเริ่มเซิร์ฟเวอร์...")
+	// 	err := service.DeleteUnusedImages()
+	// 	if err != nil {
+	// 		log.Println("[Startup] ลบรูปภาพล้มเหลว:", err)
+	// 	} else {
+	// 		log.Println("[Startup] ลบรูปภาพที่ไม่ได้ใช้งานสำเร็จ")
+	// 	}
+	// }()
 
 	// ตั้ง Cron ให้ลบทุกเที่ยงคืน
 	_, err := c.AddFunc("0 0 0 * * *", func() {
