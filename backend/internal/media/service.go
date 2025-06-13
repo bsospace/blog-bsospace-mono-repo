@@ -22,7 +22,8 @@ func NewMediaService(repo *MediaRepository) *MediaService {
 	return &MediaService{Repo: repo}
 }
 
-func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *models.User) (*models.ImageUpload, error) {
+func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *models.User, postID *uuid.UUID) (*models.ImageUpload, error) {
+
 	// Upload ไปยัง Chibisafe (สมมุติ)
 	uploadedURL, err := s.UploadToChibisafe(fileHeader)
 	if err != nil {
@@ -30,11 +31,13 @@ func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *model
 	}
 
 	log.Println("DEBUG - user.ID:", user.ID)
+
 	image := &models.ImageUpload{
 		ID:         uuid.New(),
 		ImageURL:   uploadedURL,
 		IsUsed:     false,
 		UserID:     user.ID,
+		PostID:     postID,
 		UsedReason: "Blog image",
 	}
 
@@ -149,4 +152,16 @@ func (s *MediaService) DeleteFromChibisafe(image *models.ImageUpload) error {
 	}
 
 	return nil
+}
+
+func (s *MediaService) GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error) {
+	return s.Repo.GetImagesByPostID(postID)
+}
+
+func (s *MediaService) UpdateImageUsage(image *models.ImageUpload) error {
+	return s.Repo.UpdateImageUsage(image)
+}
+
+func (s *MediaService) DeleteUnusedImages() error {
+	return s.Repo.DeleteImagesWhereUnused()
 }

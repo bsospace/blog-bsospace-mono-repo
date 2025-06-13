@@ -3,6 +3,7 @@ package media
 import (
 	"rag-searchbot-backend/internal/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -39,4 +40,22 @@ func (r *MediaRepository) MakeAsUsed(id uint, reason string) error {
 		"IsUsed":     true,
 		"UsedReason": reason,
 	}).Error
+}
+
+// GetImagesByPostID ดึงรูปภาพทั้งหมดที่เชื่อมกับโพสต์นี้
+func (m *MediaRepository) GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error) {
+	var images []models.ImageUpload
+	err := m.DB.Where("post_id = ?", postID).Find(&images).Error
+	return images, err
+}
+
+// UpdateImageUsage บันทึกสถานะการใช้งานของรูปภาพ (is_used, used_at)
+func (m *MediaRepository) UpdateImageUsage(image *models.ImageUpload) error {
+	return m.DB.Save(image).Error
+}
+
+func (m *MediaRepository) DeleteImagesWhereUnused() error {
+	return m.DB.
+		Where("is_used = ?", false).
+		Delete(&models.ImageUpload{}).Error
 }
