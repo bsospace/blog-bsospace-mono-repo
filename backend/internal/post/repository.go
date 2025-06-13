@@ -228,5 +228,5 @@ func (r *PostRepository) UnpublishPost(post *models.Post) error {
 }
 
 func (r *PostRepository) DeletePost(post *models.Post) error {
-	return r.DB.Unscoped().Delete(&models.Post{}, "id = ?", post.ID).Error
+	return r.DB.Delete(&models.Post{}, "id = ?", post.ID).Error
 }
