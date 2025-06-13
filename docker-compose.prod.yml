@@ -13,6 +13,8 @@ services:
       - "${PG_EXTERNAL_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
 
   redis:
     image: redis:7
@@ -22,6 +24,8 @@ services:
       - "${REDIS_EXTERNAL_PORT}:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - internal
 
   pgadmin:
     image: dpage/pgadmin4
@@ -36,6 +40,8 @@ services:
       - "${PGADMIN_PORT}:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - internal
 
   backend:
     build:
@@ -58,6 +64,10 @@ services:
       - redis
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - internal
+      - public
+
   frontend:
     container_name: blog-frontend-nextjs-app
     build:
@@ -69,6 +79,8 @@ services:
         - "9009:3000"
     depends_on:
       - backend
+    networks:
+      - public
 
   extractor:
     build:
@@ -78,8 +90,16 @@ services:
     restart: always
     ports:
       - "5002:5002"
+    networks:
+      - internal
 
 volumes:
   postgres_data:
   pgadmin_data:
   redis_data:
+
+networks:
+  internal:
+    driver: bridge
+  public:
+    driver: bridge
