@@ -32,12 +32,15 @@ func (h *PostHandler) Create(c *gin.Context) {
 		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
 	}
 
-	if err := h.service.CreatePost(post, user); err != nil {
+	postID, err := h.service.CreatePost(post, user)
+	if err != nil {
 		response.JSONError(c, http.StatusInternalServerError, "Failed to create post", err.Error())
 		return
 	}
 
-	response.JSONSuccess(c, 201, "Post created successfully", nil)
+	response.JSONSuccess(c, 201, "Post created successfully", gin.H{
+		"post_id": postID,
+	})
 }
 
 func (h *PostHandler) GetByShortSlug(c *gin.Context) {
