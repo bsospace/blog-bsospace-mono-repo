@@ -62,6 +62,7 @@ services:
     depends_on:
       - db
       - redis
+    restart: always
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -79,6 +80,7 @@ services:
         - "9009:3000"
     depends_on:
       - backend
+    restart: always
     networks:
       - public
 
