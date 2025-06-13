@@ -75,7 +75,7 @@ func main() {
 	logger.Log.Info("Application started")
 
 	// กำหนด Mode การทำงาน
-	if cfg.AppEnv == "production" {
+	if cfg.AppEnv == "release" {
 		gin.SetMode(gin.ReleaseMode)
 		log.Println("Running in Production Mode")
 	} else {
