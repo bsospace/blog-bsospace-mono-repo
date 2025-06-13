@@ -9,13 +9,19 @@ COPY . .
 
 RUN go build -o app ./cmd/server
 
-# Production stage
-FROM debian:bullseye-slim
+
+# Use same OS family to avoid glibc mismatch
+FROM debian:bookworm-slim
 
 WORKDIR /app
+
+# Create keys directory
+RUN mkdir -p /keys
+
+# Copy keys from your local machine
+COPY keys/blogPublicAccess.pem /keys/
 
 COPY --from=builder /app/app .
 
 EXPOSE 8088
-
 CMD ["./app"]
