@@ -28,7 +28,7 @@ type User struct {
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
 	Avatar    string    `json:"avatar,omitempty"`
-	UserName  string    `json:"username,omitempty"`
+	UserName  string    `gorm:"column:username;uniqueIndex;not null" json:"username"`
 	Bio       string    `json:"bio,omitempty"`
 	Role      UserRole  `gorm:"type:varchar(20);default:NORMAL_USER" json:"role"`
 	NewUser   bool      `gorm:"default:true" json:"new_user"`
