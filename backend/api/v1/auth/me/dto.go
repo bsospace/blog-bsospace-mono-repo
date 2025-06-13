@@ -23,6 +23,7 @@ type MeResponse struct {
 	LastName  string    `json:"last_name"`
 	Bio       string    `json:"bio"`
 	UserName  string    `json:"username"`
+	NewUser   bool      `json:"new_user"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 }
@@ -36,6 +37,7 @@ func MapResponse(user *models.User) MeResponse {
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Bio:       user.Bio,
+		NewUser:   user.NewUser,
 		UserName:  user.UserName,
 		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt: user.UpdatedAt.Format("2006-01-02 15:04:05"),
