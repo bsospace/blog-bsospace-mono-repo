@@ -129,3 +129,11 @@ func (s *Service) GetExistingUsername(username string) (bool, error) {
 	}
 	return result, nil
 }
+
+func (s *Service) UpdateUser(user *models.User) (*models.User, error) {
+	err := s.Repo.UpdateUser(user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+	return user, nil
+}
