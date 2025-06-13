@@ -10,18 +10,23 @@ COPY . .
 RUN go build -o app ./cmd/server
 
 
-# Use same OS family to avoid glibc mismatch
+# Stage 2: runtime
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Create keys directory
-RUN mkdir -p /keys
+# Copy compiled binary
+COPY --from=builder /app/app .
 
-# Copy keys from your local machine
+# Copy keys
+RUN mkdir -p /keys
 COPY keys/blogPublicAccess.pem /keys/
 
-COPY --from=builder /app/app .
+# Copy .env
+COPY .env .env
+
+# Prepare log directory
+RUN mkdir -p logs && touch logs/app.log
 
 EXPOSE 8088
 CMD ["./app"]
