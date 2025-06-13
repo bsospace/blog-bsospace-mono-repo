@@ -3,6 +3,7 @@ package post
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
@@ -34,26 +35,37 @@ type CategoryDTO struct {
 	Name string `json:"name"`
 }
 
-func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) error {
+func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (string, error) {
 	slug := post.ShortSlug + "-" + user.ID.String()
 
 	// 1. Marshal content
 	contentJSON, err := json.Marshal(post.Content)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// 2. check if a post with the same short slug already exists
 	existingPost, err := s.Repo.GetByShortSlug(slug)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
+		return "", err
 	}
 
 	// 3. if a post with the same short slug exists, update it
 	if existingPost != nil {
 		existingPost.Content = string(contentJSON)
 		existingPost.Title = post.Title
-		return s.Repo.Update(existingPost)
+
+		err = s.UpdateImageUsageStatus(existingPost, post.Content, "")
+		if err != nil {
+			return "", err
+		}
+
+		err = s.Repo.Update(existingPost)
+		if err != nil {
+			return "", err
+		}
+
+		return existingPost.ID.String(), nil
 	}
 
 	// 4. if no post with the same short slug exists, create a new one
@@ -67,7 +79,12 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) erro
 		PublishedAt: nil,
 	}
 
-	return s.Repo.Create(newPost)
+	postID, err := s.Repo.Create(newPost)
+	if err != nil {
+		return "", err
+	}
+
+	return postID, nil
 }
 
 func (s *PostService) GetByShortSlug(shortSlug string) (*models.Post, error) {
@@ -168,13 +185,7 @@ func (s *PostService) GetPostBySlug(slug string) (*PostByIdResponse, error) {
 }
 
 func (s *PostService) UpdatePost(post *models.Post) error {
-	err := s.Repo.Update(post)
-	if err != nil {
-		return err
-	}
-
-	// ตรวจสอบการใช้งานรูป
-	return s.updateImageUsageStatus(post.ID, post.Content, post.Thumbnail)
+	return s.Repo.Update(post)
 }
 
 type MyPostsResponseDTO struct {
@@ -300,23 +311,21 @@ func (s *PostService) DeletePostByID(id string, user *models.User) error {
 
 // updateImageUsageStatus checks which images in content or thumbnail are used
 // and updates the is_used flag accordingly for all images related to the post
-func (s *PostService) updateImageUsageStatus(postID uuid.UUID, content string, thumbnail string) error {
-	// แปลง content JSON -> PostContentStructure
-	var parsedContent PostContentStructure
-	if content != "" {
-		if err := json.Unmarshal([]byte(content), &parsedContent); err != nil {
-			return err
-		}
-	}
-
-	// ดึงภาพทั้งหมดในโพสต์
-	images, err := s.MediaService.GetImagesByPostID(postID)
+func (s *PostService) UpdateImageUsageStatus(post *models.Post, content PostContentStructure, thumbnail string) error {
+	existingPost, err := s.Repo.GetByID(post.ID.String())
 	if err != nil {
 		return err
 	}
 
-	// ดึง URL รูปทั้งหมดจาก content
-	contentImageURLs := ExtractImageURLsFromContent(parsedContent)
+	//  ดึงภาพทั้งหมดในโพสต์
+	images, err := s.MediaService.GetImagesByPostID(existingPost.ID)
+	if err != nil {
+		return err
+	}
+
+	// ดึง URL รูปจาก content tree
+	contentImageURLs := ExtractImageURLsFromContent([]PostContentStructure{content})
+
 	urlSet := make(map[string]bool)
 	for _, url := range contentImageURLs {
 		urlSet[url] = true
@@ -325,29 +334,30 @@ func (s *PostService) updateImageUsageStatus(postID uuid.UUID, content string, t
 		urlSet[thumbnail] = true
 	}
 
-	// ตรวจสอบแต่ละรูป ว่ายังถูกใช้หรือไม่
+	// ตรวจสอบการใช้งานรูป
 	for _, img := range images {
 		isUsed := urlSet[img.ImageURL]
-
 		if img.IsUsed != isUsed {
 			img.IsUsed = isUsed
 			now := time.Now()
 			img.UsedAt = &now
+
 			if err := s.MediaService.UpdateImageUsage(&img); err != nil {
 				return err
 			}
+
+			fmt.Printf("Updated image %s to used=%v\n", img.ImageURL, isUsed)
 		}
 	}
 
 	return nil
 }
 
-func ExtractImageURLsFromContent(content PostContentStructure) []string {
+func ExtractImageURLsFromContent(content []PostContentStructure) []string {
 	var urls []string
-	var walk func(node PostContentStructure)
 
+	var walk func(node PostContentStructure)
 	walk = func(node PostContentStructure) {
-		// ถ้า type คือ image และมี src ใน attrs
 		if node.Type == "image" && node.Attrs != nil {
 			if srcRaw, ok := node.Attrs["src"]; ok {
 				if src, ok := srcRaw.(string); ok {
@@ -355,13 +365,14 @@ func ExtractImageURLsFromContent(content PostContentStructure) []string {
 				}
 			}
 		}
-
-		// ถ้ามี children ซ้อน
 		for _, child := range node.Content {
 			walk(child)
 		}
 	}
 
-	walk(content)
+	for _, node := range content {
+		walk(node)
+	}
+
 	return urls
 }
