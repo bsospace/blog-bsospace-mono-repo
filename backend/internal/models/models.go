@@ -57,12 +57,13 @@ type Post struct {
 	ReadTime    float64        `gorm:"default:0" json:"read_time"`
 	BaseModel
 
-	AuthorID   uuid.UUID   `gorm:"not null" json:"author_id"`
-	Author     User        `gorm:"foreignKey:AuthorID;references:ID" json:"author,omitempty"`
-	Tags       []Tag       `gorm:"many2many:post_tags" json:"tags,omitempty"`
-	Categories []Category  `gorm:"many2many:post_categories" json:"categories,omitempty"`
-	Comments   []Comment   `gorm:"foreignKey:PostID;references:ID" json:"comments,omitempty"`
-	Embeddings []Embedding `gorm:"foreignKey:PostID;references:ID" json:"embeddings,omitempty"`
+	AuthorID   uuid.UUID     `gorm:"not null" json:"author_id"`
+	Author     User          `gorm:"foreignKey:AuthorID;references:ID" json:"author,omitempty"`
+	Tags       []Tag         `gorm:"many2many:post_tags" json:"tags,omitempty"`
+	Categories []Category    `gorm:"many2many:post_categories" json:"categories,omitempty"`
+	Comments   []Comment     `gorm:"foreignKey:PostID;references:ID" json:"comments,omitempty"`
+	Embeddings []Embedding   `gorm:"foreignKey:PostID;references:ID" json:"embeddings,omitempty"`
+	Images     []ImageUpload `gorm:"foreignKey:PostID;references:ID" json:"images,omitempty"`
 }
 
 type Comment struct {
@@ -154,7 +155,7 @@ type ImageUpload struct {
 	PostID     *uuid.UUID `gorm:"index" json:"post_id,omitempty"`      // ถ้าอัปโหลดเพื่อใช้ในโพสต์
 	ImageURL   string     `gorm:"not null" json:"image_url"`           // URL ที่เข้าถึงรูป
 	FileName   string     `json:"file_name"`                           // ชื่อไฟล์ต้นฉบับ
-	FileID     string     `gorm:"uniqueIndex;not null" json:"file_id"` // ID ของไฟล์ใน Chibisafe
+	FileID     string     `gorm:"not null" json:"file_id"`             // ID ของไฟล์ใน Chibisafe (สามารถซ้ำได้)
 	Identifier string     `gorm:"not null" json:"identifier"`          // ชื่อไฟล์ที่ใช้ใน Chibisafe
 	IsUsed     bool       `gorm:"default:false" json:"is_used"`        // ถูกใช้ในระบบแล้วหรือยัง (insert ลง editor)
 	UsedReason string     `gorm:"type:varchar(50)" json:"used_reason"` // ใช้ทำอะไร (optional: "avatar", "editor", "comment", etc.)

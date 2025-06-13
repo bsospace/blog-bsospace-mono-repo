@@ -25,20 +25,22 @@ func NewMediaService(repo *MediaRepository) *MediaService {
 func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *models.User, postID *uuid.UUID) (*models.ImageUpload, error) {
 
 	// Upload ไปยัง Chibisafe (สมมุติ)
-	uploadedURL, err := s.UploadToChibisafe(fileHeader)
+	res, err := s.UploadToChibisafe(fileHeader)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Println("DEBUG - user.ID:", user.ID)
+	log.Println("RESULT - Chibisafe Response:", res)
 
 	image := &models.ImageUpload{
 		ID:         uuid.New(),
-		ImageURL:   uploadedURL,
+		ImageURL:   res.URL,
 		IsUsed:     false,
 		UserID:     user.ID,
 		PostID:     postID,
 		UsedReason: "Blog image",
+		FileID:     res.UUID,
 	}
 
 	if err := s.Repo.Create(image); err != nil {
@@ -48,7 +50,15 @@ func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *model
 	return image, nil
 }
 
-func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (string, error) {
+type ChibisafeResponse struct {
+	Name       string `json:"name"`
+	UUID       string `json:"uuid"`
+	URL        string `json:"url"`
+	Identifier string `json:"identifier"`
+	PublicURL  string `json:"public_url"`
+}
+
+func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (ChibisafeResponse, error) {
 
 	// log config
 
@@ -60,7 +70,7 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 	// Open file
 	file, err := fileHeader.Open()
 	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
+		return ChibisafeResponse{}, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
@@ -68,13 +78,13 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	part, err := writer.CreateFormFile("file", fileHeader.Filename)
+	part, err := writer.CreateFormFile("file", fileHeader.Filename+"-"+uuid.New().String())
 	if err != nil {
-		return "", fmt.Errorf("failed to create form file: %w", err)
+		return ChibisafeResponse{}, fmt.Errorf("failed to create form file: %w", err)
 	}
 
 	if _, err := io.Copy(part, file); err != nil {
-		return "", fmt.Errorf("failed to copy file: %w", err)
+		return ChibisafeResponse{}, fmt.Errorf("failed to copy file: %w", err)
 	}
 
 	writer.Close()
@@ -82,7 +92,7 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 	// Create request
 	req, err := http.NewRequest("POST", chibisafeURL+"/api/upload", body)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return ChibisafeResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("x-api-key", chibisafeToken)
@@ -92,33 +102,34 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (stri
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("upload request failed: %w", err)
+		return ChibisafeResponse{}, fmt.Errorf("upload request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("upload failed: %s", respBody)
+		return ChibisafeResponse{}, fmt.Errorf("upload failed: %s", respBody)
 	}
 
 	// Parse response
-	type ChibisafeResponse struct {
-		Name string `json:"name"`
-		UUID string `json:"uuid"`
-		URL  string `json:"url"`
-	}
 
 	var chibiResp ChibisafeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chibiResp); err != nil {
-		return "", fmt.Errorf("failed to parse chibisafe response: %w", err)
+		return ChibisafeResponse{}, fmt.Errorf("failed to parse chibisafe response: %w", err)
 	}
 
 	if len(chibiResp.UUID) == 0 {
-		return "", fmt.Errorf("chibisafe response does not contain UUID")
+		return ChibisafeResponse{}, fmt.Errorf("chibisafe response does not contain UUID")
 	}
 
 	// Return full URL
-	return chibiResp.URL, nil
+	return ChibisafeResponse{
+		Name:       chibiResp.Name,
+		UUID:       chibiResp.UUID,
+		URL:        chibiResp.URL,
+		Identifier: chibiResp.Identifier,
+		PublicURL:  chibiResp.PublicURL,
+	}, nil
 }
 
 func (s *MediaService) DeleteFromChibisafe(image *models.ImageUpload) error {
@@ -127,7 +138,7 @@ func (s *MediaService) DeleteFromChibisafe(image *models.ImageUpload) error {
 	chibisafeToken := cfg.ChibisafeKey
 
 	// Create request to delete image
-	req, err := http.NewRequest("DELETE", chibisafeURL+"/api/delete/"+image.ID.String(), nil)
+	req, err := http.NewRequest("DELETE", chibisafeURL+"/api/admin/file/"+image.FileID, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create delete request: %w", err)
 	}
@@ -163,5 +174,29 @@ func (s *MediaService) UpdateImageUsage(image *models.ImageUpload) error {
 }
 
 func (s *MediaService) DeleteUnusedImages() error {
-	return s.Repo.DeleteImagesWhereUnused()
+	// Step 1: ดึงเฉพาะรูปที่ is_used = false และ file_id ไม่ซ้ำใน DB
+	unusedImages, err := s.Repo.FindUnusedWithUniqueFileID()
+	if err != nil {
+		return fmt.Errorf("failed to find unused images: %w", err)
+	}
+
+	for _, img := range unusedImages {
+		log.Println("Deleting from chibisafe:", img.ImageURL)
+
+		// ลบจาก Chibisafe
+		err := s.DeleteFromChibisafe(&img)
+		if err != nil {
+			log.Printf("warning: failed to delete image %s from chibisafe: %v", img.ID, err)
+			continue // ข้ามหากลบไม่ได้
+		}
+	}
+
+	// Step 2: ลบจากฐานข้อมูล
+	if err := s.Repo.DeleteImagesWhereUnused(); err != nil {
+		return fmt.Errorf("failed to delete unused images from database: %w", err)
+	}
+
+	log.Println("Successfully deleted unused images from Chibisafe and database")
+
+	return nil
 }
