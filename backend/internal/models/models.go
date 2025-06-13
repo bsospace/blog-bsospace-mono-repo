@@ -154,6 +154,8 @@ type ImageUpload struct {
 	PostID     *uuid.UUID `gorm:"index" json:"post_id,omitempty"`      // ถ้าอัปโหลดเพื่อใช้ในโพสต์
 	ImageURL   string     `gorm:"not null" json:"image_url"`           // URL ที่เข้าถึงรูป
 	FileName   string     `json:"file_name"`                           // ชื่อไฟล์ต้นฉบับ
+	FileID     string     `gorm:"uniqueIndex;not null" json:"file_id"` // ID ของไฟล์ใน Chibisafe
+	Identifier string     `gorm:"not null" json:"identifier"`          // ชื่อไฟล์ที่ใช้ใน Chibisafe
 	IsUsed     bool       `gorm:"default:false" json:"is_used"`        // ถูกใช้ในระบบแล้วหรือยัง (insert ลง editor)
 	UsedReason string     `gorm:"type:varchar(50)" json:"used_reason"` // ใช้ทำอะไร (optional: "avatar", "editor", "comment", etc.)
 	UsedAt     *time.Time `json:"used_at,omitempty"`                   // เวลาใช้ล่าสุด
