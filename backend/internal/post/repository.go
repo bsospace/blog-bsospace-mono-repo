@@ -44,22 +44,27 @@ type PostRepositoryQuery struct {
 
 func (r *PostRepository) GetAll(limit, offset int, search string) (*PostRepositoryQuery, error) {
 	var posts []models.Post
-	err := r.DB.
+
+	query := r.DB.
 		Select("id", "slug", "title", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
+		Where("published = ?", true).
 		Where("deleted_at IS NULL").
+		Where("published_at IS NOT NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id", "user_name", "avatar")
 		}).
 		Preload("Tags").
 		Preload("Categories").
 		Order("published_at DESC").
-		Where("published = ?", true).
-		Where("deleted_at IS NULL").
-		Where("published_at IS NOT NULL").
 		Limit(limit).
-		Offset(offset).
-		Find(&posts).Error
+		Offset(offset)
 
+	if search != "" {
+		searchTerm := "%" + search + "%"
+		query = query.Where("title ILIKE ? OR content ILIKE ?", searchTerm, searchTerm)
+	}
+
+	err := query.Find(&posts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -85,12 +90,17 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 
 func (r *PostRepository) getCount(search string) (int64, error) {
 	var count int64
-	err := r.DB.Model(&models.Post{}).
-		Where("title LIKE ? OR description LIKE ?", "%"+search+"%", "%"+search+"%").
+	query := r.DB.Model(&models.Post{}).
 		Where("published = ?", true).
 		Where("deleted_at IS NULL").
-		Where("published_at IS NOT NULL").
-		Count(&count).Error
+		Where("published_at IS NOT NULL")
+
+	if search != "" {
+		searchTerm := "%" + search + "%"
+		query = query.Where("title ILIKE ? OR content ILIKE ?", searchTerm, searchTerm)
+	}
+
+	err := query.Count(&count).Error
 	return count, err
 }
 
