@@ -53,9 +53,17 @@ func main() {
 
 	r := gin.Default()
 
+	var coreUrl string
+
+	if cfg.AppEnv == "production" {
+		coreUrl = cfg.CoreUrl
+	} else {
+		coreUrl = "*"
+	}
+
 	// CORS settings
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://192.168.1.105:5173", "http://bobby.posyayee.com:3000"},
+		AllowOrigins:     []string{coreUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

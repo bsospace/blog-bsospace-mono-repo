@@ -10,6 +10,7 @@ import (
 type Config struct {
 	DatabaseURL      string
 	Port             string
+	CoreUrl          string
 	AppEnv           string
 	AppUrl           string
 	RedisHost        string
