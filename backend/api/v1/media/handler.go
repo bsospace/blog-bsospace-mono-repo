@@ -1,12 +1,12 @@
 package media
 
 import (
-	"fmt"
 	"net/http"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type MediaHandler struct {
@@ -21,12 +21,23 @@ func NewMediaHandler(mediaService *media.MediaService) *MediaHandler {
 
 // UploadImageHandler handles the image upload request
 func (h *MediaHandler) UploadImageHandler(c *gin.Context) {
-	var form media.UploadMediaForm
-
-	if err := c.ShouldBind(&form); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid form input"})
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Missing or invalid file"})
 		return
 	}
+
+	postIDStr := c.PostForm("post_id")
+	var postID *uuid.UUID
+	if postIDStr != "" {
+		uid, err := uuid.Parse(postIDStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Invalid post_id UUID"})
+			return
+		}
+		postID = &uid
+	}
+
 	user, exists := c.Get("user")
 	if !exists || user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -35,8 +46,6 @@ func (h *MediaHandler) UploadImageHandler(c *gin.Context) {
 		})
 		return
 	}
-
-	fmt.Println("User in context:", user)
 
 	userData, ok := user.(*models.User)
 	if !ok || userData == nil {
@@ -47,8 +56,8 @@ func (h *MediaHandler) UploadImageHandler(c *gin.Context) {
 		return
 	}
 
-	// Call service to handle upload
-	image, err := h.MediaService.CreateMedia(form.File, userData)
+	// Upload
+	image, err := h.MediaService.CreateMedia(file, userData, postID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "Failed to upload image", "error": err.Error()})
 		return
