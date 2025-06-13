@@ -52,3 +52,15 @@ func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func (r *Repository) GetUserByUsername(username string) (bool, error) {
+	var user models.User
+	err := r.preloadUserRelations(r.DB).
+		Where("username = ?", username).
+		Where("deleted_at IS NULL").
+		First(&user).Error
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}

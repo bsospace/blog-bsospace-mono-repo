@@ -9,6 +9,8 @@ import (
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/models"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -115,12 +117,15 @@ func (s *Service) GetUserProfileOpenId(token string) (*OpenIDProfileData, error)
 	return profileData, nil
 }
 
-// func (s *Service) UpdateUser(user *models.User) error {
-// 	// Update user profile in the database
-// 	err := s.Repo.UpdateUser(user)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update user profile: %w", err)
-// 	}
+// get existing username
 
-// 	return nil
-// }
+func (s *Service) GetExistingUsername(username string) (bool, error) {
+	result, err := s.Repo.GetUserByUsername(username)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil // Username not found
+		}
+		return false, fmt.Errorf("failed to check username: %w", err)
+	}
+	return result, nil
+}
