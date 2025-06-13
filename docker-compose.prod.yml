@@ -52,7 +52,7 @@ services:
       PORT: ${PORT}
       GIN_MODE: release
     ports:
-      - "${PORT}:${PORT}"
+      - "${APP_PORT}:${APP_PORT}"
     depends_on:
       - db
       - redis
