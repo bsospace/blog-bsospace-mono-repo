@@ -190,6 +190,16 @@ func (h *PostHandler) Publish(c *gin.Context) {
 		return
 	}
 
+	existingPost, err := h.service.GetByShortSlug(shortSlug + "-" + userData.ID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Failed to fetch post",
+			"error":   err.Error(),
+		})
+		return
+	}
+
 	published := h.service.PublishPost(&post, userData, shortSlug)
 
 	if published != nil {
@@ -197,6 +207,18 @@ func (h *PostHandler) Publish(c *gin.Context) {
 			"success": false,
 			"message": "Failed to publish post",
 			"error":   published.Error(),
+		})
+		return
+	}
+
+	// update post thumbnail used
+	err = h.service.UpdateThumbnailUsageStatus(existingPost, post.Thumbnail)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Failed to update image usage status",
+			"error":   err.Error(),
 		})
 		return
 	}

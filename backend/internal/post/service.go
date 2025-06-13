@@ -353,6 +353,55 @@ func (s *PostService) UpdateImageUsageStatus(post *models.Post, content PostCont
 	return nil
 }
 
+// update thumbnail usage status
+func (s *PostService) UpdateThumbnailUsageStatus(post *models.Post, thumbnail string) error {
+	if thumbnail == "" {
+		return nil // No thumbnail to update
+	}
+
+	// Get the existing post
+	existingPost, err := s.Repo.GetByID(post.ID.String())
+	if err != nil {
+		return err
+	}
+
+	// Get all images related to the post
+	images, err := s.MediaService.GetImagesByPostID(existingPost.ID)
+	if err != nil {
+		return err
+	}
+
+	// Check if the thumbnail is used in the images
+	isUsed := false
+	for _, img := range images {
+		if img.ImageURL == thumbnail {
+			isUsed = true
+			break
+		}
+	}
+
+	// get existing thumbnail image
+	existingThumbnail, err := s.MediaService.GetImageByURL(thumbnail)
+
+	if err != nil {
+		return fmt.Errorf("failed to get existing thumbnail image: %w", err)
+	}
+
+	if existingThumbnail == nil {
+		return fmt.Errorf("thumbnail image not found: %s", thumbnail)
+	}
+
+	// Update the thumbnail usage status
+
+	existingThumbnail.IsUsed = isUsed
+	existingThumbnail.UsedAt = &time.Time{}
+	if err := s.MediaService.UpdateImageUsage(existingThumbnail); err != nil {
+		return fmt.Errorf("failed to update thumbnail usage status: %w", err)
+	}
+
+	return nil
+}
+
 func ExtractImageURLsFromContent(content []PostContentStructure) []string {
 	var urls []string
 
