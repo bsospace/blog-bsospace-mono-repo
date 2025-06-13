@@ -102,3 +102,11 @@ func (r *MediaRepository) FindUnusedWithUniqueFileID() ([]models.ImageUpload, er
 
 	return results, err
 }
+
+func (r *MediaRepository) GetImageByURL(imageURL string) (*models.ImageUpload, error) {
+	var image models.ImageUpload
+	if err := r.DB.Where("image_url = ?", imageURL).First(&image).Error; err != nil {
+		return nil, err
+	}
+	return &image, nil
+}

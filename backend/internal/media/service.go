@@ -200,3 +200,11 @@ func (s *MediaService) DeleteUnusedImages() error {
 
 	return nil
 }
+
+func (s *MediaService) GetImageByURL(imageURL string) (*models.ImageUpload, error) {
+	image, err := s.Repo.GetImageByURL(imageURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image by URL: %w", err)
+	}
+	return image, nil
+}
