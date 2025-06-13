@@ -55,9 +55,18 @@ func (m *MediaRepository) UpdateImageUsage(image *models.ImageUpload) error {
 }
 
 func (m *MediaRepository) DeleteImagesWhereUnused() error {
-	return m.DB.
+	subQuery := m.DB.
+		Table("image_uploads").
+		Select("file_id").
+		Group("file_id").
+		Having("COUNT(*) = 1")
+
+	err := m.DB.
 		Where("is_used = ?", false).
+		Where("file_id IN (?)", subQuery).
 		Delete(&models.ImageUpload{}).Error
+
+	return err
 }
 
 func (m *MediaRepository) GetUnusedImages() ([]models.ImageUpload, error) {
@@ -67,4 +76,29 @@ func (m *MediaRepository) GetUnusedImages() ([]models.ImageUpload, error) {
 		return nil, err
 	}
 	return images, nil
+}
+
+func (r *MediaRepository) GetByFileID(fileID string) (*models.ImageUpload, error) {
+	var image models.ImageUpload
+	if err := r.DB.Where("file_id = ?", fileID).First(&image).Error; err != nil {
+		return nil, err
+	}
+	return &image, nil
+}
+
+func (r *MediaRepository) FindUnusedWithUniqueFileID() ([]models.ImageUpload, error) {
+	var results []models.ImageUpload
+
+	subQuery := r.DB.
+		Table("image_uploads").
+		Select("file_id").
+		Group("file_id").
+		Having("COUNT(*) = 1")
+
+	err := r.DB.
+		Where("is_used = false").
+		Where("file_id IN (?)", subQuery).
+		Find(&results).Error
+
+	return results, err
 }
