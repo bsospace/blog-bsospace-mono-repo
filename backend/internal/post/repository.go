@@ -7,7 +7,7 @@ import (
 )
 
 type PostRepositoryInterface interface {
-	Create(post *models.Post) error
+	Create(post *models.Post) (string, error)
 	GetAll(limit, offset int, search string) (*PostRepositoryQuery, error)
 	GetByID(id string) (*models.Post, error)
 	GetBySlug(slug string) (*models.Post, error)
@@ -28,8 +28,12 @@ func NewPostRepository(db *gorm.DB) *PostRepository {
 	return &PostRepository{DB: db}
 }
 
-func (r *PostRepository) Create(post *models.Post) error {
-	return r.DB.Create(post).Error
+func (r *PostRepository) Create(post *models.Post) (string, error) {
+	err := r.DB.Create(post).Error
+	if err != nil {
+		return "", err
+	}
+	return post.ID.String(), nil
 }
 
 type PostRepositoryQuery struct {
