@@ -55,7 +55,7 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 		Where("deleted_at IS NULL").
 		Where("published_at IS NOT NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_name", "avatar")
+			return db.Select("id", "username", "avatar")
 		}).
 		Preload("Tags").
 		Preload("Categories").
@@ -115,7 +115,7 @@ func (r *PostRepository) GetByID(id string) (*models.Post, error) {
 		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
 		Where("deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_name", "avatar")
+			return db.Select("id", "username", "avatar")
 		}).
 		Preload("Tags").
 		Preload("Categories").
@@ -135,7 +135,7 @@ func (r *PostRepository) GetBySlug(slug string) (*models.Post, error) {
 		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
 		Where("deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_name", "avatar")
+			return db.Select("id", "username", "avatar")
 		}).
 		Preload("Tags").
 		Preload("Categories").
@@ -172,7 +172,7 @@ func (r *PostRepository) GetByShortSlug(shortSlug string) (*models.Post, error) 
 		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
 		Where("deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_name", "avatar")
+			return db.Select("id", "username", "avatar")
 		}).
 		Preload("Tags").
 		Preload("Categories").
@@ -192,12 +192,12 @@ func (r *PostRepository) GetPublicPostBySlugAndUsername(slug string, username st
 		Select("posts.id", "posts.slug", "posts.title", "posts.content", "posts.description", "posts.thumbnail", "posts.published", "posts.published_at", "posts.author_id", "posts.likes", "posts.views", "posts.read_time", "posts.created_at", "posts.updated_at").
 		Where("posts.deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "user_name", "avatar", "bio")
+			return db.Select("id", "username", "avatar", "bio")
 		}).
 		Preload("Tags").
 		Preload("Categories").
 		Joins("JOIN users ON users.id = posts.author_id").
-		Where("posts.slug = ? AND users.user_name = ? AND posts.published = ?", slug, username, true).
+		Where("posts.slug = ? AND users.username = ? AND posts.published = ?", slug, username, true).
 		First(&post).Error
 	if err != nil {
 		return nil, err
