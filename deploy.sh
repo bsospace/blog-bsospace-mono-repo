@@ -18,8 +18,8 @@ echo "Combined .env created successfully."
 git stash save "Saving current changes before deployment"
 echo "Stashed current changes."
 
-# Pull latest changes from the main branch
-git pull origin main
+# Pull latest changes from the master branch
+git pull origin master
 echo "Pulled latest changes from main branch."
 
 echo "Starting production containers with docker-compose.prod.yml..."
