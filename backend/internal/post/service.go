@@ -35,6 +35,21 @@ type CategoryDTO struct {
 	Name string `json:"name"`
 }
 
+/**
+* CreatePost creates a new post or updates an existing one if a post with the same short slug already exists.
+* @param post CreatePostRequest - The request containing post details
+* @param user *models.User - The user creating the post
+* @return string - The ID of the created or updated post
+* @return error - An error if occurred
+* This function marshals the content of the post, checks if a post with the same short slug exists,
+* updates the existing post if it does, or creates a new post if it doesn't.
+* It also updates the image usage status based on the content of the post.
+* If an error occurs during any of these operations, it returns the error.
+* If the post is created successfully, it returns the ID of the post.
+* If an existing post is updated, it returns the ID of the updated post.
+* The short slug is combined with the user ID to ensure uniqueness.
+**/
+
 func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (string, error) {
 	slug := post.ShortSlug + "-" + user.ID.String()
 
@@ -86,6 +101,22 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (str
 
 	return postID, nil
 }
+
+/**
+* GetByShortSlug retrieves a post by its short slug.
+* @param shortSlug string - The short slug of the post
+* @return *models.Post - The post if found, nil otherwise
+* @return error - An error if occurred
+* This function queries the repository for a post with the given short slug.
+* If the post is found, it returns the post and nil error.
+* If the post is not found, it returns nil and an error indicating that the post was not found.
+* If an error occurs during the query, it returns nil and the error.
+* The short slug is expected to be unique for each post, so this function should return at most one post.
+* If the post is found, it returns the post with its ID, slug, title, content, description, thumbnail, published status,
+* published date, author ID, likes, views, and read time.
+* If the post is not found, it returns nil.
+* If an error occurs during the query, it returns nil and the error.
+**/
 
 func (s *PostService) GetByShortSlug(shortSlug string) (*models.Post, error) {
 	return s.Repo.GetByShortSlug(shortSlug)
@@ -144,6 +175,17 @@ func (s *PostService) GetPosts(c *gin.Context) (*PostListResponse, error) {
 	}, nil
 }
 
+/**
+* GetPostByID retrieves a post by its ID.
+* @param id string - The ID of the post
+* @return *models.Post - The post if found, nil otherwise
+* @return error - An error if occurred
+* This function queries the repository for a post with the given ID.
+* If the post is found, it returns the post and nil error.
+* If the post is not found, it returns nil and an error indicating that the post was not found.
+* If an error occurs during the query, it returns nil and the error.
+**/
+
 func (s *PostService) GetPostByID(id string) (*models.Post, error) {
 	post, err := s.Repo.GetByID(id)
 	if err != nil {
@@ -184,6 +226,21 @@ func (s *PostService) GetPostBySlug(slug string) (*PostByIdResponse, error) {
 	}, nil
 }
 
+/**
+* UpdatePost updates an existing post.
+* @param post *models.Post - The post to update
+* @return error - An error if occurred
+* This function updates the post in the repository.
+* It expects the post to have a valid ID and all necessary fields populated.
+* If the post is successfully updated, it returns nil.
+* If an error occurs during the update, it returns the error.
+* The post should have been created previously and should exist in the repository.
+* The function does not check if the post exists before updating, so it is assumed that the caller has already verified this.
+* The post can be updated with new content, title, description, thumbnail, and other fields as needed.
+* The post's ID must be set to the ID of the post to be updated.
+* If the post is not found in the repository, the update will fail and return an error.
+**/
+
 func (s *PostService) UpdatePost(post *models.Post) error {
 	return s.Repo.Update(post)
 }
@@ -191,6 +248,13 @@ func (s *PostService) UpdatePost(post *models.Post) error {
 type MyPostsResponseDTO struct {
 	Posts []MyPostsDTO `json:"posts"`
 }
+
+/**
+* MyPosts retrieves the posts created by the specified user.
+* @param user *models.User - The user whose posts to retrieve
+* @return *MyPostsResponseDTO - The response containing the user's posts
+* @return error - An error if occurred
+**/
 
 func (s *PostService) MyPosts(user *models.User) (*MyPostsResponseDTO, error) {
 	rawPosts, err := s.Repo.GetMyPosts(user)
@@ -207,6 +271,15 @@ func (s *PostService) MyPosts(user *models.User) (*MyPostsResponseDTO, error) {
 		postDTOs,
 	}, nil
 }
+
+/**
+* PublishPost publishes a post if it exists and is not already published.
+* @param post *PublishPostRequestDTO - The request containing post details
+* @param user *models.User - The user publishing the post
+* @param shortSlug string - The short slug of the post
+* @return error - An error if occurred
+* This function checks if a post with the given short slug exists and is not already published.
+**/
 
 func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User, shortSlug string) error {
 
