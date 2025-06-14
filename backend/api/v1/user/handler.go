@@ -71,7 +71,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	user.LastName = updateData.LastName
 	user.Bio = updateData.Bio
 	user.NewUser = false
-	updatedUser, err := h.userService.UpdateUser(user)
+	err := h.userService.UpdateUser(user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			response.JSONError(c, 404, "User not found", "User does not exist")
@@ -80,5 +80,5 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		response.JSONError(c, 500, "Internal Server Error", err.Error())
 		return
 	}
-	response.JSONSuccess(c, 200, "User updated successfully", updatedUser)
+	response.JSONSuccess(c, 200, "User updated successfully", nil)
 }
