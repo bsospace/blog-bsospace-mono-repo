@@ -306,6 +306,17 @@ func (s *PostService) DeletePostByID(id string, user *models.User) error {
 		return errs.ErrUnauthorized
 	}
 
+	// Remove all images related to the post
+	if err := s.MakeAllNotUsedImageStatus(existingPost); err != nil {
+		return fmt.Errorf("failed to update image usage status: %w", err)
+	}
+
+	// Make thunbnail not used
+	if err := s.UpdateThumbnailUsageStatus(existingPost, existingPost.Thumbnail); err != nil {
+		return fmt.Errorf("failed to update thumbnail usage status: %w", err)
+	}
+
+	// Delete the post
 	return s.Repo.DeletePost(existingPost)
 }
 
@@ -424,4 +435,24 @@ func ExtractImageURLsFromContent(content []PostContentStructure) []string {
 	}
 
 	return urls
+}
+
+func (s *PostService) MakeAllNotUsedImageStatus(post *models.Post) error {
+	// Get all images related to the post
+	images, err := s.MediaService.GetImagesByPostID(post.ID)
+	if err != nil {
+		return err
+	}
+
+	// Update all images to not used
+	for _, img := range images {
+		img.IsUsed = false
+		img.UsedAt = nil
+
+		if err := s.MediaService.UpdateImageUsage(&img); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
