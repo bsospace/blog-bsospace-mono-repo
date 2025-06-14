@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"rag-searchbot-backend/api/v1/auth"
 	"rag-searchbot-backend/api/v1/media"
 	"rag-searchbot-backend/api/v1/post"
@@ -107,9 +108,9 @@ func main() {
 	var coreUrl []string
 
 	if cfg.AppEnv == "release" || cfg.AppEnv == "production" {
-		coreUrl = []string{"https://blog.bsospace.com", "https://bsospace.com", "https://agentp.withyamroll.com"}
+		coreUrl = []string{os.Getenv("ALLOWED_ORIGINS_PROD")}
 	} else {
-		coreUrl = []string{"http://bobby.posyayee.com:3000", "http://localhost:3000"}
+		coreUrl = []string{os.Getenv("ALLOWED_ORIGINS_DEV")}
 	}
 
 	// CORS settings
