@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"rag-searchbot-backend/api/v1/auth"
@@ -16,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
@@ -24,15 +25,14 @@ import (
 
 // Cron expression format explanation:
 // "0 0 0 * * *"
-//  ^ ^ ^ ^ ^ ^
-//  | | | | | +--- Day of Week (0-6 or SUN-SAT)
-//  | | | | +----- Month (1-12)
-//  | | | +------- Day of Month (1-31)
-//  | | +--------- Hour (0-23)
-//  | +----------- Minute (0-59)
-//  +------------- Second (0-59)
-
-func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service) {
+//
+//	^ ^ ^ ^ ^ ^
+//	| | | | | +--- Day of Week (0-6 or SUN-SAT)
+//	| | | | +----- Month (1-12)
+//	| | | +------- Day of Month (1-31)
+//	| | +--------- Hour (0-23)
+//	| +----------- Minute (0-59)
+func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
 	repo := mediaInternal.NewMediaRepository(db)
 	service := mediaInternal.NewMediaService(repo)
 
@@ -40,28 +40,30 @@ func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service) {
 
 	// เรียกตอนเริ่ม server ทันที
 	go func() {
-		log.Println("[Startup] Deleting unused images...")
+		logger.Info("[Startup] Starting to delete unused images...")
 		err := service.DeleteUnusedImages()
 		if err != nil {
-			log.Println("[Startup] Fail to deleting image", err)
+			logger.Error("[Startup] Fail to deleting image", zap.Error(err))
 		} else {
-			log.Println("[Startup] Deleted unused images successfully")
+			logger.Info("[Startup] Deleted unused images successfully")
 		}
 	}()
 
 	// ตั้ง Cron ให้ลบทุกเที่ยงคืน
 	_, err := c.AddFunc("0 0 0 * * *", func() {
-		log.Println("[Cron] Starting to delete unused images...")
+		logger.Info("[Cron] Starting to delete unused images...")
 		err := service.DeleteUnusedImages()
 		if err != nil {
-			log.Println("[Cron] Fail to deleting image: ", err)
+			logger.Error("[Cron] Failed to delete unused images", zap.Error(err))
 		} else {
-			log.Println("[Cron] Deleted unused images successfully")
+			logger.Info("[Cron] Deleted unused images successfully")
 		}
 	})
 
 	if err != nil {
-		log.Fatalln("Can't start CRON :", err)
+		logger.Error("[Cron] Failed to schedule media cleanup", zap.Error(err))
+	} else {
+		logger.Info("[Cron] Media cleanup scheduled to run daily at midnight")
 	}
 
 	c.Start()
@@ -78,11 +80,12 @@ func main() {
 
 	// กำหนด Mode การทำงาน
 	if cfg.AppEnv == "release" {
+
 		gin.SetMode(gin.ReleaseMode)
-		log.Println("Running in Production Mode")
+		logger.Log.Info("Running in Production Mode")
 	} else {
 		gin.SetMode(gin.DebugMode)
-		log.Println("Running in Development Mode")
+		logger.Log.Info("Running in Development Mode")
 	}
 
 	// เชื่อมต่อฐานข้อมูล
@@ -90,12 +93,16 @@ func main() {
 
 	if db == nil {
 		log.Fatal("Failed to connect to database")
+	} else {
+		logger.Log.Info("Database connection established successfully")
 	}
 
 	redisClient := config.ConnectRedis()
 
 	if redisClient == nil {
-		log.Fatal("Failed to connect to Redis")
+		logger.Log.Fatal("Failed to connect to Redis")
+	} else {
+		logger.Log.Info("Redis connection established successfully")
 	}
 
 	// TTL 15 minutes
@@ -105,18 +112,18 @@ func main() {
 		RedisTTL:    15 * time.Minute,
 	}
 
-	fmt.Println("=== Cache service initialized ===", cacheService)
+	logger.Log.Info("Cache service initialized successfully")
 
-	StartMediaCleanupCron(db, cacheService)
+	StartMediaCleanupCron(db, cacheService, logger.Log)
 
 	r := gin.Default()
 
 	var coreUrl []string
 
-	if cfg.AppEnv == "release" || cfg.AppEnv == "production" {
-		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_PROD"), ",")
-	} else {
+	if cfg.AppEnv == "release" {
 		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_DEV"), ",")
+	} else {
+		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_PROD"), ",")
 	}
 
 	// CORS settings
@@ -137,10 +144,10 @@ func main() {
 	})
 
 	apiGroup := r.Group("/api/v1")
-	auth.RegisterRoutes(apiGroup, db, cacheService)
-	post.RegisterRoutes(apiGroup, db, cacheService)
-	media.RegisterRoutes(apiGroup, db, cacheService)
-	user.RegisterRoutes(apiGroup, db, cacheService)
+	auth.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
+	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
+	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
+	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
