@@ -6,6 +6,7 @@ import (
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/user"
 	"rag-searchbot-backend/pkg/crypto"
+	"rag-searchbot-backend/pkg/response"
 
 	"log"
 	"net/http"
@@ -21,11 +22,8 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 	return func(c *gin.Context) {
 		tokenString := extractToken(c)
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "Unauthorized",
-				"message": "Missing token",
-			})
+			log.Println("[ERROR] No token provided")
+			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "No token provided")
 			c.Abort()
 			return
 		}
@@ -34,13 +32,36 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 		claims, err := verifyToken(tokenString, cryptoService)
 
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			log.Println("[ERROR] Invalid token:", err)
+			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", err.Error())
 			c.Abort()
 			return
 		}
 
+		// ค้นหา User ใน Cache ก่อน
+		userCache, err := cache.GetUserCache(claims.Email)
+
+		if err == nil && userCache != nil {
+			// ถ้า User อยู่ใน Cache ให้เพิ่มข้อมูล User ลง Context
+			c.Set("user", userCache)
+			log.Println("[INFO] User found in cache:", userCache.Email)
+			c.Next()
+			return
+		} else {
+			log.Println("[INFO] User not found in cache, checking database:", claims.Email)
+		}
+
 		// ค้นหา User ใน Database
 		userDB, err := userService.GetUserByEmail(claims.Email)
+
+		if userDB != nil {
+			// set user in cache
+			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
+				log.Println("[ERROR] Failed to set user in cache:", err)
+			} else {
+				log.Println("[INFO] User cached successfully:", userDB.Email)
+			}
+		}
 
 		if err != nil {
 
@@ -48,7 +69,8 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 			userOpenID, err := userService.GetUserProfileOpenId(tokenString)
 
 			if err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to get user profile", "message": err.Error()})
+				response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Failed to get user profile from OpenID")
+				log.Println("[ERROR] Failed to get user profile from OpenID:", err)
 				c.Abort()
 				return
 			}
@@ -62,13 +84,21 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 			}
 
 			if _, err = userService.RegisterUser(newUser); err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to register user"})
+				log.Println("[ERROR] Failed to register new user:", err)
+				response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to register new user")
 				c.Abort()
 				return
 			}
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			c.Abort()
-			return
+
+			log.Println("[INFO] New user registered successfully:", newUser.Email)
+			userDB = newUser
+
+			// เพิ่ม User ใหม่ลง Cache
+			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
+				log.Println("[ERROR] Failed to set new user in cache:", err)
+			} else {
+				log.Println("[INFO] New user cached successfully:", userDB.Email)
+			}
 		}
 
 		// เพิ่มข้อมูล User ลง Context
@@ -102,7 +132,7 @@ func verifyToken(tokenString string, cryptoService *crypto.CryptoService) (*Toke
 
 	token, err := cryptoService.SmartVerifyToken(tokenString, "Access")
 	if err != nil {
-		log.Println("Invalid token:", err)
+		log.Println("[ERROR] Failed to verify token:", err)
 		return nil, err
 	}
 
