@@ -45,10 +45,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       APP_ENV: ${APP_ENV}
-      PORT: ${PORT}
       GIN_MODE: ${GIN_MODE}
     ports:
-      - "${PORT}:${PORT}"
+      - "${APP_PORT}:${APP_PORT}"
     volumes:
       - ./backend:/app
     restart: always
