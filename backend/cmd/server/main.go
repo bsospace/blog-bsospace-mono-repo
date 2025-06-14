@@ -99,7 +99,12 @@ func main() {
 	}
 
 	// TTL 15 minutes
-	cacheService := cache.NewService(redisClient, 15*time.Minute)
+	cacheService := &cache.Service{
+		Cache:       make(map[string]interface{}),
+		RedisClient: redisClient,
+		RedisTTL:    15 * time.Minute,
+	}
+
 	fmt.Println("=== Cache service initialized ===", cacheService)
 
 	StartMediaCleanupCron(db, cacheService)
