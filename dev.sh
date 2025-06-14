@@ -2,24 +2,24 @@
 
 set -e
 
-echo "🔧 Combining frontend and backend .env files..."
+echo "Combining frontend and backend .env files..."
 
-# Clear previous .env if exists
-rm -f .env
+# Check and combine .env files
+if [[ -f frontend/.env && -f backend/.env ]]; then
+  rm -f .env
+  cat frontend/.env > .env
+  echo "" >> .env
+  cat backend/.env >> .env
+  echo "Combined .env created successfully."
+else
+  echo "One or both .env files not found in frontend/ or backend/. Aborting."
+  exit 1
+fi
 
-# Combine envs
-cat frontend/.env > .env
-echo "" >> .env
-cat backend/.env >> .env
-
-echo "Combined .env created successfully."
-
-echo "Starting backend-related containers with docker-compose.dev.yml..."
-
+echo "Starting backend containers from docker-compose.dev.yml..."
 docker compose -f docker-compose.dev.yml up -d --build
 
-echo "Containers are up. Starting frontend dev server..."
-
+echo "Starting frontend development server..."
 cd frontend
 pnpm install
 pnpm dev
