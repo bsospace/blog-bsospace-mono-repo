@@ -15,7 +15,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 	userRepository := user.NewRepository(db)
 
 	// สร้าง Service ที่ใช้ Repository
-	userService := user.NewService(userRepository)
+	userService := user.NewService(userRepository, cache)
 
 	// สร้าง UserHandler
 	userHandler := NewUserHandler(userService)

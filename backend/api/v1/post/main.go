@@ -32,7 +32,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 	// cryptoService
 	cryptoService := crypto
 	// สร้าง Service ที่ใช้ Repository
-	userService := user.NewService(userRepository)
+	userService := user.NewService(userRepository, cache)
 
 	// Cache Service
 	cacheService := cache
