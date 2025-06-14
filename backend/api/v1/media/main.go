@@ -15,7 +15,7 @@ import (
 func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
 	// Inject dependencies
 	repo := media.NewMediaRepository(db)
-	service := media.NewMediaService(repo)
+	service := media.NewMediaService(repo, logger)
 	handler := NewMediaHandler(service)
 	// สร้าง Repository ที่ใช้ GORM
 	userRepository := user.NewRepository(db)
