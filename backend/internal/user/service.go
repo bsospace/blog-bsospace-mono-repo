@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/models"
 	"time"
 
@@ -14,11 +15,12 @@ import (
 )
 
 type Service struct {
-	Repo *Repository
+	Repo  *Repository
+	Cache *cache.Service
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{Repo: repo}
+func NewService(repo *Repository, cache *cache.Service) *Service {
+	return &Service{Repo: repo, Cache: cache}
 }
 
 // RegisterUser เพิ่ม User ลงในฐานข้อมูล
@@ -130,10 +132,12 @@ func (s *Service) GetExistingUsername(username string) (bool, error) {
 	return result, nil
 }
 
-func (s *Service) UpdateUser(user *models.User) (*models.User, error) {
+func (s *Service) UpdateUser(user *models.User) error {
 	err := s.Repo.UpdateUser(user)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update user: %w", err)
+		return fmt.Errorf("failed to update user: %w", err)
 	}
-	return user, nil
+	s.Cache.ClearUserCache(user.Email)
+
+	return nil
 }

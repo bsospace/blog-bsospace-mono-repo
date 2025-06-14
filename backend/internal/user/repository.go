@@ -33,17 +33,17 @@ func (r *Repository) GetUsers() ([]models.User, error) {
 	return users, err
 }
 
-func (r *Repository) preloadUserRelations(db *gorm.DB) *gorm.DB {
-	return db.
-		Preload("Posts").
-		Preload("Comments").
-		Preload("AIUsageLogs").
-		Preload("Notifications")
-}
+// func (r *Repository) preloadUserRelations(db *gorm.DB) *gorm.DB {
+// 	return db.
+// 		Preload("Posts").
+// 		Preload("Comments").
+// 		Preload("AIUsageLogs").
+// 		Preload("Notifications")
+// }
 
 func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	err := r.preloadUserRelations(r.DB).
+	err := r.DB.
 		Where("email = ?", email).
 		Where("deleted_at IS NULL").
 		First(&user).Error
@@ -70,11 +70,13 @@ func (r *Repository) GetUserByUsername(username string) (bool, error) {
 
 // Update
 func (r *Repository) UpdateUser(user *models.User) error {
-	existinUser := &models.User{}
-	err := r.DB.First(existinUser, "id = ?", user.ID).Error
-	if err != nil {
-		return err
-	}
-
-	return r.DB.Model(existinUser).Updates(user).Error
+	return r.DB.Model(&models.User{}).
+		Where("id = ?", user.ID).
+		Updates(map[string]interface{}{
+			"username":   user.UserName,
+			"first_name": user.FirstName,
+			"last_name":  user.LastName,
+			"bio":        user.Bio,
+			"new_user":   false,
+		}).Error
 }
