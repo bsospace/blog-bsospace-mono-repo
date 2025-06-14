@@ -2,28 +2,37 @@
 
 set -e
 
-echo "Combining frontend and backend .env files..."
+echo "Starting deployment..."
 
-# Clear previous .env if exists
-rm -f .env
+# Clean up previous combined .env file
+if [ -f .env ]; then
+  echo "Removing previous combined .env..."
+  rm .env
+fi
 
-# Combine envs
-cat frontend/.env > .env
-echo "" >> .env
-cat backend/.env >> .env
+# Combine frontend and backend .env files
+echo "Combining frontend/.env and backend/.env into root .env..."
 
-echo "Combined .env created successfully."
+if [ -f frontend/.env ] && [ -f backend/.env ]; then
+  cat frontend/.env > .env
+  echo "" >> .env
+  cat backend/.env >> .env
+  echo "Combined .env created successfully."
+else
+  echo "Missing one or both .env files. Make sure frontend/.env and backend/.env exist."
+  exit 1
+fi
 
-# Git stash to save current changes
-git stash save "Saving current changes before deployment"
-echo "Stashed current changes."
+# Stash current changes before pulling
+echo "Stashing local changes..."
+git stash push -m "Auto-stash before deployment"
 
-# Pull latest changes from the master branch
+# Pull latest changes from remote
+echo "Pulling latest changes from master branch..."
 git pull origin master
-echo "Pulled latest changes from main branch."
 
+# Start production containers
 echo "Starting production containers with docker-compose.prod.yml..."
-
 docker compose -f docker-compose.prod.yml up -d --build
 
 echo "Deployment complete!"
