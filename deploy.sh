@@ -14,6 +14,14 @@ cat backend/.env >> .env
 
 echo "Combined .env created successfully."
 
+# Git stash to save current changes
+git stash save "Saving current changes before deployment"
+echo "Stashed current changes."
+
+# Pull latest changes from the main branch
+git pull origin main
+echo "Pulled latest changes from main branch."
+
 echo "Starting production containers with docker-compose.prod.yml..."
 
 docker compose -f docker-compose.prod.yml up -d --build
