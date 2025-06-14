@@ -9,10 +9,11 @@ import (
 	"rag-searchbot-backend/pkg/crypto"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) {
+func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
 	// Inject dependencies
 
 	mediaRepo := media.NewMediaRepository(db)
@@ -38,7 +39,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service) 
 	cacheService := cache
 
 	// auth middleware
-	authMiddleware := middleware.AuthMiddleware(userService, cryptoService, cacheService)
+	authMiddleware := middleware.AuthMiddleware(userService, cryptoService, cacheService, logger)
 
 	// Protected Category Routes
 	postsRoutes := router.Group("/posts")
