@@ -27,3 +27,4 @@ go.work.sum
 
 cmd/server/tmp*
 keys
+cmd/server/logs/logs.txt
