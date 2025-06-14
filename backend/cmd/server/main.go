@@ -13,6 +13,7 @@ import (
 	"rag-searchbot-backend/internal/cache"
 	mediaInternal "rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/pkg/logger"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -108,9 +109,9 @@ func main() {
 	var coreUrl []string
 
 	if cfg.AppEnv == "release" || cfg.AppEnv == "production" {
-		coreUrl = []string{os.Getenv("ALLOWED_ORIGINS_PROD")}
+		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_PROD"), ",")
 	} else {
-		coreUrl = []string{os.Getenv("ALLOWED_ORIGINS_DEV")}
+		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_DEV"), ",")
 	}
 
 	// CORS settings
