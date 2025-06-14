@@ -34,7 +34,7 @@ import (
 //	| +----------- Minute (0-59)
 func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
 	repo := mediaInternal.NewMediaRepository(db)
-	service := mediaInternal.NewMediaService(repo)
+	service := mediaInternal.NewMediaService(repo, logger)
 
 	c := cron.New(cron.WithSeconds())
 
