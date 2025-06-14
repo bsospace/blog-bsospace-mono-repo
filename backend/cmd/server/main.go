@@ -121,9 +121,9 @@ func main() {
 	var coreUrl []string
 
 	if cfg.AppEnv == "release" {
-		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_DEV"), ",")
-	} else {
 		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_PROD"), ",")
+	} else {
+		coreUrl = strings.Split(os.Getenv("ALLOWED_ORIGINS_DEV"), ",")
 	}
 
 	// CORS settings
