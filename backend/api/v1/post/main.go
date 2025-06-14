@@ -17,7 +17,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, 
 	// Inject dependencies
 
 	mediaRepo := media.NewMediaRepository(db)
-	mediaService := media.NewMediaService(mediaRepo)
+	mediaService := media.NewMediaService(mediaRepo, logger)
 
 	var postRepo post.PostRepositoryInterface = post.NewPostRepository(db)
 	service := post.NewPostService(postRepo, mediaService)

@@ -5,20 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/models"
+	"rag-searchbot-backend/pkg/logger"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type MediaService struct {
 	Repo *MediaRepository
 }
 
-func NewMediaService(repo *MediaRepository) *MediaService {
+func NewMediaService(repo *MediaRepository, logger *zap.Logger) *MediaService {
 	return &MediaService{Repo: repo}
 }
 
@@ -30,8 +31,13 @@ func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *model
 		return nil, err
 	}
 
-	log.Println("DEBUG - user.ID:", user.ID)
-	log.Println("RESULT - Chibisafe Response:", res)
+	logger.Log.Info("RESULT - Chibisafe Response Name:", zap.String("name", res.Name))
+	logger.Log.Info("RESULT - Chibisafe Response Identifier:", zap.String("identifier", res.Identifier))
+	logger.Log.Info("RESULT - Chibisafe Response:", zap.Any("response", res))
+	logger.Log.Info("RESULT - Chibisafe Response UUID:", zap.String("uuid", res.UUID))
+	// log user
+	logger.Log.Info("RESULT - User ID:", zap.String("user_id", user.ID.String()))
+	logger.Log.Info("RESULT - User Email:", zap.String("user_email", user.Email))
 
 	image := &models.ImageUpload{
 		ID:         uuid.New(),
@@ -181,12 +187,12 @@ func (s *MediaService) DeleteUnusedImages() error {
 	}
 
 	for _, img := range unusedImages {
-		log.Println("Deleting from chibisafe:", img.ImageURL)
+		logger.Log.Info("Deleting unused image", zap.String("image_id", img.ID.String()), zap.String("file_id", img.FileID))
 
 		// ลบจาก Chibisafe
 		err := s.DeleteFromChibisafe(&img)
 		if err != nil {
-			log.Printf("warning: failed to delete image %s from chibisafe: %v", img.ID, err)
+			logger.Log.Error("Failed to delete image from Chibisafe", zap.Error(err), zap.String("image_id", img.ID.String()))
 			continue // ข้ามหากลบไม่ได้
 		}
 	}
@@ -196,7 +202,7 @@ func (s *MediaService) DeleteUnusedImages() error {
 		return fmt.Errorf("failed to delete unused images from database: %w", err)
 	}
 
-	log.Println("Successfully deleted unused images from Chibisafe and database")
+	logger.Log.Info("Successfully deleted unused images from Chibisafe and database")
 
 	return nil
 }
