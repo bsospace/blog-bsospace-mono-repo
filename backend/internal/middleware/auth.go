@@ -8,31 +8,31 @@ import (
 	"rag-searchbot-backend/pkg/crypto"
 	"rag-searchbot-backend/pkg/response"
 
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 // AuthMiddleware ใช้สำหรับป้องกัน API ด้วย JWT
-func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoService, cache *cache.Service) gin.HandlerFunc {
+func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoService, cache *cache.Service, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := extractToken(c)
 		if tokenString == "" {
-			log.Println("[ERROR] No token provided")
+			logger.Error("[ERROR] No token provided in request")
 			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "No token provided")
 			c.Abort()
 			return
 		}
 
 		// ตรวจสอบ Token ผ่าน CryptoService (ใช้ Dependency Injection)
-		claims, err := verifyToken(tokenString, cryptoService)
+		claims, err := verifyToken(tokenString, cryptoService, logger)
 
 		if err != nil {
-			log.Println("[ERROR] Invalid token:", err)
+			logger.Error("[ERROR] Invalid token", zap.Error(err))
 			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", err.Error())
 			c.Abort()
 			return
@@ -44,11 +44,11 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 		if err == nil && userCache != nil {
 			// ถ้า User อยู่ใน Cache ให้เพิ่มข้อมูล User ลง Context
 			c.Set("user", userCache)
-			log.Println("[INFO] User found in cache:", userCache.Email)
+			logger.Info("[INFO] User found in cache:", zap.String("email", claims.Email))
 			c.Next()
 			return
 		} else {
-			log.Println("[INFO] User not found in cache, checking database:", claims.Email)
+			logger.Info("[INFO] User not found in cache, checking database:", zap.String("email", claims.Email))
 		}
 
 		// ค้นหา User ใน Database
@@ -57,9 +57,9 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 		if userDB != nil {
 			// set user in cache
 			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
-				log.Println("[ERROR] Failed to set user in cache:", err)
+				logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
 			} else {
-				log.Println("[INFO] User cached successfully:", userDB.Email)
+				logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
 			}
 		}
 
@@ -70,7 +70,7 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 
 			if err != nil {
 				response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Failed to get user profile from OpenID")
-				log.Println("[ERROR] Failed to get user profile from OpenID:", err)
+				logger.Error("[ERROR] Failed to get user profile from OpenID", zap.Error(err))
 				c.Abort()
 				return
 			}
@@ -84,20 +84,20 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 			}
 
 			if _, err = userService.RegisterUser(newUser); err != nil {
-				log.Println("[ERROR] Failed to register new user:", err)
+				logger.Error("[ERROR] Failed to register new user", zap.Error(err), zap.String("email", newUser.Email))
 				response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to register new user")
 				c.Abort()
 				return
 			}
 
-			log.Println("[INFO] New user registered successfully:", newUser.Email)
+			logger.Info("[INFO] New user registered successfully", zap.String("email", newUser.Email))
 			userDB = newUser
 
 			// เพิ่ม User ใหม่ลง Cache
 			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
-				log.Println("[ERROR] Failed to set new user in cache:", err)
+				logger.Error("[ERROR] Failed to cache new user", zap.Error(err), zap.String("email", userDB.Email))
 			} else {
-				log.Println("[INFO] New user cached successfully:", userDB.Email)
+				logger.Info("[INFO] New user cached successfully", zap.String("email", userDB.Email))
 			}
 		}
 
@@ -128,11 +128,11 @@ type TokenClaims struct {
 }
 
 // Verify JWT Token (ใช้ Dependency Injection)
-func verifyToken(tokenString string, cryptoService *crypto.CryptoService) (*TokenClaims, error) {
+func verifyToken(tokenString string, cryptoService *crypto.CryptoService, logger *zap.Logger) (*TokenClaims, error) {
 
 	token, err := cryptoService.SmartVerifyToken(tokenString, "Access")
 	if err != nil {
-		log.Println("[ERROR] Failed to verify token:", err)
+		logger.Error("[ERROR] Failed to verify token", zap.Error(err))
 		return nil, err
 	}
 
