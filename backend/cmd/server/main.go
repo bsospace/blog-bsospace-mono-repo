@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"rag-searchbot-backend/api/v1/ai"
 	"rag-searchbot-backend/api/v1/auth"
 	"rag-searchbot-backend/api/v1/media"
 	"rag-searchbot-backend/api/v1/post"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 )
@@ -112,6 +114,23 @@ func main() {
 		RedisTTL:    15 * time.Minute,
 	}
 
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
+		Addr: cfg.RedisAddr,
+	})
+
+	asynqServer := asynq.NewServer(
+		asynq.RedisClientOpt{Addr: cfg.RedisAddr},
+		asynq.Config{Concurrency: 10},
+	)
+
+	mux := asynq.NewServeMux()
+
+	go func() {
+		if err := asynqServer.Run(mux); err != nil {
+			logger.Log.Fatal("Worker error", zap.Error(err))
+		}
+	}()
+
 	logger.Log.Info("Cache service initialized successfully")
 
 	StartMediaCleanupCron(db, cacheService, logger.Log)
@@ -148,6 +167,7 @@ func main() {
 	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
+	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
