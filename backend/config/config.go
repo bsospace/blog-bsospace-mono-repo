@@ -16,6 +16,7 @@ type Config struct {
 	RedisHost        string
 	RedisPort        string
 	RedisPassword    string
+	RedisAddr        string
 	OpenIDURL        string
 	OllamaHost       string
 	ChibisafeURL     string
@@ -67,5 +68,6 @@ func LoadConfig() Config {
 		RedisHost:        redisHost,
 		RedisPort:        redisPort,
 		RedisPassword:    redisPassword,
+		RedisAddr:        redisHost + ":6379",
 	}
 }
