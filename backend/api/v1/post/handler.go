@@ -159,7 +159,7 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	response.JSONSuccess(c, http.StatusOK, "Post deleted successfully", nil)
 }
 
 func (h *PostHandler) Publish(c *gin.Context) {
