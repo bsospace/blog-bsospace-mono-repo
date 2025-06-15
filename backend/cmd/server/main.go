@@ -13,6 +13,7 @@ import (
 	"rag-searchbot-backend/handlers"
 	"rag-searchbot-backend/internal/cache"
 	mediaInternal "rag-searchbot-backend/internal/media"
+	wsInternal "rag-searchbot-backend/internal/ws"
 	"rag-searchbot-backend/pkg/logger"
 	"strings"
 	"time"
@@ -163,10 +164,12 @@ func main() {
 		})
 	})
 
+	var socketManager = wsInternal.NewManager()
+
 	apiGroup := r.Group("/api/v1")
-	ws.StartWebSocketServer(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
+	ws.StartWebSocketServer(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
 	auth.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
-	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
+	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
 	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
