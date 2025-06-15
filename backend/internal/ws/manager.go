@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"log"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -36,15 +37,48 @@ func (m *Manager) RemoveClient(userID string) {
 
 func (m *Manager) SendToUser(userID, event string, payload interface{}) error {
 	m.mu.RLock()
+	client, ok := m.clients[userID]
+	m.mu.RUnlock()
+
+	if !ok || client == nil || client.Conn == nil {
+		log.Printf("[WS] User %s is not connected - cannot send %s", userID, event)
+		return nil
+	}
+
+	msg := map[string]interface{}{
+		"event":   event,
+		"payload": payload,
+	}
+
+	log.Printf("[WS] Sending to user %s - event: %s - payload: %+v", userID, event, payload)
+
+	if err := client.Conn.WriteJSON(msg); err != nil {
+		log.Printf("[WS] Failed to send to user %s: %v", userID, err)
+		return err
+	}
+
+	return nil
+}
+
+func (m *Manager) GetClient(userID string) *Client {
+	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	client, ok := m.clients[userID]
 	if !ok {
-		return nil // user not connected
+		return nil
 	}
+	return client
+}
 
-	return client.Conn.WriteJSON(map[string]interface{}{
-		"event":   event,
-		"payload": payload,
-	})
+func (m *Manager) LogAllClients() {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	log.Println("[WS] Currently connected clients:")
+	for userID, client := range m.clients {
+		if client != nil && client.Conn != nil {
+			log.Printf(" - userID: %s", userID)
+		}
+	}
 }
