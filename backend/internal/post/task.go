@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/queue"
-	"rag-searchbot-backend/pkg/tiptap"
 
 	"github.com/hibiken/asynq"
 )
@@ -27,13 +26,11 @@ func NewTaskEnqueuer(client *asynq.Client, QueueRepo queue.QueueRepositoryInterf
 
 func (t *TaskEnqueuer) EnqueueFilterPostContentByAI(post *models.Post, user *models.User) (bool, error) {
 
-	plainText := tiptap.ExtractTextFromTiptap(post.Content)
-
 	payload, err := json.Marshal(FilterPostContentByAIPayload{
 		Post: models.Post{
-			ID:      post.ID,
-			Title:   post.Title,
-			Content: plainText,
+			ID:          post.ID,
+			Title:       post.Title,
+			HTMLContent: post.HTMLContent,
 		},
 		User: models.User{
 			ID:    user.ID,
