@@ -164,7 +164,7 @@ func main() {
 
 	apiGroup := r.Group("/api/v1")
 	auth.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
-	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
+	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
 	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
