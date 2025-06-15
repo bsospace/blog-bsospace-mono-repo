@@ -337,7 +337,7 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 		zap.String("AppEnv", cfg.AppEnv),
 	)
 
-	if cfg.AppEnv == "release" {
+	if cfg.AppEnv == "debug" {
 
 		existingPost.Published = false
 		existingPost.Status = models.PostProcessing
