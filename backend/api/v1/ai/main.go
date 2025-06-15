@@ -38,7 +38,11 @@ func RegisterRoutes(
 	authMiddleware := middleware.AuthMiddleware(userService, cryptoService, cache, logger)
 
 	// Register AI worker
-	mux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(logger))
+	// Register AI worker with full dependency injection
+	mux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(ai.EmbedPostWorker{
+		Logger:   logger,
+		PostRepo: postRepo,
+	}))
 
 	// Route Group
 	aiRoutes := router.Group("/ai")
