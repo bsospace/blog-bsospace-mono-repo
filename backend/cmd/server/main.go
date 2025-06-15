@@ -8,6 +8,7 @@ import (
 	"rag-searchbot-backend/api/v1/media"
 	"rag-searchbot-backend/api/v1/post"
 	"rag-searchbot-backend/api/v1/user"
+	"rag-searchbot-backend/api/v1/ws"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/handlers"
 	"rag-searchbot-backend/internal/cache"
@@ -163,6 +164,7 @@ func main() {
 	})
 
 	apiGroup := r.Group("/api/v1")
+	ws.StartWebSocketServer(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
 	auth.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
 	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
