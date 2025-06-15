@@ -328,6 +328,7 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 	existingPost.Title = post.Title
 	existingPost.Description = post.Description
 	existingPost.Thumbnail = post.Thumbnail
+	existingPost.HTMLContent = post.HTMLContent
 
 	cfg := config.LoadConfig()
 
