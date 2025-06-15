@@ -119,6 +119,7 @@ type Embedding struct {
 type Notification struct {
 	ID      uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	Title   string    `gorm:"not null" json:"title"`
+	Even    string    `gorm:"not null" json:"event"` // event type, e.g. "new_post", "comment_reply"
 	Content string    `gorm:"type:text;not null" json:"content"`
 	Link    string    `gorm:"not null" json:"link"`
 	Seen    bool      `gorm:"default:false" json:"seen"`
