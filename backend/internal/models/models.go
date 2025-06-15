@@ -22,6 +22,15 @@ type BaseModel struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
+type PostStatus string
+
+const (
+	PostDraft      PostStatus = "DRAFT"
+	PostProcessing PostStatus = "PROCESSING"
+	PostPublished  PostStatus = "PUBLISHED"
+	PostRejected   PostStatus = "REJECTED"
+)
+
 type User struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	Email     string    `gorm:"uniqueIndex;not null" json:"email"`
@@ -38,6 +47,7 @@ type User struct {
 	Comments      []Comment      `gorm:"foreignKey:AuthorID;references:ID" json:"comments,omitempty"`
 	AIUsageLogs   []AIUsageLog   `gorm:"foreignKey:UserID;references:ID" json:"ai_usage_logs,omitempty"`
 	Notifications []Notification `gorm:"foreignKey:UserID;references:ID" json:"notifications,omitempty"`
+	QueueTaskLog  []QueueTaskLog `gorm:"foreignKey:UserID;references:ID" json:"queue_task_logs,omitempty"`
 }
 
 type Post struct {
@@ -50,6 +60,7 @@ type Post struct {
 	Example     string         `json:"example,omitempty"`
 	Content     string         `gorm:"type:text;not null" json:"content"`
 	Published   bool           `gorm:"default:false" json:"published"`
+	Status      PostStatus     `gorm:"type:varchar(20);default:'DRAFT'" json:"status"`
 	PublishedAt *time.Time     `json:"published_at,omitempty"`
 	Keywords    pq.StringArray `gorm:"type:text[]" json:"keywords,omitempty"`
 	Key         string         `json:"key,omitempty"`
@@ -166,4 +177,21 @@ type ImageUpload struct {
 
 	User User  `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
 	Post *Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"` // ถ้าอัปโหลดเพื่อใช้ในโพสต์
+}
+
+type QueueTaskLog struct {
+	ID         uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	TaskID     string    `gorm:"index" json:"task_id"`               // ใช้ track task นี้ในภายหลัง
+	TaskType   string    `gorm:"not null" json:"task_type"`          // เช่น "FILTER_AI", "EMBED_VECTOR"
+	RefID      string    `gorm:"index" json:"ref_id"`                // ID ที่เกี่ยวข้อง เช่น PostID, UserID
+	RefType    string    `gorm:"not null" json:"ref_type"`           // เช่น "POST", "USER"
+	Status     string    `gorm:"not null" json:"status"`             // SUCCESS, FAILED
+	Message    string    `gorm:"type:text" json:"message,omitempty"` // ข้อความ error หรือ notes
+	StartedAt  time.Time `gorm:"autoCreateTime" json:"started_at"`   // เวลาเริ่ม
+	FinishedAt time.Time `json:"finished_at,omitempty"`              // เวลาจบ
+	Duration   int64     `json:"duration_ms"`                        // ระยะเวลา ms
+	Payload    string    `gorm:"type:text" json:"payload,omitempty"` // ข้อมูลเพิ่มเติม เช่น JSON payload
+
+	UserID uuid.UUID `gorm:"index" json:"user_id"`                                  // ID ของผู้ใช้ที่สร้าง task นี้
+	User   User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"` // ผู้ใช้ที่สร้าง task นี้
 }
