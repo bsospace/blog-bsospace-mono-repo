@@ -40,6 +40,9 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 
 	h.manager.AddClient(user.ID.String(), conn)
 
+	log.Printf("[WS] Client connected: %s (%s)", user.Email, user.ID)
+	h.manager.LogAllClients()
+
 	defer func() {
 		h.manager.RemoveClient(user.ID.String())
 		conn.Close()
@@ -48,14 +51,7 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 	// Send sayhi message
 	sayhiMessage := map[string]interface{}{
 		"event":   "sayhi",
-		"message": "Welcome to the WebSocket server!",
-		"user": map[string]interface{}{
-			"id":         user.ID.String(),
-			"first_name": user.FirstName,
-			"last_name":  user.LastName,
-			"email":      user.Email,
-			"avatar":     user.Avatar,
-		},
+		"message": `Welcome to the WebSocket server! ` + user.UserName,
 	}
 	if messageBytes, err := json.Marshal(sayhiMessage); err == nil {
 		conn.WriteMessage(websocket.TextMessage, messageBytes)
