@@ -5,24 +5,28 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/pkg/errs"
+	"rag-searchbot-backend/pkg/logger"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type PostService struct {
 	Repo         PostRepositoryInterface
 	MediaService *media.MediaService
+	TaskEnqueuer *TaskEnqueuer
 }
 
-func NewPostService(repo PostRepositoryInterface, mediaRepo *media.MediaService) *PostService {
-	return &PostService{Repo: repo, MediaService: mediaRepo}
+func NewPostService(repo PostRepositoryInterface, mediaRepo *media.MediaService, enqueuer *TaskEnqueuer) *PostService {
+	return &PostService{Repo: repo, MediaService: mediaRepo, TaskEnqueuer: enqueuer}
 }
 
 type TagDTO struct {
@@ -320,12 +324,38 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 		existingPost.Slug = post.Slug
 	}
 
-	existingPost.Published = true
 	now := time.Now()
 	existingPost.Title = post.Title
-	existingPost.PublishedAt = &now
 	existingPost.Description = post.Description
 	existingPost.Thumbnail = post.Thumbnail
+
+	cfg := config.LoadConfig()
+
+	// log mode
+	logger.Log.Info("Publishing post",
+		zap.String("AppEnv", cfg.AppEnv),
+	)
+
+	if cfg.AppEnv == "release" {
+
+		existingPost.Published = false
+		existingPost.Status = models.PostProcessing
+		existingPost.PublishedAt = nil
+
+		logger.Log.Info("Enqueuing post content for AI filtering ",
+			zap.String("post_id", existingPost.ID.String()),
+			zap.String("post_title", existingPost.Title),
+			zap.String("author_id", existingPost.AuthorID.String()),
+			zap.String("author_email", user.Email))
+		_, err = s.TaskEnqueuer.EnqueueFilterPostContentByAI(existingPost, user)
+		if err != nil {
+			return err
+		}
+	} else {
+		existingPost.Published = true
+		existingPost.PublishedAt = &now
+		existingPost.Status = models.PostPublished
+	}
 
 	return s.Repo.Update(existingPost)
 }
@@ -347,6 +377,10 @@ func (s *PostService) UnpublishPost(user *models.User, shortSlug string) error {
 	if existingPost.AuthorID != user.ID {
 		return errors.New("you are not the author of this post")
 	}
+
+	existingPost.Published = false
+	existingPost.PublishedAt = nil
+	existingPost.Status = models.PostDraft
 
 	return s.Repo.UnpublishPost(existingPost)
 }
