@@ -157,7 +157,6 @@ func parseModerationResult(response string) *ModerationResult {
 
 	return nil
 }
-
 func buildModerationPrompt(payload FilterPostContentByAIPayload) string {
 	return fmt.Sprintf(`You are a strict AI content moderator.
 
@@ -174,10 +173,13 @@ Guidelines:
 - If the content has no clear meaning, is just a few words, or lacks structure — mark as UNSAFE with reason "Lacks informative or meaningful value".
 - If the content is structured and informative (like articles, guides, tutorials, opinions), mark as SAFE with brief reason and type.
 - If content is just one or two meaningless or ambiguous words — mark as UNSAFE: Lacks meaning | OTHER.
+- Check for Thai slang words like: กาก, มึง, กู, เหี้ย, ควย, สัส, ดอก, จิ๋ม หี etc.
+- Check for English slang/rude words like: wtf, stfu, fck, shit, damn, ass etc.
 
 Examples:
 - SAFE: Clear tutorial content | TUTORIAL
-- UNSAFE: Contains profanity 'f***' | SEXUAL
+- UNSAFE: Contains profanity 'f***' | SEXUAL 
+- UNSAFE: Contains Thai slang 'มึง' | HATE
 - UNSAFE: Just one meaningless word 'ดี้จา' | OTHER
 - UNSAFE: Test content '....' | OTHER
 - SAFE: Informative article about health benefits of exercise | HEALTH
