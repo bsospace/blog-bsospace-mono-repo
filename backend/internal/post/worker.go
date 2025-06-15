@@ -389,10 +389,11 @@ func (deps FilterPostWorker) NotifyUser(post *models.Post, user *models.User, st
 		notiTitle = "Your post was rejected due to content policy violation"
 	}
 
+	notiEvent := "notification:" + TaskTypeFilterPostContentByAI
 	err := deps.NotiService.Notify(
 		user,
 		notiTitle,
-		"notification",
+		notiEvent,
 		formattedMessage,
 		nil,
 	)
