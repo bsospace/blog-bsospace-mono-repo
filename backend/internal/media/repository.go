@@ -45,7 +45,17 @@ func (r *MediaRepository) MakeAsUsed(id uint, reason string) error {
 // GetImagesByPostID ดึงรูปภาพทั้งหมดที่เชื่อมกับโพสต์นี้
 func (m *MediaRepository) GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error) {
 	var images []models.ImageUpload
-	err := m.DB.Where("post_id = ?", postID).Find(&images).Error
+
+	subQuery := m.DB.
+		Table("image_uploads").
+		Select("file_id").
+		Group("file_id").
+		Having("COUNT(*) = 1")
+
+	err := m.DB.Where("post_id = ?", postID).
+		Where("file_id IN (?)", subQuery).
+		Find(&images).Error
+
 	return images, err
 }
 
@@ -106,6 +116,9 @@ func (r *MediaRepository) FindUnusedWithUniqueFileID() ([]models.ImageUpload, er
 func (r *MediaRepository) GetImageByURL(imageURL string) (*models.ImageUpload, error) {
 	var image models.ImageUpload
 	if err := r.DB.Where("image_url = ?", imageURL).First(&image).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &image, nil
