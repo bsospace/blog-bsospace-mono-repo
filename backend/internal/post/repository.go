@@ -54,6 +54,7 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 		Where("published = ?", true).
 		Where("deleted_at IS NULL").
 		Where("published_at IS NOT NULL").
+		Where("status = ?", models.PostPublished).
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id", "username", "avatar")
 		}).
@@ -221,8 +222,9 @@ func (r *PostRepository) PublishPost(post *models.Post) error {
 func (r *PostRepository) UnpublishPost(post *models.Post) error {
 	// Ensure the post is published before unpublishing
 	return r.DB.Model(post).Updates(map[string]interface{}{
-		"published":    false,
-		"published_at": nil,
+		"published":    post.Published,
+		"published_at": post.PublishedAt,
+		"status":       post.Status,
 	}).Error
 
 }
