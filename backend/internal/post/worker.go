@@ -47,7 +47,7 @@ func FilterPostContentByAIWorkerHandler(deps FilterPostWorker) asynq.HandlerFunc
 		startedAt := time.Now()
 		deps.Logger.Info("Filtering post content", zap.String("post_id", payload.Post.ID.String()), zap.String("post_title", payload.Post.Title))
 
-		if len(payload.Post.Content) < 100 {
+		if len(*payload.Post.HTMLContent) < 100 {
 			return handleSkippedContent(deps, t, &payload, startedAt)
 		}
 
@@ -163,40 +163,75 @@ func parseModerationResult(response string) *ModerationResult {
 
 	return nil
 }
-func buildModerationPrompt(payload FilterPostContentByAIPayload) string {
-	return fmt.Sprintf(`You are a strict AI content moderator.
 
-Carefully review the content and respond with one of the following formats ONLY:
+func buildModerationPrompt(payload FilterPostContentByAIPayload) string {
+
+	// log payload.Post.HTMLContent
+	if payload.Post.HTMLContent == nil || *payload.Post.HTMLContent == "" {
+		payload.Post.HTMLContent = new(string)
+		*payload.Post.HTMLContent = "<p>No content provided</p>"
+	}
+
+	logger.Log.Info("Building moderation prompt", zap.String("post_id", payload.Post.ID.String()), zap.String("post_title", payload.Post.Title), zap.String("post_html_content", *payload.Post.HTMLContent))
+	return fmt.Sprintf(`You are a strict AI content moderator tasked with reviewing human-written posts.
+
+Your goal is to determine whether the content is SAFE or UNSAFE for publication.
+You must respond in one of the following formats ONLY:
 - SAFE: [REASON] | [CONTENT_TYPE]
-- UNSAFE: [REASON including specific words or phrases] | [CONTENT_TYPE]
+- UNSAFE: [REASON with clear justification and quoted words/phrases] | [CONTENT_TYPE]
 
 CONTENT_TYPE must be one of:
-ARTICLE, NEWS, TUTORIAL, REVIEW, ADVERTISEMENT, ENTERTAINMENT, ADULT, SPAM, SEXUAL, VIOLENT, HATE, PROVOCATIVE, MISINFORMATION, POLITICAL, HEALTH, FINANCIAL, EDUCATIONAL, OTHER.
+ARTICLE, NEWS, TUTORIAL, REVIEW, ADVERTISEMENT, ENTERTAINMENT, ADULT, SPAM, SEXUAL, VIOLENT, HATE, PROVOCATIVE, MISINFORMATION, POLITICAL, HEALTH, FINANCIAL, EDUCATIONAL, OTHER
 
-Guidelines:
-- If the content includes profanity, sexual language, vulgar jokes, violent speech, hate speech, spam, or adult references — mark as UNSAFE and include the word/phrase.
-- If the content is extremely short, meaningless, repetitive, or test-like — mark as UNSAFE with reason "Meaningless or test content".
-- If the content has no clear meaning, is just a few words, or lacks structure — mark as UNSAFE with reason "Lacks informative or meaningful value".
-- If the content is structured and informative (like articles, guides, tutorials, opinions), mark as SAFE with brief reason and type.
-- If content is just one or two meaningless or ambiguous words — mark as UNSAFE: Lacks meaning | OTHER.
-- Check for Thai slang words like: กาก, มึง, กู, เหี้ย, ควย, สัส, ดอก, จิ๋ม หี etc.
-- Check for English slang/rude words like: wtf, stfu, fck, shit, damn, ass etc.
+### Evaluation Criteria:
 
-Examples:
-- SAFE: Clear tutorial content | TUTORIAL
-- UNSAFE: Contains profanity 'f***' | SEXUAL 
-- UNSAFE: Contains Thai slang 'มึง' | HATE
-- UNSAFE: Just one meaningless word 'ดี้จา' | OTHER
-- UNSAFE: Test content '....' | OTHER
-- SAFE: Informative article about health benefits of exercise | HEALTH
+1. **Profanity or Offensive Language**
+   - Mark as UNSAFE if the content contains profanity, hate speech, Thai slang (e.g., 'มึง', 'เหี้ย', 'ควย') or English slurs (e.g., 'fuck', 'shit', 'wtf').
+   - Always quote the detected words in your reason.
+
+2. **Meaningless or Low-Value Content**
+   - If the content is structured (with Introduction, Body, Conclusion, etc.) but lacks insight, explanation, or real information, mark as:
+     > UNSAFE: Structured but lacks substance | OTHER
+
+3. **Template or Repetitive Text**
+   - If the content looks like filler or AI-generated boilerplate (e.g., "Technology is important for the future" without elaboration), mark as:
+     > UNSAFE: Generic or repetitive phrases without value | OTHER
+
+4. **Code Snippets Without Explanation**
+   - If the post contains only code (HTML, Go, React, etc.) with little or no meaningful explanation or context, mark as:
+     > UNSAFE: Code-only content without explanation | OTHER
+
+5. **Valuable Content**
+   - SAFE content should teach, inform, or explain in a clear and structured way with examples, facts, or opinions.
+
+### DOs and DON'Ts
+
+- ✅ DO focus on meaning, usefulness, and clarity.
+- ❌ DO NOT mark as SAFE just because the content has formatting or code.
+- ❌ DO NOT assume content is valuable unless it actually teaches or explains.
+- ❌ DO NOT rely on structure alone (e.g., presence of headings or lists).
+- ✅ DO look for explanations, reasoning, or insights that would benefit a human reader.
+
+### Examples:
+
+- SAFE: A clear step-by-step tutorial on Docker setup with explanation | TUTORIAL  
+- UNSAFE: Repeats "Tech is the future" without explanation | OTHER  
+- UNSAFE: Structured post but lacks actual informative content | OTHER  
+- UNSAFE: Detected word 'เหี้ย' | HATE  
+- SAFE: Detailed review with pros and cons of a product | REVIEW  
+- UNSAFE: Just raw HTML/React/Go code without context | OTHER  
+- UNSAFE: Contains phrase 'hot girls' or 'sexy content' | ADULT  
+- UNSAFE: Post says only "ลองโพสต์เฉยๆครับ" or "test content" | OTHER
 
 --- Content to Review ---
 
-Title: %s
-Description: %s
-Content: %s
+Title: %s  
+Description: %s  
 
---- End ---`, payload.Post.Title, payload.Post.Description, payload.Post.Content)
+Content (in HTML format):  
+%s
+
+--- End ---`, payload.Post.Title, payload.Post.Description, *payload.Post.HTMLContent)
 }
 
 func getModerationResult(prompt string) (string, error) {
