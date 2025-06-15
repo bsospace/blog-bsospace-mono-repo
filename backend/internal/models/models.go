@@ -59,6 +59,7 @@ type Post struct {
 	Thumbnail   string         `json:"thumbnail,omitempty"`
 	Example     string         `json:"example,omitempty"`
 	Content     string         `gorm:"type:text;not null" json:"content"`
+	HTMLContent *string        `gorm:"type:text" json:"html_content"`
 	Published   bool           `gorm:"default:false" json:"published"`
 	Status      PostStatus     `gorm:"type:varchar(20);default:'DRAFT'" json:"status"`
 	PublishedAt *time.Time     `json:"published_at,omitempty"`
