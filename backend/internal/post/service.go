@@ -502,20 +502,17 @@ func (s *PostService) UpdateThumbnailUsageStatus(post *models.Post, thumbnail st
 	// get existing thumbnail image
 	existingThumbnail, err := s.MediaService.GetImageByURL(thumbnail)
 
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("failed to get existing thumbnail image: %w", err)
 	}
 
-	if existingThumbnail == nil {
-		return fmt.Errorf("thumbnail image not found: %s", thumbnail)
-	}
-
-	// Update the thumbnail usage status
-
-	existingThumbnail.IsUsed = isUsed
-	existingThumbnail.UsedAt = &time.Time{}
-	if err := s.MediaService.UpdateImageUsage(existingThumbnail); err != nil {
-		return fmt.Errorf("failed to update thumbnail usage status: %w", err)
+	if existingThumbnail != nil {
+		// Update the thumbnail usage status
+		existingThumbnail.IsUsed = isUsed
+		existingThumbnail.UsedAt = &time.Time{}
+		if err := s.MediaService.UpdateImageUsage(existingThumbnail); err != nil {
+			return fmt.Errorf("failed to update thumbnail usage status: %w", err)
+		}
 	}
 
 	return nil
