@@ -4,9 +4,11 @@ import (
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/middleware"
+	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/internal/queue"
 	"rag-searchbot-backend/internal/user"
+	"rag-searchbot-backend/internal/ws"
 	"rag-searchbot-backend/pkg/crypto"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger, asynqClient *asynq.Client, mux *asynq.ServeMux) {
+func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger, asynqClient *asynq.Client, mux *asynq.ServeMux, socketManager *ws.Manager) {
 	// Inject dependencies
 
 	mediaRepo := media.NewMediaRepository(db)
@@ -40,6 +42,10 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, 
 	// สร้าง Service ที่ใช้ Repository
 	userService := user.NewService(userRepository, cache)
 
+	// notification service
+	notificationRepo := notification.NewRepository(db)                              // Assuming you have a WebSocket manager
+	notificationService := notification.NewService(notificationRepo, socketManager) // Assuming you have a WebSocket manager
+
 	// Cache Service
 	cacheService := cache
 
@@ -48,9 +54,10 @@ func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, 
 
 	// EnqueueFilterPostContentByAI
 	worker := post.FilterPostWorker{
-		Logger:    logger,
-		PostRepo:  postRepo,
-		QueueRepo: QueueRepository,
+		Logger:      logger,
+		PostRepo:    postRepo,
+		QueueRepo:   QueueRepository,
+		NotiService: notificationService,
 	}
 
 	mux.HandleFunc(post.TaskTypeFilterPostContentByAI, post.FilterPostContentByAIWorkerHandler(worker))
