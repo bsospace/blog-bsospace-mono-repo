@@ -223,4 +223,5 @@ type PublishPostRequestDTO struct {
 	Title       string   `json:"title" binding:"required"`
 	Description string   `json:"description"`
 	Thumbnail   string   `json:"thumbnail"`
+	HTMLContent *string  `json:"html_content"`
 }
