@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"rag-searchbot-backend/internal/models"
+	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/queue"
 	"rag-searchbot-backend/pkg/logger"
 	"strings"
@@ -31,9 +32,10 @@ type OllamaResponse struct {
 }
 
 type FilterPostWorker struct {
-	Logger    *zap.Logger
-	PostRepo  PostRepositoryInterface
-	QueueRepo queue.QueueRepositoryInterface
+	Logger      *zap.Logger
+	PostRepo    PostRepositoryInterface
+	QueueRepo   queue.QueueRepositoryInterface
+	NotiService *notification.NotificationService
 }
 
 func FilterPostContentByAIWorkerHandler(deps FilterPostWorker) asynq.HandlerFunc {
@@ -45,7 +47,10 @@ func FilterPostContentByAIWorkerHandler(deps FilterPostWorker) asynq.HandlerFunc
 		}
 
 		startedAt := time.Now()
-		deps.Logger.Info("Filtering post content", zap.String("post_id", payload.Post.ID.String()), zap.String("post_title", payload.Post.Title))
+		deps.Logger.Info("Filtering post content",
+			zap.String("post_id", payload.Post.ID.String()),
+			zap.String("post_title", payload.Post.Title),
+		)
 
 		if len(*payload.Post.HTMLContent) < 100 {
 			return handleSkippedContent(deps, t, &payload, startedAt)
@@ -60,44 +65,64 @@ func FilterPostContentByAIWorkerHandler(deps FilterPostWorker) asynq.HandlerFunc
 
 		deps.Logger.Info("Content filter result", zap.String("result", result))
 
+		// Default values
 		status := "SUCCESS"
 		message := "Content filtered successfully"
 
 		if strings.HasPrefix(result, "UNSAFE") {
 			status = "UNSAFE"
-			moderationResult := parseModerationResult(result)
-			if moderationResult == nil {
+			moderation := parseModerationResult(result)
+			if moderation == nil {
 				return fmt.Errorf("failed to parse moderation result: %s", result)
 			}
 
-			// format the message with reason and content type
-			message = fmt.Sprintf("Your post may contain inappropriate content: %s\nDetected category: %s", moderationResult.Reason, moderationResult.ContentType)
-			deps.Logger.Warn("Post content flagged as UNSAFE", zap.String("reason", moderationResult.Reason), zap.String("content_type", moderationResult.ContentType))
+			message = fmt.Sprintf(
+				"Your post may contain inappropriate content: %s\nDetected category: %s",
+				moderation.Reason, moderation.ContentType,
+			)
+
+			deps.Logger.Warn("Post flagged as UNSAFE",
+				zap.String("reason", moderation.Reason),
+				zap.String("content_type", moderation.ContentType),
+			)
 		}
 
-		if err := updateTaskLog(deps, t, &payload, startedAt, status, message); err != nil {
-			deps.Logger.Error("Failed to update task log", zap.Error(err))
-			return err
-		}
-
-		if status == "UNSAFE" {
-			deps.Logger.Warn("Content blocked", zap.String("post_id", payload.Post.ID.String()))
-			// update post status to rejected
-			if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), status, message); err != nil {
-				deps.Logger.Error("Failed to update post status", zap.String("post_id", payload.Post.ID.String()), zap.Error(err))
-				return err
-			}
-			return nil
-		}
-
-		// Update post status based on moderation result
-		if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), status, message); err != nil {
-			deps.Logger.Error("Failed to update post status", zap.String("post_id", payload.Post.ID.String()), zap.Error(err))
+		// Finalize all steps: log, update, notify
+		if err := finalizeModerationResult(deps, &payload, t, startedAt, status, message); err != nil {
 			return err
 		}
 
 		return nil
 	}
+}
+
+func finalizeModerationResult(
+	deps FilterPostWorker,
+	payload *FilterPostContentByAIPayload,
+	task *asynq.Task,
+	startedAt time.Time,
+	status string,
+	message string,
+) error {
+	// Save task log
+	if err := updateTaskLog(deps, task, payload, startedAt, status, message); err != nil {
+		deps.Logger.Error("Failed to update task log", zap.Error(err))
+		return err
+	}
+
+	// Update post status
+	if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), status, message); err != nil {
+		deps.Logger.Error("Failed to update post status", zap.Error(err))
+		return err
+	}
+
+	// Send notification
+	if err := deps.NotifyUser(&payload.Post, &payload.User, status, message); err != nil {
+		deps.Logger.Error("Failed to notify user", zap.Error(err))
+		// continue even if noti fails
+	}
+
+	return nil
 }
 
 func handleSkippedContent(deps FilterPostWorker, t *asynq.Task, payload *FilterPostContentByAIPayload, startedAt time.Time) error {
@@ -172,7 +197,6 @@ func buildModerationPrompt(payload FilterPostContentByAIPayload) string {
 		*payload.Post.HTMLContent = "<p>No content provided</p>"
 	}
 
-	logger.Log.Info("Building moderation prompt", zap.String("post_id", payload.Post.ID.String()), zap.String("post_title", payload.Post.Title), zap.String("post_html_content", *payload.Post.HTMLContent))
 	return fmt.Sprintf(`You are a strict AI content moderator tasked with reviewing human-written posts.
 
 Your goal is to determine whether the content is SAFE or UNSAFE for publication.
@@ -346,5 +370,37 @@ func UpdatePublishPostResult(
 		return err
 	}
 	deps.Logger.Info("Post status updated", zap.String("post_id", postID), zap.String("status", status), zap.String("message", message))
+	return nil
+}
+
+func (deps FilterPostWorker) NotifyUser(post *models.Post, user *models.User, status string, message string) error {
+	// Prepare notification message
+	formattedMessage := fmt.Sprintf("Your post moderation is complete.\n\nPost Title: %s\n\nStatus: %s\nResult: %s",
+		post.Title,
+		status,
+		message,
+	)
+
+	// Determine notification title based on status
+	notiTitle := "Post Moderation Result"
+	if status == "SUCCESS" {
+		notiTitle = "Your post has been published successfully"
+	} else if status == "UNSAFE" {
+		notiTitle = "Your post was rejected due to content policy violation"
+	}
+
+	err := deps.NotiService.Notify(
+		user,
+		notiTitle,
+		"notification",
+		formattedMessage,
+		nil,
+	)
+	if err != nil {
+		deps.Logger.Error("Failed to notify user about post moderation result",
+			zap.String("user_id", user.ID.String()),
+			zap.Error(err))
+		return err
+	}
 	return nil
 }
