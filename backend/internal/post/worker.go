@@ -296,6 +296,10 @@ func UpdatePublishPostResult(
 		post.Status = models.PostRejected
 	}
 
+	now := time.Now()
+	post.PublishedAt = &now
+	post.Published = (status == "SUCCESS")
+
 	if err := deps.PostRepo.Update(post); err != nil {
 		deps.Logger.Error("Failed to update post status", zap.String("post_id", postID), zap.Error(err))
 		return err
