@@ -119,6 +119,12 @@ func handleSkippedContent(deps FilterPostWorker, t *asynq.Task, payload *FilterP
 		return err
 	}
 	deps.Logger.Info("Post content skipped due to short length", zap.String("post_id", payload.Post.ID.String()), zap.String("post_title", payload.Post.Title))
+
+	// Update post status to rejected
+	if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), "UNSAFE", "This is spam or too short content, skipping AI check and can't be published"); err != nil {
+		deps.Logger.Error("Failed to update post status for skipped content", zap.String("post_id", payload.Post.ID.String()), zap.Error(err))
+		return err
+	}
 	return nil
 }
 
