@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func StartWebSocketServer(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger, asynqClient *asynq.Client, mux *asynq.ServeMux) {
+func StartWebSocketServer(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger, asynqClient *asynq.Client, mux *asynq.ServeMux, socketManager *ws.Manager) {
 
 	// สร้าง Repository ที่ใช้ GORM
 	userRepository := user.NewRepository(db)
@@ -32,8 +32,6 @@ func StartWebSocketServer(router *gin.RouterGroup, db *gorm.DB, cache *cache.Ser
 	// auth middleware
 	socketAuthMiddleware := middleware.SocketAuthMiddleware(userService, cryptoService, cacheService, logger)
 
-	// Initialize the WebSocket manager
-	socketManager := ws.NewManager()
 	// Create a new WebSocket handler
 	wsHandler := NewWebSocketHandler(socketManager)
 
