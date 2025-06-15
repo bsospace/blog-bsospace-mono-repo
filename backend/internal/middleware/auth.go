@@ -107,6 +107,76 @@ func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoServi
 	}
 }
 
+func SocketAuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoService, cache *cache.Service, logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		token := c.Query("token")
+
+		// ตรวจสอบว่า Token มีค่าเป็น Bearer Token หรือไม่
+		if token == "" {
+			logger.Error("[ERROR] No token provided in request")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+			return
+		}
+
+		tokenString := extractTokenString(token)
+		if tokenString == "" {
+			logger.Error("[ERROR] No token provided in request")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+			return
+		}
+
+		// ตรวจสอบ Token ผ่าน CryptoService (ใช้ Dependency Injection)
+		claims, err := verifyToken(tokenString, cryptoService, logger)
+
+		if err != nil {
+			logger.Error("[ERROR] Invalid token", zap.Error(err))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
+		// ค้นหา User ใน Cache ก่อน
+		userCache, err := cache.GetUserCache(claims.Email)
+
+		if err == nil && userCache != nil {
+			c.Set("user", userCache)
+			logger.Info("[INFO] User found in cache:", zap.String("email", claims.Email))
+			c.Next()
+			return
+		} else {
+			logger.Info("[INFO] User not found in cache, checking database:", zap.String("email", claims.Email))
+		}
+
+		// ค้นหา User ใน Database
+		userDB, err := userService.GetUserByEmail(claims.Email)
+
+		if userDB != nil {
+			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
+				logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
+			} else {
+				logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
+			}
+		}
+
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}
+
+		c.Set("user", userDB)
+		c.Next()
+	}
+}
+
+// Extract Token จาก Header หรือ Cookie
+func extractTokenString(token string) string {
+	// ตรวจสอบว่า Header มีค่าเป็น Bearer Token หรือไม่
+	if strings.HasPrefix(token, "Bearer ") {
+		return strings.TrimPrefix(token, "Bearer ")
+	}
+	return ""
+}
+
 // Extract Token จาก Header หรือ Cookie
 func extractToken(c *gin.Context) string {
 	authHeader := c.GetHeader("Authorization")
