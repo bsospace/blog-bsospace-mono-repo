@@ -375,7 +375,7 @@ func UpdatePublishPostResult(
 
 func (deps FilterPostWorker) NotifyUser(post *models.Post, user *models.User, status string, message string) error {
 	// Prepare notification message
-	formattedMessage := fmt.Sprintf("Your post moderation is complete.\n\nPost Title: %s\n\nStatus: %s\nResult: %s",
+	formattedMessage := fmt.Sprintf("Your post moderation is complete.\n\nPost title %s\n\nstatus %s\nresult %s",
 		post.Title,
 		status,
 		message,
