@@ -169,7 +169,7 @@ func (r *PostRepository) GetByShortSlug(shortSlug string) (*models.Post, error) 
 	var post models.Post
 
 	err := r.DB.
-		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
+		Select("id", "slug", "title", "content", "description", "thumbnail", "published", "status", "published_at", "author_id", "likes", "views", "read_time").
 		Where("deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id", "username", "avatar")
