@@ -44,6 +44,7 @@ func ConnectDatabase() *gorm.DB {
 		&models.AIUsageLog{},
 		&models.AIResponse{},
 		&models.ImageUpload{},
+		&models.QueueTaskLog{},
 	)
 
 	if err != nil {
