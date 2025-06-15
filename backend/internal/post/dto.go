@@ -23,6 +23,7 @@ type PostSummaryDTO struct {
 	Views       int        `json:"views"`
 	Likes       int        `json:"likes"`
 	ReadTime    float64    `json:"read_time"`
+	Status      string     `json:"status"`
 	Author      struct {
 		ID       uuid.UUID `json:"id"`
 		UserName string    `json:"username"`
@@ -65,6 +66,7 @@ func MapPostToSummaryDTO(post models.Post) PostSummaryDTO {
 		Views:       post.Views,
 		Likes:       post.Likes,
 		ReadTime:    post.ReadTime,
+		Status:      string(post.Status),
 		Author: struct {
 			ID       uuid.UUID `json:"id"`
 			UserName string    `json:"username"`
@@ -178,6 +180,7 @@ type MyPostsDTO struct {
 	Thumbnail   string     `json:"thumbnail,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 	Published   bool       `json:"published"`
+	Status      string     `json:"status"`
 	Views       int        `json:"views"`
 	Likes       int        `json:"likes"`
 	ReadTime    float64    `json:"read_time"`
@@ -202,6 +205,7 @@ func MapMyPostToSummaryDTO(post models.Post) MyPostsDTO {
 		Description: post.Description,
 		Thumbnail:   post.Thumbnail,
 		PublishedAt: post.PublishedAt,
+		Status:      string(post.Status),
 		Views:       post.Views,
 		Likes:       post.Likes,
 		ReadTime:    post.ReadTime,
