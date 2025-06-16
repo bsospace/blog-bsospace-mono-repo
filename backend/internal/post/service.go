@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/pkg/errs"
@@ -324,38 +323,22 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 		existingPost.Slug = post.Slug
 	}
 
-	now := time.Now()
 	existingPost.Title = post.Title
 	existingPost.Description = post.Description
 	existingPost.Thumbnail = post.Thumbnail
 	existingPost.HTMLContent = post.HTMLContent
+	existingPost.Published = false
+	existingPost.Status = models.PostProcessing
+	existingPost.PublishedAt = nil
 
-	cfg := config.LoadConfig()
-
-	// log mode
-	logger.Log.Info("Publishing post",
-		zap.String("AppEnv", cfg.AppEnv),
-	)
-
-	if cfg.AppEnv == "release" {
-
-		existingPost.Published = false
-		existingPost.Status = models.PostProcessing
-		existingPost.PublishedAt = nil
-
-		logger.Log.Info("Enqueuing post content for AI filtering ",
-			zap.String("post_id", existingPost.ID.String()),
-			zap.String("post_title", existingPost.Title),
-			zap.String("author_id", existingPost.AuthorID.String()),
-			zap.String("author_email", user.Email))
-		_, err = s.TaskEnqueuer.EnqueueFilterPostContentByAI(existingPost, user)
-		if err != nil {
-			return err
-		}
-	} else {
-		existingPost.Published = true
-		existingPost.PublishedAt = &now
-		existingPost.Status = models.PostPublished
+	logger.Log.Info("Enqueuing post content for AI filtering ",
+		zap.String("post_id", existingPost.ID.String()),
+		zap.String("post_title", existingPost.Title),
+		zap.String("author_id", existingPost.AuthorID.String()),
+		zap.String("author_email", user.Email))
+	_, err = s.TaskEnqueuer.EnqueueFilterPostContentByAI(existingPost, user)
+	if err != nil {
+		return err
 	}
 
 	return s.Repo.Update(existingPost)
