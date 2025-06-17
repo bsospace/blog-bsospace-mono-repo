@@ -150,6 +150,11 @@ func handleSkippedContent(deps FilterPostWorker, t *asynq.Task, payload *FilterP
 		deps.Logger.Error("Failed to update post status for skipped content", zap.String("post_id", payload.Post.ID.String()), zap.Error(err))
 		return err
 	}
+
+	// Notify user about skipped content
+	if err := deps.NotifyUser(&payload.Post, &payload.User, "UNSAFE", "This is spam or too short content, skipping AI check and can't be published"); err != nil {
+		deps.Logger.Error("Failed to notify user about skipped content", zap.Error(err))
+	}
 	return nil
 }
 
