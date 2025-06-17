@@ -290,39 +290,75 @@ func callOllama(prompt string) (string, error) {
 	json.Unmarshal(respBody, &ollamaResp)
 	return strings.TrimSpace(ollamaResp.Response), nil
 }
-
 func callOpenRouter(prompt string) (string, error) {
 	apiKey := os.Getenv("AI_API_KEY")
+	model := os.Getenv("AI_MODEL")
 	if apiKey == "" {
 		return "", errors.New("AI_API_KEY not set for OpenRouter")
 	}
-	openRouterPayload := map[string]interface{}{
-		"model": os.Getenv("AI_MODEL"),
+	if model == "" {
+		model = "meta-llama/llama-3.3-8b-instruct:free"
+	}
+
+	openRouterPayload := map[string]any{
+		"model": model,
 		"messages": []map[string]string{
-			{"role": "system", "content": "You are an AI content moderator."},
+			{"role": "system", "content": "You are an AI content moderator. Reply with SAFE or NOT SAFE."},
 			{"role": "user", "content": prompt},
 		},
 	}
-	reqBody, _ := json.Marshal(openRouterPayload)
-	req, _ := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", bytes.NewBuffer(reqBody))
+	reqBody, err := json.Marshal(openRouterPayload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JSON: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %v", err)
+	}
+
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("HTTP-Referer", "https://blog.bsospace.com")
+	req.Header.Set("X-Title", "https://blog.bsospace.com")
 
 	client := http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("request error: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("openrouter responded with status: %d", resp.StatusCode)
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %v", err)
 	}
-	var parsed map[string]interface{}
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	json.Unmarshal(bodyBytes, &parsed)
-	choices := parsed["choices"].([]interface{})
-	message := choices[0].(map[string]interface{})["message"].(map[string]interface{})
-	return strings.TrimSpace(message["content"].(string)), nil
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("OpenRouter error %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(bodyBytes, &parsed); err != nil {
+		return "", fmt.Errorf("failed to parse JSON: %v\nRaw: %s", err, string(bodyBytes))
+	}
+
+	choices, ok := parsed["choices"].([]any)
+	if !ok || len(choices) == 0 {
+		return "", errors.New("invalid response: no choices returned")
+	}
+
+	message, ok := choices[0].(map[string]any)["message"].(map[string]any)
+	if !ok {
+		return "", errors.New("invalid response format: missing message")
+	}
+
+	content, ok := message["content"].(string)
+	if !ok {
+		return "", errors.New("invalid response format: content is not a string")
+	}
+
+	return strings.TrimSpace(content), nil
 }
 
 func updateTaskLog(deps FilterPostWorker, t *asynq.Task, payload *FilterPostContentByAIPayload, startedAt time.Time, status, message string) error {
