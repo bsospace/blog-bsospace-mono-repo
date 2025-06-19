@@ -18,6 +18,9 @@ type PostRepositoryInterface interface {
 	PublishPost(post *models.Post) error
 	UnpublishPost(post *models.Post) error
 	DeletePost(post *models.Post) error
+	GetEmbeddingByPostID(postID string) ([]models.Embedding, error)
+	InsertEmbedding(post *models.Post, embedding models.Embedding) error
+	UpdateEmbedding(post *models.Post, embedding models.Embedding) error
 }
 
 type PostRepository struct {
@@ -231,4 +234,38 @@ func (r *PostRepository) UnpublishPost(post *models.Post) error {
 
 func (r *PostRepository) DeletePost(post *models.Post) error {
 	return r.DB.Delete(&models.Post{}, "id = ?", post.ID).Error
+}
+
+func (r *PostRepository) GetEmbeddingByPostID(postID string) ([]models.Embedding, error) {
+	var post models.Post
+	err := r.DB.Preload("Embeddings").Where("id = ?", postID).First(&post).Error
+	if err != nil {
+		return nil, err
+	}
+	return post.Embeddings, nil
+}
+
+// insert embedding into the database
+
+func (r *PostRepository) InsertEmbedding(post *models.Post, embedding models.Embedding) error {
+	embedding.PostID = post.ID // ต้อง set foreign key ด้วย
+	err := r.DB.Create(&embedding).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// update embedding in the database
+func (r *PostRepository) UpdateEmbedding(post *models.Post, embedding models.Embedding) error {
+	var existingEmbedding models.Embedding
+	err := r.DB.Where("post_id = ? AND id = ?", post.ID, embedding.ID).First(&existingEmbedding).Error
+	if err != nil {
+		return err
+	}
+
+	existingEmbedding.Content = embedding.Content
+	existingEmbedding.Vector = embedding.Vector
+
+	return r.DB.Save(&existingEmbedding).Error
 }
