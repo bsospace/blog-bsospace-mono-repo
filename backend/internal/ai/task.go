@@ -26,8 +26,9 @@ func NewTaskEnqueuer(client *asynq.Client) *TaskEnqueuer {
 func (t *TaskEnqueuer) EnqueuePostEmbedding(post *models.Post, user *models.User) (*asynq.TaskInfo, error) {
 	payload, err := json.Marshal(EmbedPostPayload{
 		Post: models.Post{
-			ID:    post.ID,
-			Title: post.Title,
+			ID:          post.ID,
+			Title:       post.Title,
+			HTMLContent: post.HTMLContent,
 		},
 		User: models.User{
 			ID:    user.ID,
