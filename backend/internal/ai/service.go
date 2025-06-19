@@ -26,6 +26,14 @@ func (s *AIService) OpenAIMode(postID string, userData *models.User) (bool, erro
 		return false, nil
 	}
 
+	if post.AIChatOpen {
+		return false, nil // AI chat already open
+	}
+
+	if post.AuthorID != userData.ID {
+		return false, nil // User is not the author of the post
+	}
+
 	_, err = s.TaskEnqueuer.EnqueuePostEmbedding(post, userData)
 	if err != nil {
 		return false, err
