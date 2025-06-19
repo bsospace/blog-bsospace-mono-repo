@@ -9,11 +9,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"strings"
 	"time"
 
 	"github.com/hibiken/asynq"
+	"github.com/pgvector/pgvector-go"
 	"go.uber.org/zap"
 )
 
@@ -45,6 +47,49 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 		for i := 5; i > 0; i-- {
 			deps.Logger.Info("Embedding post", zap.String("post_id", postID), zap.Int("step", 6-i))
 			time.Sleep(1 * time.Second)
+		}
+
+		if existingPost.Content == "" {
+			err := errors.New("post has no HTML content")
+			deps.Logger.Error("Failed to get embedding", zap.Error(err), zap.String("post_id", postID))
+			return err
+		}
+
+		embedding, err := GetEmbedding(existingPost.Content)
+		if err != nil {
+			deps.Logger.Error("Failed to get embedding", zap.Error(err), zap.String("post_id", postID))
+			return err
+		}
+
+		// get existin embedding
+		existingEmbedding, err := deps.PostRepo.GetEmbeddingByPostID(payload.Post.ID.String())
+
+		if err != nil {
+			deps.Logger.Error("Failed to get existing embedding", zap.Error(err), zap.String("post_id", postID))
+			return err
+		}
+
+		embeddingModel := models.Embedding{
+			Vector: pgvector.NewVector(embedding),
+		}
+
+		if len(existingEmbedding) > 0 {
+			// Update existing embedding
+			embeddingModel.ID = existingEmbedding[0].ID
+			embeddingModel.PostID = existingEmbedding[0].PostID
+			if err := deps.PostRepo.UpdateEmbedding(&payload.Post, embeddingModel); err != nil {
+				deps.Logger.Error("Failed to update embedding", zap.Error(err), zap.String("post_id", postID))
+				return err
+			}
+			deps.Logger.Info("Updated existing embedding", zap.String("post_id", postID))
+		} else {
+			// Insert new embedding
+			embeddingModel.PostID = payload.Post.ID
+			if err := deps.PostRepo.InsertEmbedding(&payload.Post, embeddingModel); err != nil {
+				deps.Logger.Error("Failed to insert embedding", zap.Error(err), zap.String("post_id", postID))
+				return err
+			}
+			deps.Logger.Info("Inserted new embedding", zap.String("post_id", postID))
 		}
 
 		deps.Logger.Info("Post embedding completed", zap.String("post_id", postID), zap.String("user_email", payload.User.Email))
