@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
 )
 
@@ -68,6 +69,8 @@ type Post struct {
 	Likes       int            `gorm:"default:0" json:"likes"`
 	Views       int            `gorm:"default:0" json:"views"`
 	ReadTime    float64        `gorm:"default:0" json:"read_time"`
+	AIChatOpen  bool           `gorm:"default:false" json:"ai_chat_open"` // เปิด AI chat หรือไม่
+	AIReady     bool           `gorm:"default:false" json:"ai_ready"`     // AI พร้อมใช้งานหรือไม่
 	BaseModel
 
 	AuthorID   uuid.UUID     `gorm:"not null" json:"author_id"`
@@ -110,7 +113,7 @@ type Embedding struct {
 	ID      uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	PostID  uuid.UUID       `gorm:"not null;index" json:"post_id"`
 	Content string          `gorm:"type:text;not null" json:"content"`
-	Vector  pq.Float64Array `gorm:"type:vector(384)" json:"vector"`
+	Vector  pgvector.Vector `gorm:"type:vector(768)" json:"vector"`
 	BaseModel
 
 	Post Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
