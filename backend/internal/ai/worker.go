@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"os"
 	"rag-searchbot-backend/internal/models"
+	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/post"
 	"strings"
-	"time"
+
+	"rag-searchbot-backend/pkg/tiptap"
 
 	"github.com/hibiken/asynq"
 	"github.com/pgvector/pgvector-go"
@@ -20,8 +22,9 @@ import (
 )
 
 type EmbedPostWorker struct {
-	Logger   *zap.Logger
-	PostRepo post.PostRepositoryInterface
+	Logger      *zap.Logger
+	PostRepo    post.PostRepositoryInterface
+	NotiService *notification.NotificationService
 }
 
 func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
@@ -43,19 +46,15 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 		}
 		deps.Logger.Info("Found post title", zap.String("title", existingPost.Title))
 
-		// Simulated countdown / embedding logic
-		for i := 5; i > 0; i-- {
-			deps.Logger.Info("Embedding post", zap.String("post_id", postID), zap.Int("step", 6-i))
-			time.Sleep(1 * time.Second)
-		}
-
 		if existingPost.Content == "" {
 			err := errors.New("post has no HTML content")
 			deps.Logger.Error("Failed to get embedding", zap.Error(err), zap.String("post_id", postID))
 			return err
 		}
 
-		embedding, err := GetEmbedding(existingPost.Content)
+		// post content to plain text embedding model
+		plainText := tiptap.ExtractTextFromTiptap(existingPost.Content)
+		embedding, err := GetEmbedding(plainText)
 		if err != nil {
 			deps.Logger.Error("Failed to get embedding", zap.Error(err), zap.String("post_id", postID))
 			return err
@@ -82,6 +81,29 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 				return err
 			}
 			deps.Logger.Info("Updated existing embedding", zap.String("post_id", postID))
+
+			// set AIChatOpen to true
+			updatedPost := payload.Post
+			updatedPost.AIChatOpen = true
+			updatedPost.AIReady = true
+			if err := deps.PostRepo.Update(&updatedPost); err != nil {
+				deps.Logger.Error("Failed to update post AIChatOpen", zap.Error(err), zap.String("post_id", postID))
+				return err
+			}
+
+			// send notification to user
+			notiEvent := "notification:" + payload.Post.Title + ":ai_mode_enabled"
+			if err := deps.NotiService.Notify(
+				&payload.User,
+				"AI Mode Enabled",
+				notiEvent,
+				fmt.Sprintf("Your post '%s' has been successfully eanbled AI mode.", existingPost.Title),
+				nil,
+			); err != nil {
+				deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
+				return err
+			}
+
 		} else {
 			// Insert new embedding
 			embeddingModel.PostID = payload.Post.ID
@@ -90,6 +112,28 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 				return err
 			}
 			deps.Logger.Info("Inserted new embedding", zap.String("post_id", postID))
+
+			// set AIChatOpen to true
+			updatedPost := payload.Post
+			updatedPost.AIChatOpen = true
+			updatedPost.AIReady = true
+			if err := deps.PostRepo.Update(&updatedPost); err != nil {
+				deps.Logger.Error("Failed to update post AIChatOpen", zap.Error(err), zap.String("post_id", postID))
+				return err
+			}
+
+			// send notification to user
+			notiEvent := "notification:" + payload.Post.Title + ":ai_mode_enabled"
+			if err := deps.NotiService.Notify(
+				&payload.User,
+				"AI Mode Enabled",
+				notiEvent,
+				fmt.Sprintf("Your post '%s' has been successfully enabled AI mode.", existingPost.Title),
+				nil,
+			); err != nil {
+				deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
+				return err
+			}
 		}
 
 		deps.Logger.Info("Post embedding completed", zap.String("post_id", postID), zap.String("user_email", payload.User.Email))

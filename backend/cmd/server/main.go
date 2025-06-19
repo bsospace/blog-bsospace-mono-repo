@@ -172,7 +172,7 @@ func main() {
 	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
 	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
-	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux)
+	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
