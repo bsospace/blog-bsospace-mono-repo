@@ -76,6 +76,7 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 			// Update existing embedding
 			embeddingModel.ID = existingEmbedding[0].ID
 			embeddingModel.PostID = existingEmbedding[0].PostID
+			embeddingModel.Content = plainText
 			if err := deps.PostRepo.UpdateEmbedding(&payload.Post, embeddingModel); err != nil {
 				deps.Logger.Error("Failed to update embedding", zap.Error(err), zap.String("post_id", postID))
 				return err
@@ -108,6 +109,7 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 		} else {
 			// Insert new embedding
 			embeddingModel.PostID = payload.Post.ID
+			embeddingModel.Content = plainText
 			if err := deps.PostRepo.InsertEmbedding(&payload.Post, embeddingModel); err != nil {
 				deps.Logger.Error("Failed to insert embedding", zap.Error(err), zap.String("post_id", postID))
 				return err

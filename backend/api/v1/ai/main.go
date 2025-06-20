@@ -32,7 +32,7 @@ func RegisterRoutes(
 	aiService := ai.NewAIService(postRepo, taskEnqueuer)
 
 	// Handler
-	handler := NewAIHandler(aiService)
+	handler := NewAIHandler(aiService, postRepo, logger)
 
 	// Middleware
 	cryptoService := crypto.NewCryptoService()
@@ -57,5 +57,6 @@ func RegisterRoutes(
 	{
 		aiRoutes.POST("/:post_id/on", handler.OpenAIMode)
 		aiRoutes.POST("/:post_id/off", handler.DisableOpenAIMode)
+		aiRoutes.POST("/:post_id/chat", handler.Chat)
 	}
 }
