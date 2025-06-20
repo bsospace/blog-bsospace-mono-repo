@@ -72,6 +72,8 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (str
 	if existingPost != nil {
 		existingPost.Content = string(contentJSON)
 		existingPost.Title = post.Title
+		existingPost.AIChatOpen = false
+		existingPost.AIReady = false
 
 		err = s.UpdateImageUsageStatus(existingPost, post.Content, "")
 		if err != nil {
@@ -95,6 +97,8 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (str
 		AuthorID:    user.ID,
 		Published:   false,
 		PublishedAt: nil,
+		AIChatOpen:  false,
+		AIReady:     false,
 	}
 
 	postID, err := s.Repo.Create(newPost)
