@@ -92,12 +92,13 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 			}
 
 			// send notification to user
-			notiEvent := "notification:" + payload.Post.Title + ":ai_mode_enabled"
+			notiEvent := "notification:ai_mode_enabled"
+			modelID := existingPost.ID.String()
 			if err := deps.NotiService.Notify(
 				&payload.User,
-				"AI Mode Enabled",
+				fmt.Sprintf("Your post '%s' has been successfully enabled AI mode.", existingPost.Title),
 				notiEvent,
-				fmt.Sprintf("Your post '%s' has been successfully eanbled AI mode.", existingPost.Title),
+				modelID,
 				nil,
 			); err != nil {
 				deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
@@ -123,12 +124,13 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 			}
 
 			// send notification to user
-			notiEvent := "notification:" + payload.Post.Title + ":ai_mode_enabled"
+			notiEvent := "notification:ai_mode_enabled"
+			modelID := existingPost.ID.String()
 			if err := deps.NotiService.Notify(
 				&payload.User,
-				"AI Mode Enabled",
-				notiEvent,
 				fmt.Sprintf("Your post '%s' has been successfully enabled AI mode.", existingPost.Title),
+				notiEvent,
+				modelID,
 				nil,
 			); err != nil {
 				deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
