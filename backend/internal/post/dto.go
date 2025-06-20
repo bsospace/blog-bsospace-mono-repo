@@ -185,6 +185,8 @@ type MyPostsDTO struct {
 	Likes       int        `json:"likes"`
 	ReadTime    float64    `json:"read_time"`
 	CreatedAt   time.Time  `json:"created_at"`
+	AIChatOpen  bool       `json:"ai_chat_open"`
+	AIReady     bool       `json:"ai_ready"`
 }
 
 func MapMyPostToSummaryDTO(post models.Post) MyPostsDTO {
@@ -210,6 +212,8 @@ func MapMyPostToSummaryDTO(post models.Post) MyPostsDTO {
 		Likes:       post.Likes,
 		ReadTime:    post.ReadTime,
 		CreatedAt:   post.CreatedAt,
+		AIChatOpen:  post.AIChatOpen,
+		AIReady:     post.AIReady,
 	}
 
 	return dto
