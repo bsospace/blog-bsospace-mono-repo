@@ -56,5 +56,6 @@ func RegisterRoutes(
 	aiRoutes.Use(authMiddleware)
 	{
 		aiRoutes.POST("/:post_id/on", handler.OpenAIMode)
+		aiRoutes.POST("/:post_id/off", handler.DisableOpenAIMode)
 	}
 }
