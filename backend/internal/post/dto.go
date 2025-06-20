@@ -24,10 +24,11 @@ type PostSummaryDTO struct {
 	Likes       int        `json:"likes"`
 	ReadTime    float64    `json:"read_time"`
 	Status      string     `json:"status"`
+	AIChatOpen  bool       `json:"ai_chat_open"`
+	AIReady     bool       `json:"ai_ready"`
 	Author      struct {
-		ID       uuid.UUID `json:"id"`
-		UserName string    `json:"username"`
-		Avatar   string    `json:"avatar"`
+		UserName string `json:"username"`
+		Avatar   string `json:"avatar"`
 	} `json:"author"`
 	Tags       []TagDTO      `json:"tags,omitempty"`
 	Categories []CategoryDTO `json:"categories,omitempty"`
@@ -67,12 +68,12 @@ func MapPostToSummaryDTO(post models.Post) PostSummaryDTO {
 		Likes:       post.Likes,
 		ReadTime:    post.ReadTime,
 		Status:      string(post.Status),
+		AIChatOpen:  post.AIChatOpen,
+		AIReady:     post.AIReady,
 		Author: struct {
-			ID       uuid.UUID `json:"id"`
-			UserName string    `json:"username"`
-			Avatar   string    `json:"avatar"`
+			UserName string `json:"username"`
+			Avatar   string `json:"avatar"`
 		}{
-			ID:       post.Author.ID,
 			UserName: post.Author.UserName,
 			Avatar:   post.Author.Avatar,
 		},

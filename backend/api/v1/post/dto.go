@@ -29,6 +29,8 @@ type GetPublicPostBySlugAndUsernameResponse struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 	DeletedAt   *time.Time `json:"deleted_at"`
 	AuthorID    string     `json:"author_id"`
+	AIChatOpen  bool       `json:"ai_chat_open"`
+	AIReady     bool       `json:"ai_ready"`
 	Author      struct {
 		Avatar   string `json:"avatar"`
 		Username string `json:"username"`
@@ -57,6 +59,8 @@ func MapGetPublicPostBySlugAndUsernameResponse(post *models.Post) *GetPublicPost
 		CreatedAt:   post.CreatedAt,
 		UpdatedAt:   post.UpdatedAt,
 		DeletedAt:   &post.DeletedAt.Time,
+		AIChatOpen:  post.AIChatOpen,
+		AIReady:     post.AIReady,
 	}
 
 	dto.Author = struct {

@@ -53,7 +53,9 @@ func (r *PostRepository) GetAll(limit, offset int, search string) (*PostReposito
 	var posts []models.Post
 
 	query := r.DB.
-		Select("id", "slug", "title", "description", "thumbnail", "published", "published_at", "author_id", "likes", "views", "read_time").
+		Select("id", "slug", "title", "description", "thumbnail",
+			"published", "published_at", "author_id", "likes",
+			"views", "read_time", "ai_chat_open", "ai_ready").
 		Where("published = ?", true).
 		Where("deleted_at IS NULL").
 		Where("published_at IS NOT NULL").
@@ -193,7 +195,10 @@ func (r *PostRepository) GetPublicPostBySlugAndUsername(slug string, username st
 	var post models.Post
 
 	err := r.DB.
-		Select("posts.id", "posts.slug", "posts.title", "posts.content", "posts.description", "posts.thumbnail", "posts.published", "posts.published_at", "posts.author_id", "posts.likes", "posts.views", "posts.read_time", "posts.created_at", "posts.updated_at").
+		Select("posts.id", "posts.slug", "posts.title", "posts.content",
+			"posts.description", "posts.thumbnail", "posts.published", "posts.published_at",
+			"posts.author_id", "posts.likes", "posts.views", "posts.read_time",
+			"posts.created_at", "posts.updated_at", "posts.ai_chat_open", "posts.ai_ready").
 		Where("posts.deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id", "username", "avatar", "bio")
