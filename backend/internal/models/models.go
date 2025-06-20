@@ -113,7 +113,7 @@ type Embedding struct {
 	ID      uuid.UUID       `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	PostID  uuid.UUID       `gorm:"not null;index" json:"post_id"`
 	Content string          `gorm:"type:text;not null" json:"content"`
-	Vector  pgvector.Vector `gorm:"type:vector(768)" json:"vector"`
+	Vector  pgvector.Vector `gorm:"type:vector(384)" json:"vector"`
 	BaseModel
 
 	Post Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
