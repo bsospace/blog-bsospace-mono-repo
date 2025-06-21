@@ -27,6 +27,11 @@ type EmbedPostWorker struct {
 	NotiService *notification.NotificationService
 }
 
+const (
+	ChunkSize   = 6 // Number of words per chunk
+	OverlapSize = 3 // Number of overlapping words between chunks
+)
+
 func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
 		var payload EmbedPostPayload
@@ -38,7 +43,6 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 		postID := payload.Post.ID.String()
 		deps.Logger.Info("Starting to embed post", zap.String("post_id", postID), zap.String("user_email", payload.User.Email))
 
-		// Optional: do something with PostRepo
 		existingPost, err := deps.PostRepo.GetByID(postID)
 		if err != nil {
 			deps.Logger.Error("Post not found", zap.Error(err), zap.String("post_id", postID))
@@ -48,96 +52,67 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 
 		if existingPost.Content == "" {
 			err := errors.New("post has no HTML content")
-			deps.Logger.Error("Failed to get embedding", zap.Error(err), zap.String("post_id", postID))
+			deps.Logger.Error("Empty content", zap.Error(err), zap.String("post_id", postID))
 			return err
 		}
 
-		// post content to plain text embedding model
+		// Convert TipTap JSON content to plain text
 		plainText := tiptap.ExtractTextFromTiptap(existingPost.Content)
-		embedding, err := GetEmbedding(plainText)
-		if err != nil {
-			deps.Logger.Error("Failed to get embedding", zap.Error(err), zap.String("post_id", postID))
+		chunks := SplitTextToChunks(plainText, ChunkSize, OverlapSize)
+		if len(chunks) == 0 {
+			return errors.New("no chunks generated from content")
+		}
+
+		// Delete existing embeddings
+		if err := deps.PostRepo.DeleteEmbeddingsByPostID(postID); err != nil {
+			deps.Logger.Error("Failed to delete old embeddings", zap.Error(err), zap.String("post_id", postID))
 			return err
 		}
 
-		// get existin embedding
-		existingEmbedding, err := deps.PostRepo.GetEmbeddingByPostID(payload.Post.ID.String())
+		// Generate and collect embeddings per chunk
+		var embeddings []models.Embedding
+		for _, chunk := range chunks {
+			// log current chunk being processed
+			deps.Logger.Debug("Processing chunk for embedding", zap.String("chunk", chunk))
+			vec, err := GetEmbedding(chunk)
+			if err != nil {
+				deps.Logger.Error("Failed to get embedding for chunk", zap.Error(err), zap.String("chunk", chunk))
+				return err
+			}
+			embeddings = append(embeddings, models.Embedding{
+				PostID:  payload.Post.ID,
+				Content: chunk,
+				Vector:  pgvector.NewVector(vec),
+			})
+		}
 
-		if err != nil {
-			deps.Logger.Error("Failed to get existing embedding", zap.Error(err), zap.String("post_id", postID))
+		// Bulk insert new embeddings
+		if err := deps.PostRepo.BulkInsertEmbeddings(&payload.Post, embeddings); err != nil {
+			deps.Logger.Error("Failed to insert new embeddings", zap.Error(err), zap.String("post_id", postID))
+			return err
+		}
+		deps.Logger.Info("Inserted all chunk embeddings", zap.String("post_id", postID), zap.Int("chunks", len(embeddings)))
+
+		// Update post status
+		updatedPost := payload.Post
+		updatedPost.AIChatOpen = true
+		updatedPost.AIReady = true
+		if err := deps.PostRepo.Update(&updatedPost); err != nil {
+			deps.Logger.Error("Failed to update post AIChatOpen", zap.Error(err), zap.String("post_id", postID))
 			return err
 		}
 
-		embeddingModel := models.Embedding{
-			Vector: pgvector.NewVector(embedding),
-		}
-
-		if len(existingEmbedding) > 0 {
-			// Update existing embedding
-			embeddingModel.ID = existingEmbedding[0].ID
-			embeddingModel.PostID = existingEmbedding[0].PostID
-			embeddingModel.Content = plainText
-			if err := deps.PostRepo.UpdateEmbedding(&payload.Post, embeddingModel); err != nil {
-				deps.Logger.Error("Failed to update embedding", zap.Error(err), zap.String("post_id", postID))
-				return err
-			}
-			deps.Logger.Info("Updated existing embedding", zap.String("post_id", postID))
-
-			// set AIChatOpen to true
-			updatedPost := payload.Post
-			updatedPost.AIChatOpen = true
-			updatedPost.AIReady = true
-			if err := deps.PostRepo.Update(&updatedPost); err != nil {
-				deps.Logger.Error("Failed to update post AIChatOpen", zap.Error(err), zap.String("post_id", postID))
-				return err
-			}
-
-			// send notification to user
-			notiEvent := "notification:ai_mode_enabled"
-			modelID := existingPost.ID.String()
-			if err := deps.NotiService.Notify(
-				&payload.User,
-				fmt.Sprintf("Your post '%s' has been successfully enabled AI mode.", existingPost.Title),
-				notiEvent,
-				modelID,
-				nil,
-			); err != nil {
-				deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
-				return err
-			}
-
-		} else {
-			// Insert new embedding
-			embeddingModel.PostID = payload.Post.ID
-			embeddingModel.Content = plainText
-			if err := deps.PostRepo.InsertEmbedding(&payload.Post, embeddingModel); err != nil {
-				deps.Logger.Error("Failed to insert embedding", zap.Error(err), zap.String("post_id", postID))
-				return err
-			}
-			deps.Logger.Info("Inserted new embedding", zap.String("post_id", postID))
-
-			// set AIChatOpen to true
-			updatedPost := payload.Post
-			updatedPost.AIChatOpen = true
-			updatedPost.AIReady = true
-			if err := deps.PostRepo.Update(&updatedPost); err != nil {
-				deps.Logger.Error("Failed to update post AIChatOpen", zap.Error(err), zap.String("post_id", postID))
-				return err
-			}
-
-			// send notification to user
-			notiEvent := "notification:ai_mode_enabled"
-			modelID := existingPost.ID.String()
-			if err := deps.NotiService.Notify(
-				&payload.User,
-				fmt.Sprintf("Your post '%s' has been successfully enabled AI mode.", existingPost.Title),
-				notiEvent,
-				modelID,
-				nil,
-			); err != nil {
-				deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
-				return err
-			}
+		// Send notification to user
+		notiEvent := "notification:ai_mode_enabled"
+		if err := deps.NotiService.Notify(
+			&payload.User,
+			fmt.Sprintf("Your post '%s' has been successfully enabled AI mode.", existingPost.Title),
+			notiEvent,
+			postID,
+			nil,
+		); err != nil {
+			deps.Logger.Error("Failed to send notification", zap.Error(err), zap.String("post_id", postID))
+			return err
 		}
 
 		deps.Logger.Info("Post embedding completed", zap.String("post_id", postID), zap.String("user_email", payload.User.Email))
@@ -225,4 +200,21 @@ Content:
 
 		return nil
 	}
+}
+
+func SplitTextToChunks(text string, chunkSize, overlap int) []string {
+	words := strings.Fields(text)
+	var chunks []string
+	for i := 0; i < len(words); i += (chunkSize - overlap) {
+		end := i + chunkSize
+		if end > len(words) {
+			end = len(words)
+		}
+		chunk := strings.Join(words[i:end], " ")
+		chunks = append(chunks, chunk)
+		if end == len(words) {
+			break
+		}
+	}
+	return chunks
 }
