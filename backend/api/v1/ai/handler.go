@@ -120,11 +120,13 @@ const (
 	DefaultSimilarityThreshold = 0.35
 	MaxTopK                    = 20
 	MinSimilarityThreshold     = 0.1
+	StrictThreshold            = 0.5
 )
 
 type RAGConfig struct {
 	TopK                int     `json:"top_k"`
-	SimilarityThreshold float64 `json:"similarity_threshold"`
+	SimilarityThreshold float64 `json:"similarity_threshold"` // ใช้ใน logic เดิม
+	StrictThreshold     float64 `json:"strict_threshold"`     // สำหรับการกรองแบบเข้มงวด
 	Model               string  `json:"model"`
 	Host                string  `json:"host"`
 	UseSelfHost         bool    `json:"use_self_host"`
@@ -228,24 +230,31 @@ func (a *AIHandler) getRAGConfig() RAGConfig {
 	config := RAGConfig{
 		TopK:                DefaultTopK,
 		SimilarityThreshold: DefaultSimilarityThreshold,
+		StrictThreshold:     StrictThreshold,
 		Model:               os.Getenv("AI_MODEL"),
 		Host:                os.Getenv("AI_HOST"),
 		UseSelfHost:         os.Getenv("AI_SELF_HOST") == "true",
 		APIKey:              os.Getenv("AI_API_KEY"),
 	}
 
-	// Parse custom TopK if provided
+	// Parse RAG_TOP_K
 	if topKStr := os.Getenv("RAG_TOP_K"); topKStr != "" {
 		if topK, err := strconv.Atoi(topKStr); err == nil && topK > 0 && topK <= MaxTopK {
 			config.TopK = topK
 		}
 	}
 
-	// Parse custom similarity threshold if provided
+	// Parse RAG_SIMILARITY_THRESHOLD
 	if thresholdStr := os.Getenv("RAG_SIMILARITY_THRESHOLD"); thresholdStr != "" {
-		if threshold, err := strconv.ParseFloat(thresholdStr, 64); err == nil &&
-			threshold >= MinSimilarityThreshold && threshold <= 1.0 {
+		if threshold, err := strconv.ParseFloat(thresholdStr, 64); err == nil {
 			config.SimilarityThreshold = threshold
+		}
+	}
+
+	// Parse RAG_STRICT_THRESHOLD
+	if strictStr := os.Getenv("RAG_STRICT_THRESHOLD"); strictStr != "" {
+		if strict, err := strconv.ParseFloat(strictStr, 64); err == nil {
+			config.StrictThreshold = strict
 		}
 	}
 
@@ -255,36 +264,77 @@ func (a *AIHandler) getRAGConfig() RAGConfig {
 func (a *AIHandler) processRAGPipeline(c *gin.Context, postID, question string, config RAGConfig) (string, error) {
 	a.logger.Info("Processing RAG pipeline", zap.String("question", question))
 
-	// 1. Get question embedding
-	questionEmbedding32, err := ai.GetEmbedding(question)
-	if err != nil {
-		a.logger.Error("Failed to get question embedding", zap.Error(err))
-		a.writeErrorEvent(c, "Embedding error")
-		return "", err
+	allScoredChunks := []ScoredChunk{}
+	phrases := SplitQuestionToPhrases(question)
+
+	for _, phrase := range phrases {
+		embedding32, err := ai.GetEmbedding(phrase)
+		if err != nil {
+			a.logger.Warn("Failed to get embedding for phrase", zap.String("phrase", phrase), zap.Error(err))
+			continue
+		}
+
+		// log the embedding for debugging
+		a.logger.Debug("Embedding generated",
+			zap.String("phrase", phrase))
+
+		embedding := make([]float64, len(embedding32))
+		for i, v := range embedding32 {
+			embedding[i] = float64(v)
+		}
+
+		scoredChunks, err := a.retrieveAndScoreChunks(postID, embedding)
+		if err != nil {
+			a.logger.Warn("Chunk scoring failed for phrase", zap.String("phrase", phrase), zap.Error(err))
+			continue
+		}
+
+		// log the number of chunks scored
+		a.logger.Debug("Scored chunks retrieved",
+			zap.String("phrase", phrase),
+			zap.Int("chunk_count", len(scoredChunks)))
+
+		allScoredChunks = append(allScoredChunks, scoredChunks...)
 	}
 
-	// Convert []float32 to []float64
-	questionEmbedding := make([]float64, len(questionEmbedding32))
-	for i, v := range questionEmbedding32 {
-		questionEmbedding[i] = float64(v)
+	if len(allScoredChunks) == 0 {
+		a.logger.Warn("No relevant chunks found after processing all phrases")
+		a.writeErrorEvent(c, "No relevant content found")
+		return "", nil
 	}
 
-	// 2. Retrieve and score chunks
-	scoredChunks, err := a.retrieveAndScoreChunks(postID, questionEmbedding)
-	if err != nil {
-		a.logger.Error("Failed to retrieve chunks", zap.Error(err))
-		a.writeErrorEvent(c, "Failed to retrieve relevant content")
-		return "", err
+	// Remove duplicates by content text (optional)
+	uniqueMap := map[string]ScoredChunk{}
+	for _, chunk := range allScoredChunks {
+		if _, ok := uniqueMap[chunk.Text]; !ok {
+			uniqueMap[chunk.Text] = chunk
+		}
 	}
 
-	// 3. Select top chunks
-	selectedChunks := a.selectTopChunks(scoredChunks, config)
+	// Convert back to slice and sort
+	uniqueChunks := make([]ScoredChunk, 0, len(uniqueMap))
+	for _, chunk := range uniqueMap {
+		uniqueChunks = append(uniqueChunks, chunk)
+	}
+	sort.Slice(uniqueChunks, func(i, j int) bool {
+		return uniqueChunks[i].Score > uniqueChunks[j].Score
+	})
 
-	// 4. Build context
+	// Select top relevant ones
+	selectedChunks := a.selectTopChunks(uniqueChunks, config)
+
+	// Debug
+	for i, chunk := range selectedChunks {
+		a.logger.Debug("Selected chunk",
+			zap.Int("index", i),
+			zap.Float64("score", chunk.Score),
+			zap.String("text", chunk.Text))
+	}
+
 	context := a.buildContext(selectedChunks)
 
 	a.logger.Info("RAG pipeline completed",
-		zap.Int("total_chunks", len(scoredChunks)),
+		zap.Int("total_chunks", len(uniqueChunks)),
 		zap.Int("selected_chunks", len(selectedChunks)),
 		zap.Int("context_length", len(context)))
 
@@ -335,34 +385,27 @@ func (a *AIHandler) selectTopChunks(scoredChunks []ScoredChunk, config RAGConfig
 	}
 
 	var selectedChunks []ScoredChunk
-
-	// Strategy 1: Take top K chunks regardless of score
-	topK := config.TopK
-	if topK > len(scoredChunks) {
-		topK = len(scoredChunks)
-	}
-
-	for i := 0; i < topK; i++ {
-		selectedChunks = append(selectedChunks, scoredChunks[i])
-	}
-
-	// Strategy 2: Add additional chunks above similarity threshold
-	// (but avoid duplicates from the top K selection)
-	for i := topK; i < len(scoredChunks); i++ {
-		if scoredChunks[i].Score >= config.SimilarityThreshold {
-			selectedChunks = append(selectedChunks, scoredChunks[i])
-		} else {
-			break // Since it's sorted, no need to check further
+	for _, chunk := range scoredChunks {
+		if chunk.Score >= config.StrictThreshold {
+			selectedChunks = append(selectedChunks, chunk)
 		}
 	}
 
-	// Log selection statistics
-	if len(selectedChunks) > 0 {
-		a.logger.Info("Chunk selection completed",
-			zap.Int("selected_count", len(selectedChunks)),
-			zap.Float64("highest_score", selectedChunks[0].Score),
-			zap.Float64("lowest_score", selectedChunks[len(selectedChunks)-1].Score),
-			zap.Float64("threshold", config.SimilarityThreshold))
+	// log the number of chunks selected by strict filter
+	a.logger.Debug("Chunks selected by strict filter",
+		zap.Int("count", len(selectedChunks)),
+		zap.Float64("strict_threshold", config.StrictThreshold))
+
+	// ถ้าไม่มีเลย fallback ไปใช้ top K
+	if len(selectedChunks) == 0 {
+		topK := config.TopK
+		if topK > len(scoredChunks) {
+			topK = len(scoredChunks)
+		}
+		selectedChunks = scoredChunks[:topK]
+
+		a.logger.Warn("Strict filter empty, fallback to top K",
+			zap.Int("top_k", topK))
 	}
 
 	return selectedChunks
@@ -434,7 +477,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	a.logger.Debug("Sending LLM request",
 		zap.String("model", config.Model),
 		zap.String("question", question),
-		zap.String("context_preview", a.truncateText(context, 100)))
+		zap.String("context_preview", context))
 
 	resp, err := a.sendLLMRequest(payload, config)
 	if err != nil {
@@ -587,4 +630,31 @@ func (a *AIHandler) truncateText(text string, maxLen int) string {
 		return text
 	}
 	return text[:maxLen] + "..."
+}
+
+func SplitText(text string, chunkSize int, overlap int) []string {
+	var chunks []string
+	for start := 0; start < len(text); start += chunkSize - overlap {
+		end := start + chunkSize
+		if end > len(text) {
+			end = len(text)
+		}
+		chunks = append(chunks, text[start:end])
+		if end == len(text) {
+			break
+		}
+	}
+	return chunks
+}
+
+func SplitQuestionToPhrases(q string) []string {
+	words := strings.Fields(q)
+	var phrases []string
+	for i := 0; i < len(words)-1; i++ {
+		phrases = append(phrases, strings.Join(words[i:i+2], " "))
+	}
+	if len(phrases) == 0 {
+		return []string{q}
+	}
+	return phrases
 }
