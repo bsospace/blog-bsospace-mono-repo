@@ -70,8 +70,14 @@ func (s *AIService) DisableOpenAIMode(postID string, userData *models.User) (boo
 	}
 
 	post.AIChatOpen = false
+	post.AIReady = false
 	err = s.PosRepo.Update(post)
 	if err != nil {
+		return false, err
+	}
+
+	// delete all embeddings for this post
+	if err := s.PosRepo.DeleteEmbeddingsByPostID(postID); err != nil {
 		return false, err
 	}
 
