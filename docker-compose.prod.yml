@@ -68,6 +68,7 @@ services:
     networks:
       - internal
       - public
+      - ollama_net
 
   frontend:
     container_name: blog-frontend-nextjs-app
@@ -105,3 +106,5 @@ networks:
     driver: bridge
   public:
     driver: bridge
+  ollama_net:
+    external: true
