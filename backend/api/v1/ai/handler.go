@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 
+	"rag-searchbot-backend/pkg/token"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -384,26 +386,45 @@ func (a *AIHandler) buildContext(chunks []ScoredChunk) string {
 func (a *AIHandler) buildSystemPrompt(context string) string {
 	if strings.TrimSpace(context) == "" {
 		a.logger.Warn("No context provided, using fallback system message")
-		return `❗ ไม่พบข้อมูลในบทความนี้ / No relevant content found in the article.`
+		return `ไม่พบข้อมูลในบทความนี้`
 	}
 
-	return fmt.Sprintf(`คุณเป็นผู้ช่วย AI ที่ตอบคำถามโดยใช้ข้อมูลจากบทความเท่านั้น:
-(You are an AI assistant that must answer using **only** the content provided below.)
+	return fmt.Sprintf(`ตอบโดยอิงจากเนื้อหาด้านล่างเท่านั้น ห้ามใช้ความรู้ภายนอก
+หากไม่มีข้อมูล กรุณาตอบว่า "ไม่พบข้อมูลในบทความนี้"
 
 -----
 %s
------
-
-ห้ามตอบจากความรู้ของคุณเองโดยเด็ดขาด หากไม่มีข้อมูลที่เกี่ยวข้องในบทความ กรุณาตอบว่า "ไม่พบข้อมูลในบทความนี้"
-(Do **not** use your own general knowledge. If the answer cannot be found in the content above, reply: "No information available in the article.")`, context)
+-----`, context)
 }
 
 func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context string, config RAGConfig) {
 	systemPrompt := a.buildSystemPrompt(context)
 
+	// Calculate token limits
+	inputText := systemPrompt + "\n" + question
+	inputTokens := token.CountTokens(inputText)
+	maxContextTokens, _ := strconv.Atoi(os.Getenv("AI_MAX_TOKENS"))
+	if maxContextTokens == 0 {
+		maxContextTokens = 3000
+	}
+
+	maxNewTokens := maxContextTokens - inputTokens
+	if maxNewTokens < 256 {
+		maxNewTokens = 256
+	} else if maxNewTokens > 1024 {
+		maxNewTokens = 1024
+	}
+
+	a.logger.Debug("Token limits calculated",
+		zap.Int("input_tokens", inputTokens),
+		zap.Int("max_new_tokens", maxNewTokens),
+		zap.Int("limit", maxContextTokens),
+		zap.String("model", config.Model))
+
 	payload := map[string]interface{}{
-		"model":  config.Model,
-		"stream": true,
+		"model":      config.Model,
+		"stream":     true,
+		"max_tokens": maxNewTokens,
 		"messages": []map[string]string{
 			{"role": "system", "content": systemPrompt},
 			{"role": "user", "content": question},
@@ -421,6 +442,36 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		a.writeErrorEvent(c, "LLM service error")
 		return
 	}
+
+	// LLM request ส่งสำเร็จ
+	a.logger.Debug("LLM request sent successfully",
+		zap.String("model", config.Model),
+		zap.String("question", question),
+		zap.String("context_preview", a.truncateText(context, 100)))
+
+	if resp.StatusCode != http.StatusOK {
+		// ลองอ่าน body (ถ้ายังอ่านได้)
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			a.logger.Error("Failed to read LLM error response body",
+				zap.Error(err))
+			bodyBytes = []byte("(unable to read body)")
+		}
+
+		// log รายละเอียดทั้งหมด
+		a.logger.Error("LLM service returned non-200 status",
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("status", resp.Status),
+			zap.String("model", config.Model),
+			zap.String("question", question),
+			zap.String("context_preview", a.truncateText(context, 100)),
+			zap.ByteString("response_body", bodyBytes),
+			zap.Any("response_headers", resp.Header))
+
+		a.writeErrorEvent(c, fmt.Sprintf("LLM service error: %s", resp.Status))
+		return
+	}
+
 	defer resp.Body.Close()
 
 	a.writeEvent(c, "start", "Streaming started")
