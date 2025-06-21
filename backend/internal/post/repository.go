@@ -21,6 +21,8 @@ type PostRepositoryInterface interface {
 	GetEmbeddingByPostID(postID string) ([]models.Embedding, error)
 	InsertEmbedding(post *models.Post, embedding models.Embedding) error
 	UpdateEmbedding(post *models.Post, embedding models.Embedding) error
+	DeleteEmbeddingsByPostID(postID string) error
+	BulkInsertEmbeddings(post *models.Post, embeddings []models.Embedding) error
 }
 
 type PostRepository struct {
@@ -157,12 +159,18 @@ func (r *PostRepository) GetBySlug(slug string) (*models.Post, error) {
 }
 
 func (r *PostRepository) Update(post *models.Post) error {
-	existinPost := &models.Post{}
-	err := r.DB.First(existinPost, "id = ?", post.ID).Error
-	if err != nil {
+	existingPost := &models.Post{}
+	if err := r.DB.First(existingPost, "id = ?", post.ID).Error; err != nil {
 		return err
 	}
-	return r.DB.Model(existinPost).Updates(post).Error
+
+	// อัปเดตเฉพาะฟิลด์แบบ map
+	updates := map[string]interface{}{
+		"ai_chat_open": post.AIChatOpen,
+		"ai_ready":     post.AIReady,
+	}
+
+	return r.DB.Model(existingPost).Updates(updates).Error
 }
 
 func (r *PostRepository) GetMyPosts(user *models.User) ([]*models.Post, error) {
@@ -275,4 +283,20 @@ func (r *PostRepository) UpdateEmbedding(post *models.Post, embedding models.Emb
 	existingEmbedding.Vector = embedding.Vector
 
 	return r.DB.Save(&existingEmbedding).Error
+}
+
+// DeleteEmbeddingsByPostID
+
+func (r *PostRepository) DeleteEmbeddingsByPostID(postID string) error {
+	return r.DB.
+		Unscoped().
+		Where("post_id = ?", postID).
+		Delete(&models.Embedding{}).Error
+}
+
+func (r *PostRepository) BulkInsertEmbeddings(post *models.Post, embeddings []models.Embedding) error {
+	if len(embeddings) == 0 {
+		return nil
+	}
+	return r.DB.Create(&embeddings).Error
 }
