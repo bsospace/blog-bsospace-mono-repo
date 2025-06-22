@@ -12,17 +12,21 @@ import (
 	"rag-searchbot-backend/pkg/utils"
 	"sort"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type AIService struct {
 	PosRepo      post.PostRepositoryInterface
 	TaskEnqueuer *TaskEnqueuer
+	AIRepo       AIRepositoryInterface
 }
 
-func NewAIService(posRepo post.PostRepositoryInterface, enqueuer *TaskEnqueuer) *AIService {
+func NewAIService(posRepo post.PostRepositoryInterface, enqueuer *TaskEnqueuer, aiRepo AIRepositoryInterface) *AIService {
 	return &AIService{
 		PosRepo:      posRepo,
 		TaskEnqueuer: enqueuer,
+		AIRepo:       aiRepo,
 	}
 }
 
@@ -215,51 +219,19 @@ type ChatResponse struct {
 	Response string `json:"response"`
 }
 
-func callAIChat(context, question string) (string, error) {
-	prompt := `
-You are a helpful assistant.
+func (s *AIService) CreateChat(chat *models.AIResponse, postID string, user *models.User) error {
 
-Use the following context to answer the question as accurately as possible.
-If the answer is unclear or incomplete, politely say so, but try to help.
-
-Context:
-` + context + `
-
-Question: ` + question + `
-
-Answer:
-`
-
-	llmModel := os.Getenv("AI_MODEL")
-	reqBody := ChatRequest{
-		Model:  llmModel,
-		Prompt: prompt,
-	}
-	bodyBytes, _ := json.Marshal(reqBody)
-
-	ollamaURL := os.Getenv("AI_HOST")
-	resp, err := http.Post(ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	// Read streaming response
-	scanner := bufio.NewScanner(resp.Body)
-	var finalResponse string
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		var partial ChatResponse
-		if err := json.Unmarshal(line, &partial); err != nil {
-			continue
-		}
-		finalResponse += partial.Response
+	if chat == nil {
+		return fmt.Errorf("chat cannot be nil")
 	}
 
-	if err := scanner.Err(); err != nil {
-		return "", err
+	if chat.UserID == uuid.Nil || chat.PostID == uuid.Nil {
+		return fmt.Errorf("chat must have UserID and PostID")
 	}
 
-	return finalResponse, nil
+	if chat.Prompt == "" || chat.Response == "" {
+		return fmt.Errorf("chat must have Prompt and Response")
+	}
+
+	return s.AIRepo.CreateChat(chat)
 }
