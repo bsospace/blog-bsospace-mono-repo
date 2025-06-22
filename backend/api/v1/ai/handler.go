@@ -173,14 +173,6 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		return // Error already handled in processRAGPipeline
 	}
 
-	if context == "" {
-		a.logger.Warn("No relevant content found for RAG pipeline",
-			zap.String("post_id", postID),
-			zap.String("user_email", user.Email))
-		a.writeErrorEvent(c, "No relevant content found")
-		return
-	}
-
 	// 6. Generate and stream response
 	a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
 }
@@ -698,6 +690,7 @@ func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *mod
 		PostID:    post.ID,
 		TokenUsed: tokenUse,
 		Success:   true,
+		Model:     os.Getenv("AI_MODEL"),
 	}
 
 	if err := a.AIService.CreateChat(chat, post.ID.String(), user); err != nil {
