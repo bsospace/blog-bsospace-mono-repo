@@ -21,6 +21,7 @@ import (
 	"rag-searchbot-backend/pkg/token"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -181,7 +182,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 	}
 
 	// 6. Generate and stream response
-	a.generateAndStreamResponse(c, req.Prompt, context, config)
+	a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
 }
 
 func (a *AIHandler) validateChatRequest(c *gin.Context) (*ChatRequestDTO, string, *models.User, error) {
@@ -332,12 +333,12 @@ func (a *AIHandler) processRAGPipeline(c *gin.Context, postID, question string, 
 	selectedChunks := a.selectTopChunks(uniqueChunks, config)
 
 	// Debug
-	for i, chunk := range selectedChunks {
-		a.logger.Debug("Selected chunk",
-			zap.Int("index", i),
-			zap.Float64("score", chunk.Score),
-			zap.String("text", chunk.Text))
-	}
+	// for i, chunk := range selectedChunks {
+	// 	a.logger.Debug("Selected chunk",
+	// 		zap.Int("index", i),
+	// 		zap.Float64("score", chunk.Score),
+	// 		zap.String("text", chunk.Text))
+	// }
 
 	context := a.buildContext(selectedChunks)
 
@@ -441,19 +442,19 @@ func (a *AIHandler) buildSystemPrompt(context string) string {
 	}
 
 	return fmt.Sprintf(`ตอบโดยอิงจากเนื้อหาด้านล่างเท่านั้น ห้ามใช้ความรู้ภายนอก
-หากไม่มีข้อมูล กรุณาตอบว่า "ไม่พบข้อมูลในบทความนี้"
+หากไม่มีข้อมูลและไม่ได้เป็นคำทักทาย ให้ตอบว่า "ไม่พบข้อมูลในบทความนี้" และไม่ต้องตอบคำถามแต่ชวนให้ถามคำถามใหม่
+หากเป็นคำทักทาย ให้ตอบว่า "สวัสค่ะ" และทักทายคนถามตามปกติ
 
 -----
 %s
 -----`, context)
 }
 
-func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context string, config RAGConfig) {
+func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context string, config RAGConfig, postID string, user *models.User) {
 	systemPrompt := a.buildSystemPrompt(context)
-
-	// Calculate token limits
 	inputText := systemPrompt + "\n" + question
 	inputTokens := token.CountTokens(inputText)
+
 	maxContextTokens, _ := strconv.Atoi(os.Getenv("AI_MAX_TOKENS"))
 	if maxContextTokens == 0 {
 		maxContextTokens = 3000
@@ -466,12 +467,6 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		maxNewTokens = 1024
 	}
 
-	a.logger.Debug("Token limits calculated",
-		zap.Int("input_tokens", inputTokens),
-		zap.Int("max_new_tokens", maxNewTokens),
-		zap.Int("limit", maxContextTokens),
-		zap.String("model", config.Model))
-
 	payload := map[string]interface{}{
 		"model":      config.Model,
 		"stream":     true,
@@ -482,51 +477,69 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		},
 	}
 
-	a.logger.Debug("Sending LLM request",
-		zap.String("model", config.Model),
-		zap.String("question", question),
-		zap.Any("payload", payload))
-
 	resp, err := a.sendLLMRequest(payload, config)
-	if err != nil {
-		a.logger.Error("LLM service error", zap.Error(err))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		a.logger.Error("LLM error", zap.Error(err), zap.String("body", string(bodyBytes)))
 		a.writeErrorEvent(c, "LLM service error")
 		return
 	}
+	defer resp.Body.Close()
 
-	// LLM request ส่งสำเร็จ
-	a.logger.Debug("LLM request sent successfully",
-		zap.String("model", config.Model),
-		zap.String("question", question),
-		zap.String("context_preview", a.truncateText(context, 100)))
-
-	if resp.StatusCode != http.StatusOK {
-		// ลองอ่าน body (ถ้ายังอ่านได้)
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			a.logger.Error("Failed to read LLM error response body",
-				zap.Error(err))
-			bodyBytes = []byte("(unable to read body)")
-		}
-
-		// log รายละเอียดทั้งหมด
-		a.logger.Error("LLM service returned non-200 status",
-			zap.Int("status_code", resp.StatusCode),
-			zap.String("status", resp.Status),
-			zap.String("model", config.Model),
-			zap.String("question", question),
-			zap.String("context_preview", a.truncateText(context, 100)),
-			zap.ByteString("response_body", bodyBytes),
-			zap.Any("response_headers", resp.Header))
-
-		a.writeErrorEvent(c, fmt.Sprintf("LLM service error: %s", resp.Status))
+	postUUID, err := uuid.Parse(postID)
+	if err != nil {
+		a.writeErrorEvent(c, "Invalid post ID format")
 		return
 	}
 
-	defer resp.Body.Close()
-
 	a.writeEvent(c, "start", "Streaming started")
-	a.streamLLMResponse(c, resp)
+
+	// Stream the response
+	fullText := a.streamLLMResponse(c, resp)
+
+	// Get real token usage
+	var realTotalTokens int
+	if !config.UseSelfHost {
+		// clone payload และเปลี่ยน stream = false
+		usagePayload := map[string]interface{}{
+			"model":      config.Model,
+			"stream":     false,
+			"max_tokens": maxNewTokens,
+			"messages": []map[string]string{
+				{"role": "system", "content": systemPrompt},
+				{"role": "user", "content": question},
+			},
+		}
+
+		usageResp, err := a.sendLLMRequest(usagePayload, config)
+		if err == nil && usageResp.StatusCode == http.StatusOK {
+			defer usageResp.Body.Close()
+			var result map[string]interface{}
+			if err := json.NewDecoder(usageResp.Body).Decode(&result); err == nil {
+				if usage, ok := result["usage"].(map[string]interface{}); ok {
+					promptTokens := int(usage["prompt_tokens"].(float64))
+					completionTokens := int(usage["completion_tokens"].(float64))
+					realTotalTokens = promptTokens + completionTokens
+
+					a.logger.Info("Token usage from OpenRouter",
+						zap.Int("prompt_tokens", promptTokens),
+						zap.Int("completion_tokens", completionTokens),
+						zap.Int("total_tokens", realTotalTokens))
+				}
+			}
+		}
+	}
+
+	// Fallback to input tokens + full text tokens if real total tokens not available
+	if realTotalTokens == 0 {
+		realTotalTokens = inputTokens + token.CountTokens(fullText)
+	}
+
+	// Log the final token usage
+	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, question, realTotalTokens); err != nil {
+		a.logger.Error("Failed to save chat history", zap.Error(err))
+		a.writeErrorEvent(c, "Failed to save chat history")
+	}
 }
 
 func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGConfig) (*http.Response, error) {
@@ -557,8 +570,9 @@ func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGCon
 	return client.Do(req)
 }
 
-func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) {
+func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) string {
 	reader := bufio.NewReader(resp.Body)
+	var fullText strings.Builder
 
 	for {
 		line, err := reader.ReadBytes('\n')
@@ -587,12 +601,16 @@ func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) {
 			break
 		}
 
-		if content := a.parseStreamChunk(raw); content != "" {
+		content := a.parseStreamChunk(raw)
+		if content != "" {
+			fullText.WriteString(content)
 			jsonEncoded, _ := json.Marshal(map[string]string{"text": content})
 			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
 			c.Writer.Flush()
 		}
 	}
+
+	return fullText.String()
 }
 
 func (a *AIHandler) parseStreamChunk(raw []byte) string {
@@ -669,4 +687,28 @@ func SplitQuestionToPhrases(q string) []string {
 		phrases = append(phrases, strings.Join(words[i:i+2], " "))
 	}
 	return phrases
+}
+
+// save chat history
+func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *models.User, responseText string, promt string, tokenUse int) error {
+	chat := &models.AIResponse{
+		Response:  responseText,
+		Prompt:    promt,
+		UserID:    user.ID,
+		PostID:    post.ID,
+		TokenUsed: tokenUse,
+		Success:   true,
+	}
+
+	if err := a.AIService.CreateChat(chat, post.ID.String(), user); err != nil {
+		a.logger.Error("Failed to save chat history", zap.Error(err))
+		return fmt.Errorf("failed to save chat history: %w", err)
+	}
+
+	a.logger.Info("Chat history saved successfully",
+		zap.String("post_id", post.ID.String()),
+		zap.String("response_text", responseText),
+		zap.String("user_email", user.Email))
+
+	return nil
 }
