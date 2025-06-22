@@ -165,7 +165,10 @@ func (r *PostRepository) Update(post *models.Post) error {
 
 	updates := map[string]interface{}{}
 
-	// เปรียบเทียบทีละฟิลด์ ถ้า post ส่งค่ามาให้ (ไม่เป็น default) ก็ใช้ค่านั้น
+	// เปรียบเทียบทีละฟิลด์ ถ้า post ส่งค่ามาให้ (ไม่เป็น default) ก็ใช้ค่านั้น\
+	if post.Published != existing.Published {
+		updates["published"] = post.Published
+	}
 	if post.AIChatOpen != existing.AIChatOpen {
 		updates["ai_chat_open"] = post.AIChatOpen
 	}
