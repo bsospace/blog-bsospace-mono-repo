@@ -97,6 +97,7 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 		updatedPost := payload.Post
 		updatedPost.AIChatOpen = true
 		updatedPost.AIReady = true
+		updatedPost.Published = true
 		if err := deps.PostRepo.Update(&updatedPost); err != nil {
 			deps.Logger.Error("Failed to update post AIChatOpen", zap.Error(err), zap.String("post_id", postID))
 			return err
