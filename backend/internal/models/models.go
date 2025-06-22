@@ -156,6 +156,7 @@ type AIResponse struct {
 	TokenUsed int       `json:"token_used"`
 	Success   bool      `json:"success"`
 	Message   string    `json:"message,omitempty"`
+	Model     string    `gorm:"type:varchar(50)" json:"model"`
 	BaseModel
 
 	User User `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
