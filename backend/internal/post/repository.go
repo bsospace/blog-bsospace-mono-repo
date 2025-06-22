@@ -159,13 +159,14 @@ func (r *PostRepository) GetBySlug(slug string) (*models.Post, error) {
 }
 func (r *PostRepository) Update(post *models.Post) error {
 	existing := &models.Post{}
+	r.DB = r.DB.Debug()
 	if err := r.DB.First(existing, "id = ?", post.ID).Error; err != nil {
 		return err
 	}
 
 	updates := map[string]interface{}{}
 
-	// เปรียบเทียบทีละฟิลด์ ถ้า post ส่งค่ามาให้ (ไม่เป็น default) ก็ใช้ค่านั้น\
+	// เช็คค่าที่ส่งมาก่อนเพิ่มเข้า updates
 	if post.Published != existing.Published {
 		updates["published"] = post.Published
 	}
@@ -175,6 +176,12 @@ func (r *PostRepository) Update(post *models.Post) error {
 	if post.AIReady != existing.AIReady {
 		updates["ai_ready"] = post.AIReady
 	}
+
+	// เปรียบเทียบทีละฟิลด์ ถ้า post ส่งค่ามาให้ (ไม่เป็น default) ก็ใช้ค่านั้น
+	if post.PublishedAt != nil {
+		updates["published_at"] = post.PublishedAt
+	}
+
 	if post.Title != "" {
 		updates["title"] = post.Title
 	}
@@ -216,7 +223,7 @@ func (r *PostRepository) Update(post *models.Post) error {
 		return nil // ไม่มีฟิลด์ไหนเปลี่ยน
 	}
 
-	return r.DB.Model(&models.Post{}).Where("id = ?", post.ID).Updates(updates).Error
+	return r.DB.Model(post).Updates(updates).Error
 }
 
 func (r *PostRepository) GetMyPosts(user *models.User) ([]*models.Post, error) {
