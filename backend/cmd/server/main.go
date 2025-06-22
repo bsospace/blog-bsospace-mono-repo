@@ -6,6 +6,7 @@ import (
 	"rag-searchbot-backend/api/v1/ai"
 	"rag-searchbot-backend/api/v1/auth"
 	"rag-searchbot-backend/api/v1/media"
+	"rag-searchbot-backend/api/v1/notification"
 	"rag-searchbot-backend/api/v1/post"
 	"rag-searchbot-backend/api/v1/user"
 	"rag-searchbot-backend/api/v1/ws"
@@ -173,6 +174,7 @@ func main() {
 	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
 	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
+	notification.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
 
 	r.POST("/upload", handlers.UploadHandler)
 	r.POST("/ask", handlers.AskHandler)
