@@ -649,12 +649,16 @@ func SplitText(text string, chunkSize int, overlap int) []string {
 
 func SplitQuestionToPhrases(q string) []string {
 	words := strings.Fields(q)
+
+	// กรณีคำเดียวหรือไม่มีคำ
+	if len(words) <= 1 {
+		return words
+	}
+
+	// bi-gram phrase
 	var phrases []string
 	for i := 0; i < len(words)-1; i++ {
 		phrases = append(phrases, strings.Join(words[i:i+2], " "))
-	}
-	if len(phrases) == 0 {
-		return []string{q}
 	}
 	return phrases
 }
