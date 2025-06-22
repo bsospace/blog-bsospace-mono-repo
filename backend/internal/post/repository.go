@@ -157,20 +157,63 @@ func (r *PostRepository) GetBySlug(slug string) (*models.Post, error) {
 
 	return &post, err
 }
-
 func (r *PostRepository) Update(post *models.Post) error {
-	existingPost := &models.Post{}
-	if err := r.DB.First(existingPost, "id = ?", post.ID).Error; err != nil {
+	existing := &models.Post{}
+	if err := r.DB.First(existing, "id = ?", post.ID).Error; err != nil {
 		return err
 	}
 
-	// อัปเดตเฉพาะฟิลด์แบบ map
-	updates := map[string]interface{}{
-		"ai_chat_open": post.AIChatOpen,
-		"ai_ready":     post.AIReady,
+	updates := map[string]interface{}{}
+
+	// เปรียบเทียบทีละฟิลด์ ถ้า post ส่งค่ามาให้ (ไม่เป็น default) ก็ใช้ค่านั้น
+	if post.AIChatOpen != existing.AIChatOpen {
+		updates["ai_chat_open"] = post.AIChatOpen
+	}
+	if post.AIReady != existing.AIReady {
+		updates["ai_ready"] = post.AIReady
+	}
+	if post.Title != "" {
+		updates["title"] = post.Title
+	}
+	if post.Description != "" {
+		updates["description"] = post.Description
+	}
+	if post.Thumbnail != "" {
+		updates["thumbnail"] = post.Thumbnail
+	}
+	if post.Content != "" {
+		updates["content"] = post.Content
+	}
+	if post.HTMLContent != nil && *post.HTMLContent != "" {
+		updates["html_content"] = *post.HTMLContent
+	}
+	if post.Slug != "" {
+		updates["slug"] = post.Slug
+	}
+	if post.ShortSlug != "" {
+		updates["short_slug"] = post.ShortSlug
+	}
+	if len(post.Keywords) > 0 {
+		updates["keywords"] = post.Keywords
+	}
+	if post.Example != "" {
+		updates["example"] = post.Example
+	}
+	if post.ReadTime != 0 {
+		updates["read_time"] = post.ReadTime
+	}
+	if post.Status != "" {
+		updates["status"] = post.Status
+	}
+	if post.Key != "" {
+		updates["key"] = post.Key
 	}
 
-	return r.DB.Model(existingPost).Updates(updates).Error
+	if len(updates) == 0 {
+		return nil // ไม่มีฟิลด์ไหนเปลี่ยน
+	}
+
+	return r.DB.Model(&models.Post{}).Where("id = ?", post.ID).Updates(updates).Error
 }
 
 func (r *PostRepository) GetMyPosts(user *models.User) ([]*models.Post, error) {
