@@ -3,7 +3,9 @@ package logger
 import (
 	"log"
 	"os"
+	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -58,4 +60,24 @@ func InitLogger(env string) {
 		log.Fatalf("failed to initialize logger: %v", err)
 	}
 	zap.ReplaceGlobals(Log)
+}
+
+func ZapLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		c.Next()
+
+		duration := time.Since(start)
+		status := c.Writer.Status()
+
+		Log.Info("HTTP Request",
+			zap.Int("status", status),
+			zap.String("method", c.Request.Method),
+			zap.String("path", c.Request.URL.Path),
+			zap.String("client_ip", c.ClientIP()),
+			zap.String("user_agent", c.Request.UserAgent()),
+			zap.Duration("latency", duration),
+		)
+	}
 }
