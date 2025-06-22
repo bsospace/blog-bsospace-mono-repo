@@ -172,6 +172,14 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		return // Error already handled in processRAGPipeline
 	}
 
+	if context == "" {
+		a.logger.Warn("No relevant content found for RAG pipeline",
+			zap.String("post_id", postID),
+			zap.String("user_email", user.Email))
+		a.writeErrorEvent(c, "No relevant content found")
+		return
+	}
+
 	// 6. Generate and stream response
 	a.generateAndStreamResponse(c, req.Prompt, context, config)
 }
@@ -477,7 +485,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	a.logger.Debug("Sending LLM request",
 		zap.String("model", config.Model),
 		zap.String("question", question),
-		zap.String("context_preview", context))
+		zap.Any("payload", payload))
 
 	resp, err := a.sendLLMRequest(payload, config)
 	if err != nil {
