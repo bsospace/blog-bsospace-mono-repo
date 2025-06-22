@@ -139,6 +139,8 @@ func main() {
 	StartMediaCleanupCron(db, cacheService, logger.Log)
 
 	r := gin.Default()
+	r.Use(logger.ZapLogger())
+	r.Use(gin.Recovery())
 
 	var coreUrl []string
 
