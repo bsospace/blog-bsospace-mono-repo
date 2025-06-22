@@ -28,8 +28,11 @@ func RegisterRoutes(
 
 	taskEnqueuer := ai.NewTaskEnqueuer(asynqClient)
 
+	// Register AI repository
+	aiRepo := ai.NewAIRepository(db)
+
 	// AI Service
-	aiService := ai.NewAIService(postRepo, taskEnqueuer)
+	aiService := ai.NewAIService(postRepo, taskEnqueuer, aiRepo)
 
 	// Handler
 	handler := NewAIHandler(aiService, postRepo, logger)
