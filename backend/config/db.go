@@ -31,6 +31,9 @@ func ConnectDatabase() *gorm.DB {
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS vector").Error; err != nil {
 		log.Fatalf("Failed to create extension vector: %v", err)
 	}
+	if err := db.Exec("ALTER TABLE ai_responses ALTER COLUMN embedding_id DROP NOT NULL").Error; err != nil {
+		log.Fatalf("Failed to alter table ai_responses: %v", err)
+	}
 
 	// ทำ Migration ให้กับทุกตาราง
 	err = db.Set("gorm:foreign_key_constraints", true).AutoMigrate(
