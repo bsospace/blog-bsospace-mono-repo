@@ -406,6 +406,13 @@ func UpdatePublishPostResult(
 	post.PublishedAt = &now
 	post.Published = (status == "SUCCESS")
 
+	// log the post update
+	deps.Logger.Info("Updating post status in database",
+		zap.String("post_id", post.ID.String()),
+		zap.String("status", string(post.Status)),
+		zap.String("published_at", post.PublishedAt.String()),
+		zap.Bool("published", post.Published))
+
 	if err := deps.PostRepo.Update(post); err != nil {
 		deps.Logger.Error("Failed to update post status", zap.String("post_id", postID), zap.Error(err))
 		return err
