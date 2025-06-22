@@ -147,21 +147,19 @@ type AIUsageLog struct {
 }
 
 type AIResponse struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	UserID      uuid.UUID `gorm:"not null" json:"user_id"`
-	PostID      uuid.UUID `gorm:"not null" json:"post_id"`
-	EmbeddingID uuid.UUID `gorm:"not null" json:"embedding_id"`
-	UsedAt      time.Time `gorm:"autoCreateTime" json:"used_at"`
-	Prompt      string    `gorm:"type:text" json:"prompt"`
-	Response    string    `gorm:"type:text" json:"response"`
-	TokenUsed   int       `json:"token_used"`
-	Success     bool      `json:"success"`
-	Message     string    `json:"message,omitempty"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uuid.UUID `gorm:"not null" json:"user_id"`
+	PostID    uuid.UUID `gorm:"not null" json:"post_id"`
+	UsedAt    time.Time `gorm:"autoCreateTime" json:"used_at"`
+	Prompt    string    `gorm:"type:text" json:"prompt"`
+	Response  string    `gorm:"type:text" json:"response"`
+	TokenUsed int       `json:"token_used"`
+	Success   bool      `json:"success"`
+	Message   string    `json:"message,omitempty"`
 	BaseModel
 
-	User      User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
-	Post      Post      `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
-	Embedding Embedding `gorm:"foreignKey:EmbeddingID;references:ID" json:"embedding,omitempty"`
+	User User `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+	Post Post `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
 }
 
 // image upload
