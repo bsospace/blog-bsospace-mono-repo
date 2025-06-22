@@ -52,6 +52,7 @@ func RegisterRoutes(
 		notificationRoutes.GET("", handler.GetNotificationsHandler)                          // Get all notifications for the user
 		notificationRoutes.POST("/:id/mark-read", handler.MarkNotificationAsReadHandler)     // Mark all notifications as seen
 		notificationRoutes.POST("/mark-all-read", handler.MarkAllNotificationsAsReadHandler) // Mark all notifications as seen
+		notificationRoutes.DELETE("/:id/delete", handler.DeleteNotificationHandler)          // Delete
 
 	}
 

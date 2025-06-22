@@ -140,3 +140,25 @@ func (s *NotificationService) MarkAllAsRead(user models.User) error {
 	// Notify via WebSocket
 	return s.SocketManager.SendToUser(user.ID.String(), "all_notifications_read", nil)
 }
+
+// Delete a notification
+func (s *NotificationService) DeleteNotification(notiID uint, user *models.User) error {
+	// Validate notification ID
+	noti, err := s.NotiRepo.GetByID(notiID, user)
+	if err != nil {
+		return err
+	}
+
+	if noti.UserID != user.ID {
+		return errs.ErrUnauthorized
+	}
+
+	if err := s.NotiRepo.DeleteByID(notiID, user); err != nil {
+		return err
+	}
+
+	log.Printf("[Notification] Notification %d deleted for user %s", notiID, user.Email)
+
+	// Notify via WebSocket
+	return s.SocketManager.SendToUser(user.ID.String(), "notification_deleted", noti)
+}

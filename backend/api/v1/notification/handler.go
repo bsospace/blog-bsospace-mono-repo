@@ -101,3 +101,30 @@ func (h *NotificationHandler) MarkAllNotificationsAsReadHandler(c *gin.Context) 
 
 	response.JSONSuccess(c, http.StatusOK, "All notifications marked as read", nil)
 }
+
+// deleteNotificationHandler deletes a notification
+func (h *NotificationHandler) DeleteNotificationHandler(c *gin.Context) {
+	notiIDStr := c.Param("id")
+	notiID, err := strconv.Atoi(notiIDStr)
+	if err != nil || notiID <= 0 {
+		response.JSONError(c, http.StatusBadRequest, "Invalid notification ID", "Notification ID must be a positive integer")
+		return
+	}
+
+	user, ok := ginctx.GetUserFromContext(c)
+	if !ok || user == nil {
+		response.JSONError(c, http.StatusUnauthorized, "User not found in context", "User context is missing")
+		return
+	}
+
+	err = h.NotiService.DeleteNotification(uint(notiID), user)
+	if err != nil {
+		response.JSONError(c, http.StatusInternalServerError, "Failed to delete notification", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Notification deleted successfully",
+	})
+}

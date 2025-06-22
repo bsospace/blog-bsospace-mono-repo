@@ -84,3 +84,11 @@ func (r *Repository) GetByID(notiID uint, user *models.User) (*models.Notificati
 	}
 	return &noti, nil
 }
+
+// delete by ID
+func (r *Repository) DeleteByID(notiID uint, user *models.User) error {
+	if err := r.db.Where("id = ? AND user_id = ?", notiID, user.ID).Delete(&models.Notification{}).Error; err != nil {
+		return fmt.Errorf("failed to delete notification: %w", err)
+	}
+	return nil
+}
