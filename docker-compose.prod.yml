@@ -69,6 +69,8 @@ services:
       - internal
       - public
       - ollama_net
+    volumes:
+      - ./backend/cmd/server/logs:/app/logs
 
   frontend:
     container_name: blog-frontend-nextjs-app
@@ -100,6 +102,7 @@ volumes:
   postgres_data:
   pgadmin_data:
   redis_data:
+  
 
 networks:
   internal:
