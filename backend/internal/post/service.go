@@ -322,7 +322,7 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 		if existingPostBySlug.ID != existingPost.ID {
 			existingPost.Slug = post.Slug + "-" + "-" + uuid.New().String()[:8]
 		}
-	} else {
+	} else if existingPost.Slug == existingPost.ShortSlug {
 		// If no post with the same slug exists, use the provided slug
 		existingPost.Slug = post.Slug
 	}
