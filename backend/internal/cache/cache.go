@@ -9,10 +9,29 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type ServiceInterface interface {
+	Delete(key string)
+	ClearUserCache(email string)
+	SetUserCache(email string, user interface{}) error
+	GetUserCache(email string) (*models.User, error)
+	Set(ctx context.Context, key string, value interface{}) error
+	GetString(ctx context.Context, key string) (string, bool)
+	Get(ctx context.Context, key string) (interface{}, bool)
+	Clear()
+}
+
 type Service struct {
 	Cache       map[string]interface{}
 	RedisClient *redis.Client
 	RedisTTL    time.Duration
+}
+
+func NewService(redisClient *redis.Client, redisTTL time.Duration) ServiceInterface {
+	return &Service{
+		Cache:       make(map[string]interface{}),
+		RedisClient: redisClient,
+		RedisTTL:    redisTTL,
+	}
 }
 
 // ใช้ prefix เพื่อแยก key ของ user cache

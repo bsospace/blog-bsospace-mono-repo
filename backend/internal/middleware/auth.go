@@ -17,91 +17,90 @@ import (
 	"go.uber.org/zap"
 )
 
-// AuthMiddleware ใช้สำหรับป้องกัน API ด้วย JWT
-func AuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoService, cache *cache.Service, logger *zap.Logger) gin.HandlerFunc {
+// AuthMiddleware struct for DI
+//go:generate mockgen -destination=../../mocks/mock_authmiddleware.go -package=mocks rag-searchbot-backend/internal/middleware AuthMiddleware
+
+type AuthMiddleware struct {
+	UserService   user.ServiceInterface
+	CryptoService *crypto.CryptoService
+	CacheService  cache.ServiceInterface
+	Logger        *zap.Logger
+}
+
+func NewAuthMiddleware(userService user.ServiceInterface, cryptoService *crypto.CryptoService, cacheService cache.ServiceInterface, logger *zap.Logger) *AuthMiddleware {
+	return &AuthMiddleware{
+		UserService:   userService,
+		CryptoService: cryptoService,
+		CacheService:  cacheService,
+		Logger:        logger,
+	}
+}
+
+func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := extractToken(c)
 		if tokenString == "" {
-			logger.Error("[ERROR] No token provided in request")
+			a.Logger.Error("[ERROR] No token provided in request")
 			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "No token provided")
 			c.Abort()
 			return
 		}
 
-		// ตรวจสอบ Token ผ่าน CryptoService (ใช้ Dependency Injection)
-		claims, err := verifyToken(tokenString, cryptoService, logger)
-
+		claims, err := verifyToken(tokenString, a.CryptoService, a.Logger)
 		if err != nil {
-			logger.Error("[ERROR] Invalid token", zap.Error(err))
+			a.Logger.Error("[ERROR] Invalid token", zap.Error(err))
 			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", err.Error())
 			c.Abort()
 			return
 		}
 
-		// ค้นหา User ใน Cache ก่อน
-		userCache, err := cache.GetUserCache(claims.Email)
-
+		userCache, err := a.CacheService.GetUserCache(claims.Email)
 		if err == nil && userCache != nil {
-			// ถ้า User อยู่ใน Cache ให้เพิ่มข้อมูล User ลง Context
 			c.Set("user", userCache)
-			logger.Info("[INFO] User found in cache:", zap.String("email", claims.Email))
+			a.Logger.Info("[INFO] User found in cache:", zap.String("email", claims.Email))
 			c.Next()
 			return
 		} else {
-			logger.Info("[INFO] User not found in cache, checking database:", zap.String("email", claims.Email))
+			a.Logger.Info("[INFO] User not found in cache, checking database:", zap.String("email", claims.Email))
 		}
 
-		// ค้นหา User ใน Database
-		userDB, err := userService.GetUserByEmail(claims.Email)
-
+		userDB, err := a.UserService.GetUserByEmail(claims.Email)
 		if userDB != nil {
-			// set user in cache
-			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
-				logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
+			if err := a.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
+				a.Logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
 			} else {
-				logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
+				a.Logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
 			}
 		}
 
 		if err != nil {
-
-			// Get User Data from OpenId
-			userOpenID, err := userService.GetUserProfileOpenId(tokenString)
-
+			userOpenID, err := a.UserService.GetUserProfileOpenId(tokenString)
 			if err != nil {
 				response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Failed to get user profile from OpenID")
-				logger.Error("[ERROR] Failed to get user profile from OpenID", zap.Error(err))
+				a.Logger.Error("[ERROR] Failed to get user profile from OpenID", zap.Error(err))
 				c.Abort()
 				return
 			}
-
-			// ถ้าไม่พบ User ใน Database ให้สร้าง User ใหม่
 			newUser := &models.User{
 				Email:    claims.Email,
 				Avatar:   userOpenID.Image,
 				UserName: strings.Split(claims.Email, "@")[0],
 				Role:     models.UserRole("NORMAL_USER"),
 			}
-
-			if _, err = userService.RegisterUser(newUser); err != nil {
-				logger.Error("[ERROR] Failed to register new user", zap.Error(err), zap.String("email", newUser.Email))
+			if _, err = a.UserService.RegisterUser(newUser); err != nil {
+				a.Logger.Error("[ERROR] Failed to register new user", zap.Error(err), zap.String("email", newUser.Email))
 				response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to register new user")
 				c.Abort()
 				return
 			}
-
-			logger.Info("[INFO] New user registered successfully", zap.String("email", newUser.Email))
+			a.Logger.Info("[INFO] New user registered successfully", zap.String("email", newUser.Email))
 			userDB = newUser
-
-			// เพิ่ม User ใหม่ลง Cache
-			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
-				logger.Error("[ERROR] Failed to cache new user", zap.Error(err), zap.String("email", userDB.Email))
+			if err := a.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
+				a.Logger.Error("[ERROR] Failed to cache new user", zap.Error(err), zap.String("email", userDB.Email))
 			} else {
-				logger.Info("[INFO] New user cached successfully", zap.String("email", userDB.Email))
+				a.Logger.Info("[INFO] New user cached successfully", zap.String("email", userDB.Email))
 			}
 		}
-
-		// เพิ่มข้อมูล User ลง Context
 		c.Set("user", userDB)
 		c.Next()
 	}

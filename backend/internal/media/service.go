@@ -9,18 +9,28 @@ import (
 	"net/http"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/models"
-	"rag-searchbot-backend/pkg/logger"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-type MediaService struct {
-	Repo *MediaRepository
+type MediaServiceInterface interface {
+	CreateMedia(fileHeader *multipart.FileHeader, user *models.User, postID *uuid.UUID) (*models.ImageUpload, error)
+	DeleteFromChibisafe(image *models.ImageUpload) error
+	GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error)
+	UpdateImageUsage(image *models.ImageUpload) error
+	DeleteUnusedImages() error
+	GetImageByURL(imageURL string) (*models.ImageUpload, error)
+	UploadToChibisafe(fileHeader *multipart.FileHeader) (ChibisafeResponse, error)
 }
 
-func NewMediaService(repo *MediaRepository, logger *zap.Logger) *MediaService {
-	return &MediaService{Repo: repo}
+type MediaService struct {
+	Repo   MediaRepositoryInterface
+	Logger *zap.Logger
+}
+
+func NewMediaService(repo MediaRepositoryInterface, logger *zap.Logger) MediaServiceInterface {
+	return &MediaService{Repo: repo, Logger: logger}
 }
 
 func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *models.User, postID *uuid.UUID) (*models.ImageUpload, error) {
@@ -31,13 +41,13 @@ func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *model
 		return nil, err
 	}
 
-	logger.Log.Info("RESULT - Chibisafe Response Name:", zap.String("name", res.Name))
-	logger.Log.Info("RESULT - Chibisafe Response Identifier:", zap.String("identifier", res.Identifier))
-	logger.Log.Info("RESULT - Chibisafe Response:", zap.Any("response", res))
-	logger.Log.Info("RESULT - Chibisafe Response UUID:", zap.String("uuid", res.UUID))
+	s.Logger.Info("RESULT - Chibisafe Response Name:", zap.String("name", res.Name))
+	s.Logger.Info("RESULT - Chibisafe Response Identifier:", zap.String("identifier", res.Identifier))
+	s.Logger.Info("RESULT - Chibisafe Response:", zap.Any("response", res))
+	s.Logger.Info("RESULT - Chibisafe Response UUID:", zap.String("uuid", res.UUID))
 	// log user
-	logger.Log.Info("RESULT - User ID:", zap.String("user_id", user.ID.String()))
-	logger.Log.Info("RESULT - User Email:", zap.String("user_email", user.Email))
+	s.Logger.Info("RESULT - User ID:", zap.String("user_id", user.ID.String()))
+	s.Logger.Info("RESULT - User Email:", zap.String("user_email", user.Email))
 
 	image := &models.ImageUpload{
 		ID:         uuid.New(),
@@ -187,12 +197,12 @@ func (s *MediaService) DeleteUnusedImages() error {
 	}
 
 	for _, img := range unusedImages {
-		logger.Log.Info("Deleting unused image", zap.String("image_id", img.ID.String()), zap.String("file_id", img.FileID))
+		s.Logger.Info("Deleting unused image", zap.String("image_id", img.ID.String()), zap.String("file_id", img.FileID))
 
 		// ลบจาก Chibisafe
 		err := s.DeleteFromChibisafe(&img)
 		if err != nil {
-			logger.Log.Error("Failed to delete image from Chibisafe", zap.Error(err), zap.String("image_id", img.ID.String()))
+			s.Logger.Error("Failed to delete image from Chibisafe", zap.Error(err), zap.String("image_id", img.ID.String()))
 			continue // ข้ามหากลบไม่ได้
 		}
 	}
@@ -202,7 +212,7 @@ func (s *MediaService) DeleteUnusedImages() error {
 		return fmt.Errorf("failed to delete unused images from database: %w", err)
 	}
 
-	logger.Log.Info("Successfully deleted unused images from Chibisafe and database")
+	s.Logger.Info("Successfully deleted unused images from Chibisafe and database")
 
 	return nil
 }

@@ -14,12 +14,22 @@ import (
 	"gorm.io/gorm"
 )
 
-type Service struct {
-	Repo  *Repository
-	Cache *cache.Service
+type ServiceInterface interface {
+	RegisterUser(user *models.User) (*models.User, error)
+	GetUser(id string) (*models.User, error)
+	GetUsers() ([]models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
+	GetUserProfileOpenId(token string) (*OpenIDProfileData, error)
+	GetExistingUsername(username string) (bool, error)
+	UpdateUser(user *models.User) error
 }
 
-func NewService(repo *Repository, cache *cache.Service) *Service {
+type Service struct {
+	Repo  RepositoryInterface
+	Cache cache.ServiceInterface
+}
+
+func NewService(repo RepositoryInterface, cache cache.ServiceInterface) ServiceInterface {
 	return &Service{Repo: repo, Cache: cache}
 }
 
