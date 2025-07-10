@@ -12,8 +12,8 @@ import (
 	"rag-searchbot-backend/api/v1/ws"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/container"
 	mediaInternal "rag-searchbot-backend/internal/media"
-	wsInternal "rag-searchbot-backend/internal/ws"
 	"rag-searchbot-backend/pkg/logger"
 	"strings"
 	"time"
@@ -137,6 +137,11 @@ func main() {
 
 	StartMediaCleanupCron(db, cacheService, logger.Log)
 
+	containerDI, err := container.InitializeContainer(&cfg, db, logger.Log, redisClient, 15*time.Minute, asynqClient, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := gin.Default()
 	r.Use(logger.ZapLogger())
 	r.Use(gin.Recovery())
@@ -166,16 +171,14 @@ func main() {
 		})
 	})
 
-	var socketManager = wsInternal.NewManager()
-
 	apiGroup := r.Group("/api/v1")
-	ws.StartWebSocketServer(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
-	auth.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
-	post.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
-	media.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
-	user.RegisterRoutes(apiGroup, db, cacheService, logger.Log)
-	ai.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
-	notification.RegisterRoutes(apiGroup, db, cacheService, logger.Log, asynqClient, mux, socketManager)
+	ws.StartWebSocketServer(apiGroup, containerDI)
+	auth.RegisterRoutes(apiGroup, containerDI)
+	post.RegisterRoutes(apiGroup, containerDI)
+	media.RegisterRoutes(apiGroup, containerDI)
+	user.RegisterRoutes(apiGroup, containerDI)
+	ai.RegisterRoutes(apiGroup, containerDI)
+	notification.RegisterRoutes(apiGroup, containerDI)
 
 	r.Run(":8088")
 }
