@@ -109,19 +109,34 @@ func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 			}
 		}
 
-		// Generate OTP warp key
-		otpToken, err := a.CryptoService.GenerateSocketToken()
-		if err != nil {
-			a.Logger.Error("[ERROR] Failed to generate OTP token", zap.Error(err))
-			response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to generate OTP token")
-			c.Abort()
-			return
-		}
+		// ตรวจสอบว่า email นี้มี warp key อยู่หรือยัง
+		existingWarpKey, exists := a.CacheService.GetWarpKey(userDB.Email)
 
-		// Clear old warp key and set new one
-		a.CacheService.ClearWarpKey(userDB.Email)
-		if err := a.CacheService.SetWarpKey(userDB.Email, otpToken); err != nil {
-			a.Logger.Error("[ERROR] Failed to cache warp key", zap.Error(err), zap.String("email", userDB.Email))
+		var otpToken string
+
+		if exists && existingWarpKey != "" {
+			// มีอยู่แล้ว → ใช้ key เดิม
+			otpToken = existingWarpKey
+			a.Logger.Info("[INFO] Existing warp key found", zap.String("email", userDB.Email), zap.String("warp_key", otpToken))
+		} else {
+			// ยังไม่มี → generate ใหม่ แล้วเก็บ
+			otpToken, err = a.CryptoService.GenerateSocketToken()
+			if err != nil {
+				a.Logger.Error("[ERROR] Failed to generate OTP token", zap.Error(err))
+				response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to generate OTP token")
+				c.Abort()
+				return
+			}
+
+			// Set warp key ใหม่ใน cache
+			if err := a.CacheService.SetWarpKey(userDB.Email, otpToken); err != nil {
+				a.Logger.Error("[ERROR] Failed to set warp key in cache", zap.Error(err), zap.String("email", userDB.Email))
+				response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to set warp key in cache")
+				c.Abort()
+				return
+			}
+
+			a.Logger.Info("[INFO] New warp key generated and cached", zap.String("warp_key", otpToken), zap.String("email", userDB.Email))
 		}
 
 		// Set to Gin context
