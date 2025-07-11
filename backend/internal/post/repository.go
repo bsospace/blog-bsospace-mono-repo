@@ -29,7 +29,7 @@ type PostRepository struct {
 	DB *gorm.DB
 }
 
-func NewPostRepository(db *gorm.DB) *PostRepository {
+func NewPostRepository(db *gorm.DB) PostRepositoryInterface {
 	return &PostRepository{DB: db}
 }
 

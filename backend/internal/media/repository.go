@@ -7,11 +7,25 @@ import (
 	"gorm.io/gorm"
 )
 
+type MediaRepositoryInterface interface {
+	Create(media *models.ImageUpload) error
+	GetByID(id uuid.UUID) (*models.ImageUpload, error)
+	DeleteByID(id string) error
+	MakeAsUsed(id uint, reason string) error
+	GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error)
+	UpdateImageUsage(image *models.ImageUpload) error
+	DeleteImagesWhereUnused() error
+	GetUnusedImages() ([]models.ImageUpload, error)
+	GetByFileID(fileID string) (*models.ImageUpload, error)
+	FindUnusedWithUniqueFileID() ([]models.ImageUpload, error)
+	GetImageByURL(imageURL string) (*models.ImageUpload, error)
+}
+
 type MediaRepository struct {
 	DB *gorm.DB
 }
 
-func NewMediaRepository(db *gorm.DB) *MediaRepository {
+func NewMediaRepository(db *gorm.DB) MediaRepositoryInterface {
 	return &MediaRepository{DB: db}
 }
 

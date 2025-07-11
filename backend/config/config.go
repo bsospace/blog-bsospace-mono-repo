@@ -22,6 +22,7 @@ type Config struct {
 	ChibisafeURL     string
 	ChibisafeKey     string
 	ChibisafeAlbumId string
+	Domain           string
 }
 
 func LoadConfig() Config {
@@ -69,5 +70,6 @@ func LoadConfig() Config {
 		RedisPort:        redisPort,
 		RedisPassword:    redisPassword,
 		RedisAddr:        redisHost + ":6379",
+		Domain:           os.Getenv("DOMAIN"),
 	}
 }

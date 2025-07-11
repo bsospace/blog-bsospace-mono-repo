@@ -26,6 +26,7 @@ type MeResponse struct {
 	NewUser   bool      `json:"new_user"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
+	WarpKey   string    `json:"warp_key,omitempty"` // Optional field for warp key
 }
 
 func MapResponse(user *models.User) MeResponse {

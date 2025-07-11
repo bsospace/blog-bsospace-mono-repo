@@ -6,11 +6,20 @@ import (
 	"gorm.io/gorm"
 )
 
+type RepositoryInterface interface {
+	CreateUser(user *models.User) error
+	GetUserByID(id string) (*models.User, error)
+	GetUsers() ([]models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
+	GetUserByUsername(username string) (bool, error)
+	UpdateUser(user *models.User) error
+}
+
 type Repository struct {
 	DB *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) *Repository {
+func NewRepository(db *gorm.DB) RepositoryInterface {
 	return &Repository{DB: db}
 }
 

@@ -1,13 +1,16 @@
 package crypto
 
 import (
+	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"rag-searchbot-backend/config"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -149,4 +152,16 @@ func (cs *CryptoService) SmartVerifyToken(tokenString, keyType string) (*jwt.Tok
 // DecodeToken decodes a JWT token without verifying
 func (cs *CryptoService) DecodeToken(tokenString string) (*jwt.Token, error) {
 	return jwt.Parse(tokenString, nil)
+}
+
+// GenerateSocketToken creates a one-time random token for WebSocket authentication.
+func (cs *CryptoService) GenerateSocketToken() (string, error) {
+	// สร้าง token สุ่มแบบ base64
+	bytes := make([]byte, 16) // 16 bytes ≈ 22 chars
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	token := base64.RawURLEncoding.EncodeToString(bytes)
+	token = strings.TrimRight(token, "=")
+	return token, nil
 }
