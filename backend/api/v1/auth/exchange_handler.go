@@ -31,7 +31,7 @@ func Exchange(container *container.Container) gin.HandlerFunc {
 		}
 
 		// Set cookies
-		isProd := container.Env.AppEnv == "production"
+		isProd := container.Env.AppEnv == "release"
 		domains := strings.Split(container.Env.Domain, ",")
 
 		for _, domain := range domains {
