@@ -27,7 +27,18 @@ func Me(c *gin.Context) {
 		return
 	}
 
+	warpKey, exists := c.Get("warp_key")
+	if !exists || warpKey == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Warp key not found in context",
+		})
+		return
+	}
+
 	resp := MapResponse(userData)
+
+	resp.WarpKey = warpKey.(string)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

@@ -1,42 +1,23 @@
 package media
 
 import (
-	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/container"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/middleware"
-	"rag-searchbot-backend/internal/user"
-	"rag-searchbot-backend/pkg/crypto"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
-	// Inject dependencies
-	repo := media.NewMediaRepository(db)
-	service := media.NewMediaService(repo, logger)
-	handler := NewMediaHandler(service)
-	// สร้าง Repository ที่ใช้ GORM
-	userRepository := user.NewRepository(db)
-
-	// สร้าง Service ที่ใช้ Crypto
-	crypto := crypto.NewCryptoService()
-
-	// cryptoService
-	cryptoService := crypto
-	// สร้าง Service ที่ใช้ Repository
-	userService := user.NewService(userRepository, cache)
-
-	// Cache Service
-	cacheService := cache
-
-	// auth middleware
-	authMiddleware := middleware.AuthMiddleware(userService, cryptoService, cacheService, logger)
-
-	// Protected Media Routes
+func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
+	handler := NewMediaHandler(container.MediaService.(*media.MediaService))
+	authMiddleware := middleware.NewAuthMiddleware(
+		container.UserService,
+		container.CryptoService,
+		container.CacheService,
+		container.Log,
+	)
 	mediaRoutes := router.Group("/media")
-	mediaRoutes.Use(authMiddleware)
+	mediaRoutes.Use(authMiddleware.Handler())
 	{
 		mediaRoutes.POST("/upload", handler.UploadImageHandler)
 	}

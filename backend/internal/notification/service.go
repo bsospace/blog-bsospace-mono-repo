@@ -9,12 +9,16 @@ import (
 	"strconv"
 )
 
+type NotificationServiceInterface interface {
+	Notify(user *models.User, title string, event string, data string, link *string) error
+}
+
 type NotificationService struct {
-	NotiRepo      *Repository
+	NotiRepo      RepositoryInterface
 	SocketManager *ws.Manager
 }
 
-func NewService(repo *Repository, socketManager *ws.Manager) *NotificationService {
+func NewService(repo RepositoryInterface, socketManager *ws.Manager) NotificationServiceInterface {
 	return &NotificationService{NotiRepo: repo, SocketManager: socketManager}
 }
 

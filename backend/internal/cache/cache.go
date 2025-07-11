@@ -9,10 +9,32 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type ServiceInterface interface {
+	Delete(key string)
+	ClearUserCache(email string)
+	SetUserCache(email string, user interface{}) error
+	GetUserCache(email string) (*models.User, error)
+	Set(ctx context.Context, key string, value interface{}) error
+	GetString(ctx context.Context, key string) (string, bool)
+	Get(ctx context.Context, key string) (interface{}, bool)
+	Clear()
+	SetWarpKey(email string, warpKey string) error
+	GetWarpKey(email string) (string, bool)
+	ClearWarpKey(email string)
+}
+
 type Service struct {
 	Cache       map[string]interface{}
 	RedisClient *redis.Client
 	RedisTTL    time.Duration
+}
+
+func NewService(redisClient *redis.Client, redisTTL time.Duration) ServiceInterface {
+	return &Service{
+		Cache:       make(map[string]interface{}),
+		RedisClient: redisClient,
+		RedisTTL:    redisTTL,
+	}
 }
 
 // ใช้ prefix เพื่อแยก key ของ user cache
@@ -116,4 +138,40 @@ func (s *Service) Get(ctx context.Context, key string) (interface{}, bool) {
 // Clear ทั้ง cache memory (global)
 func (s *Service) Clear() {
 	s.Cache = make(map[string]interface{})
+}
+
+func (s *Service) SetWarpKey(email string, warpKey string) error {
+	ctx := context.Background()
+
+	// Set: email → warpKey
+	if err := s.Set(ctx, getWarpKey(email), warpKey); err != nil {
+		return err
+	}
+
+	// Set: warpKey → email (ใช้สำหรับ validate ฝั่ง WebSocket)
+	return s.Set(ctx, getWarpKeyReverse(warpKey), email)
+}
+
+func (s *Service) GetWarpKey(email string) (string, bool) {
+	return s.GetString(context.Background(), getWarpKey(email))
+}
+
+func (s *Service) ClearWarpKey(email string) {
+	warpKey, ok := s.GetWarpKey(email)
+	if ok {
+		s.Delete(getWarpKeyReverse(warpKey))
+	}
+	s.Delete(getWarpKey(email))
+}
+
+func (s *Service) GetWarpEmail(warpKey string) (string, bool) {
+	return s.GetString(context.Background(), getWarpKeyReverse(warpKey))
+}
+
+func getWarpKey(email string) string {
+	return "cache:warp:" + email
+}
+
+func getWarpKeyReverse(warpKey string) string {
+	return "cache:warp:map:" + warpKey
 }

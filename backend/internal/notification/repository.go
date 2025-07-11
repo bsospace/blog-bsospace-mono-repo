@@ -7,11 +7,21 @@ import (
 	"gorm.io/gorm"
 )
 
+type RepositoryInterface interface {
+	Create(noti *models.Notification) (*models.Notification, error)
+	GetByUser(userID string, limit int, page int) ([]models.Notification, error)
+	CountByUser(userID string) (int64, error)
+	MarkAsRead(notiID uint) error
+	MarkAllAsRead(userID string) error
+	GetByID(notiID uint, user *models.User) (*models.Notification, error)
+	DeleteByID(notiID uint, user *models.User) error
+}
+
 type Repository struct {
 	db *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) *Repository {
+func NewRepository(db *gorm.DB) RepositoryInterface {
 	return &Repository{db: db}
 }
 

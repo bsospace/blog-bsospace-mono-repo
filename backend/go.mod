@@ -6,6 +6,7 @@ toolchain go1.23.8
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/google/wire v0.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hibiken/asynq v0.25.1
 	github.com/robfig/cron/v3 v3.0.1
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -23,9 +23,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
@@ -56,7 +54,6 @@ require (
 	github.com/pgvector/pgvector-go v0.3.0
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/redis/go-redis/v9 v9.7.3
-	github.com/stretchr/testify v1.10.0
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.uber.org/zap v1.27.0

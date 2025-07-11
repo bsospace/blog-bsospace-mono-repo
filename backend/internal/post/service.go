@@ -18,13 +18,21 @@ import (
 	"gorm.io/gorm"
 )
 
+type PostServiceInterface interface {
+	CreatePost(post CreatePostRequest, user *models.User) (string, error)
+	GetPostByID(id string) (*models.Post, error)
+	GetPostBySlug(slug string) (*PostByIdResponse, error)
+	UpdatePost(post *models.Post) error
+	MyPosts(user *models.User) (*MyPostsResponseDTO, error)
+}
+
 type PostService struct {
 	Repo         PostRepositoryInterface
-	MediaService *media.MediaService
+	MediaService media.MediaServiceInterface
 	TaskEnqueuer *TaskEnqueuer
 }
 
-func NewPostService(repo PostRepositoryInterface, mediaRepo *media.MediaService, enqueuer *TaskEnqueuer) *PostService {
+func NewPostService(repo PostRepositoryInterface, mediaRepo media.MediaServiceInterface, enqueuer *TaskEnqueuer) PostServiceInterface {
 	return &PostService{Repo: repo, MediaService: mediaRepo, TaskEnqueuer: enqueuer}
 }
 

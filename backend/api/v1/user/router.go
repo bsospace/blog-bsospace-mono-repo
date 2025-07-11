@@ -1,45 +1,25 @@
 package user
 
 import (
-	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/container"
 	"rag-searchbot-backend/internal/middleware"
 	"rag-searchbot-backend/internal/user"
-	"rag-searchbot-backend/pkg/crypto"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.RouterGroup, db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
-	// สร้าง Repository ที่ใช้ GORM
-	userRepository := user.NewRepository(db)
-
-	// สร้าง Service ที่ใช้ Repository
-	userService := user.NewService(userRepository, cache)
-
-	// สร้าง UserHandler
-	userHandler := NewUserHandler(userService)
-
-	// สร้าง Service ที่ใช้ Crypto
-	crypto := crypto.NewCryptoService()
-
-	// cryptoService
-	cryptoService := crypto
-	// Cache Service
-	cacheService := cache
-
-	// auth middleware
-	authMiddleware := middleware.AuthMiddleware(userService, cryptoService, cacheService, logger)
-
-	// กำหนดเส้นทางสำหรับ User
+func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
+	handler := NewUserHandler(container.UserService.(*user.Service))
+	authMiddleware := middleware.NewAuthMiddleware(
+		container.UserService,
+		container.CryptoService,
+		container.CacheService,
+		container.Log,
+	)
 	userRoutes := router.Group("/user")
-
-	userRoutes.Use(authMiddleware)
+	userRoutes.Use(authMiddleware.Handler())
 	{
-		// ตรวจสอบว่า username มีอยู่หรือไม่
-		userRoutes.GET("/check-username", userHandler.GetExistingUsername)
-		// อัพเดตข้อมูลผู้ใช้
-		userRoutes.PUT("/update", userHandler.UpdateUser)
+		userRoutes.GET("/check-username", handler.GetExistingUsername)
+		userRoutes.PUT("/update", handler.UpdateUser)
 	}
 }

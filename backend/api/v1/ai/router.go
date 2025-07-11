@@ -2,61 +2,34 @@ package ai
 
 import (
 	"rag-searchbot-backend/internal/ai"
-	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/container"
 	"rag-searchbot-backend/internal/middleware"
 	"rag-searchbot-backend/internal/notification"
-	"rag-searchbot-backend/internal/post"
-	"rag-searchbot-backend/internal/user"
-	"rag-searchbot-backend/internal/ws"
-	"rag-searchbot-backend/pkg/crypto"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hibiken/asynq"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(
-	router *gin.RouterGroup,
-	db *gorm.DB, cache *cache.Service,
-	logger *zap.Logger, asynqClient *asynq.Client,
-	mux *asynq.ServeMux,
-	socketManager *ws.Manager,
-) {
+func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
 	// Repository
-	postRepo := post.NewPostRepository(db)
-
-	taskEnqueuer := ai.NewTaskEnqueuer(asynqClient)
-
-	// Register AI repository
-	aiRepo := ai.NewAIRepository(db)
-
-	// AI Service
-	aiService := ai.NewAIService(postRepo, taskEnqueuer, aiRepo)
-
-	// Handler
-	handler := NewAIHandler(aiService, postRepo, logger)
-
-	// Middleware
-	cryptoService := crypto.NewCryptoService()
-	userRepo := user.NewRepository(db)
-	userService := user.NewService(userRepo, cache)
-	authMiddleware := middleware.AuthMiddleware(userService, cryptoService, cache, logger)
-
-	// notification service
-	notificationRepo := notification.NewRepository(db)                              // Assuming you have a WebSocket manager
-	notificationService := notification.NewService(notificationRepo, socketManager) // Assuming you have a WebSocket manager
-	// Register AI worker
-	// Register AI worker with full dependency injection
-	mux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(ai.EmbedPostWorker{
-		Logger:      logger,
+	postRepo := container.PostRepo
+	aiTaskEnqueuer := ai.NewTaskEnqueuer(container.AsynqClient)
+	aiRepo := ai.NewAIRepository(container.DB)
+	aiService := ai.NewAIService(postRepo, aiTaskEnqueuer, aiRepo)
+	handler := NewAIHandler(aiService, postRepo, container.Log)
+	authMiddleware := middleware.NewAuthMiddleware(
+		container.UserService,
+		container.CryptoService, // now correct type from internal/crypto
+		container.CacheService,
+		container.Log,
+	)
+	notificationService := container.NotificationService
+	container.AsynqMux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(ai.EmbedPostWorker{
+		Logger:      container.Log,
 		PostRepo:    postRepo,
-		NotiService: notificationService,
+		NotiService: notificationService.(*notification.NotificationService),
 	}))
-
-	// Route Group
 	aiRoutes := router.Group("/ai")
-	aiRoutes.Use(authMiddleware)
+	aiRoutes.Use(authMiddleware.Handler())
 	{
 		aiRoutes.POST("/:post_id/on", handler.OpenAIMode)
 		aiRoutes.POST("/:post_id/off", handler.DisableOpenAIMode)
