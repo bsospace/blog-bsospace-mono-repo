@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/container"
+	"rag-searchbot-backend/internal/models"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -57,12 +58,26 @@ func Logout(container *container.Container) gin.HandlerFunc {
 		isProd := container.Env.AppEnv == "release"
 		domains := strings.Split(container.Env.Domain, ",")
 
+		// Clear cookies
 		for _, domain := range domains {
 			domain = strings.TrimSpace(domain)
 			c.SetCookie("blog.atk", "", -1, "/", domain, isProd, true)
 			c.SetCookie("blog.rtk", "", -1, "/", domain, isProd, true)
 		}
 
+		// Get user from context
+		userVal, exists := c.Get("user")
+		if exists && userVal != nil {
+			if user, ok := userVal.(*models.User); ok && user != nil {
+				// Clear user cache
+				container.CacheService.ClearUserCache(user.Email)
+
+				// Clear warp key
+				container.CacheService.ClearWarpKey(user.Email)
+			}
+		}
+
+		// Respond
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "Logged out successfully",
