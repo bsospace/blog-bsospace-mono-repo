@@ -121,7 +121,7 @@ const (
 	DefaultSimilarityThreshold = 0.35
 	MaxTopK                    = 20
 	MinSimilarityThreshold     = 0.1
-	StrictThreshold            = 0.5
+	StrictThreshold            = 0.4
 )
 
 type RAGConfig struct {
@@ -220,10 +220,32 @@ func (a *AIHandler) validatePost(c *gin.Context, postID string) (*models.Post, e
 }
 
 func (a *AIHandler) setupStreamingHeaders(c *gin.Context) {
+	origin := c.Request.Header.Get("Origin")
+
+	appEnv := os.Getenv("APP_ENV")
+	var allowedOrigins []string
+	if appEnv == "release" {
+		allowedOrigins = strings.Split(os.Getenv("ALLOWED_ORIGINS_PROD"), ",")
+	} else {
+		allowedOrigins = strings.Split(os.Getenv("ALLOWED_ORIGINS_DEV"), ",")
+	}
+
+	// Trim และตรวจสอบว่า origin อยู่ใน allowed list หรือไม่
+	isAllowed := false
+	for _, o := range allowedOrigins {
+		if strings.TrimSpace(o) == origin {
+			isAllowed = true
+			break
+		}
+	}
+
+	if isAllowed {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+	}
+
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	c.Writer.Flush()
 }
 
