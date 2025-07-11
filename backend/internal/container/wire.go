@@ -24,6 +24,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// ----- Wire Sets -----
+
 var postSet = wire.NewSet(
 	post.NewPostRepository,
 	post.NewTaskEnqueuer,
@@ -49,9 +51,19 @@ var authSet = wire.NewSet(
 	auth.NewAuthService,
 )
 
-var CrypetoSet = wire.NewSet(
+var cryptoSet = wire.NewSet(
 	crypto.NewCryptoService,
 )
+
+var queueSet = wire.NewSet(
+	queue.NewRepository,
+)
+
+var asynqSet = wire.NewSet(
+	NewAsynqMux,
+)
+
+// ----- Wire Providers -----
 
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
 	return cache.NewService(redisClient, redisTTL)
@@ -61,6 +73,8 @@ func NewAsynqMux() *asynq.ServeMux {
 	return asynq.NewServeMux()
 }
 
+// ----- Wire Injector -----
+
 func InitializeContainer(
 	env *config.Config,
 	db *gorm.DB,
@@ -68,7 +82,6 @@ func InitializeContainer(
 	redisClient *redis.Client,
 	redisTTL time.Duration,
 	asynqClient *asynq.Client,
-	queueRepo queue.QueueRepositoryInterface,
 ) (*Container, error) {
 	wire.Build(
 		NewContainer,
@@ -76,11 +89,12 @@ func InitializeContainer(
 		postSet,
 		notificationSet,
 		mediaSet,
+		authSet,
+		cryptoSet,
+		queueSet,
+		asynqSet,
 		NewCacheService,
 		ws.NewManager,
-		CrypetoSet,
-		NewAsynqMux,
-		authSet,
 	)
 	return &Container{}, nil
 }

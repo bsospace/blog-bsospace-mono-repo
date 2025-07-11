@@ -7,9 +7,10 @@ import (
 	"rag-searchbot-backend/internal/notification"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 )
 
-func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
+func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux *asynq.ServeMux) {
 	// Repository
 	postRepo := container.PostRepo
 	aiTaskEnqueuer := ai.NewTaskEnqueuer(container.AsynqClient)
@@ -22,12 +23,20 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
 		container.CacheService,
 		container.Log,
 	)
-	notificationService := container.NotificationService
-	container.AsynqMux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(ai.EmbedPostWorker{
+
+	// container.AsynqMux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(ai.EmbedPostWorker{
+	// 	Logger:      container.Log,
+	// 	PostRepo:    postRepo,
+	// 	NotiService: notificationService.(*notification.NotificationService),
+	// }))
+
+	// Register AI task handlers
+	mux.HandleFunc(ai.TaskTypeEmbedPost, ai.NewEmbedPostWorkerHandler(ai.EmbedPostWorker{
 		Logger:      container.Log,
 		PostRepo:    postRepo,
-		NotiService: notificationService.(*notification.NotificationService),
+		NotiService: container.NotificationService.(*notification.NotificationService),
 	}))
+
 	aiRoutes := router.Group("/ai")
 	aiRoutes.Use(authMiddleware.Handler())
 	{

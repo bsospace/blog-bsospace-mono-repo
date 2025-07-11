@@ -113,7 +113,7 @@ func main() {
 	cacheService := &cache.Service{
 		Cache:       make(map[string]interface{}),
 		RedisClient: redisClient,
-		RedisTTL:    15 * time.Minute,
+		RedisTTL:    24 * time.Hour,
 	}
 
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
@@ -137,7 +137,7 @@ func main() {
 
 	StartMediaCleanupCron(db, cacheService, logger.Log)
 
-	containerDI, err := container.InitializeContainer(&cfg, db, logger.Log, redisClient, 15*time.Minute, asynqClient, nil)
+	containerDI, err := container.InitializeContainer(&cfg, db, logger.Log, redisClient, 15*time.Minute, asynqClient)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -174,10 +174,10 @@ func main() {
 	apiGroup := r.Group("/api/v1")
 	ws.StartWebSocketServer(apiGroup, containerDI)
 	auth.RegisterRoutes(apiGroup, containerDI)
-	post.RegisterRoutes(apiGroup, containerDI)
+	post.RegisterRoutes(apiGroup, containerDI, mux)
 	media.RegisterRoutes(apiGroup, containerDI)
 	user.RegisterRoutes(apiGroup, containerDI)
-	ai.RegisterRoutes(apiGroup, containerDI)
+	ai.RegisterRoutes(apiGroup, containerDI, mux)
 	notification.RegisterRoutes(apiGroup, containerDI)
 
 	r.Run(":8088")
