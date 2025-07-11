@@ -17,6 +17,7 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
 		container.CacheService,
 		container.Log,
 	)
+	authRoutes.POST("/exchange", Exchange(container))
 	authRoutes.Use(authMiddleware.Handler())
 	authRoutes.GET("/me", handler.Me)
 }
