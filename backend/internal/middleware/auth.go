@@ -176,17 +176,19 @@ func extractTokenString(token string) string {
 	return ""
 }
 
-// Extract Token จาก Header หรือ Cookie
 func extractToken(c *gin.Context) string {
 	authHeader := c.GetHeader("Authorization")
 
-	// ตรวจสอบว่า Header มีค่าเป็น Bearer Token หรือไม่
+	// ตรวจสอบ Bearer Token จาก Header
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		return strings.TrimPrefix(authHeader, "Bearer ")
 	}
-	if cookie, err := c.Cookie("accessToken"); err == nil {
+
+	// ตรวจสอบจาก cookie "openid.atk"
+	if cookie, err := c.Cookie("blog.atk"); err == nil {
 		return cookie
 	}
+
 	return ""
 }
 
