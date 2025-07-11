@@ -27,7 +27,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redisClient *redis.Client, redisTTL time.Duration, asynqClient *asynq.Client, queueRepo queue.QueueRepositoryInterface) (*Container, error) {
+func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redisClient *redis.Client, redisTTL time.Duration, asynqClient *asynq.Client) (*Container, error) {
 	repositoryInterface := user.NewRepository(db)
 	postRepositoryInterface := post.NewPostRepository(db)
 	notificationRepositoryInterface := notification.NewRepository(db)
@@ -35,14 +35,15 @@ func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redis
 	serviceInterface := NewCacheService(redisClient, redisTTL)
 	userServiceInterface := user.NewService(repositoryInterface, serviceInterface)
 	mediaServiceInterface := media.NewMediaService(mediaRepositoryInterface, log)
-	taskEnqueuer := post.NewTaskEnqueuer(asynqClient, queueRepo)
+	queueRepositoryInterface := queue.NewRepository(db)
+	taskEnqueuer := post.NewTaskEnqueuer(asynqClient, queueRepositoryInterface)
 	postServiceInterface := post.NewPostService(postRepositoryInterface, mediaServiceInterface, taskEnqueuer)
 	manager := ws.NewManager()
 	notificationServiceInterface := notification.NewService(notificationRepositoryInterface, manager)
 	serveMux := NewAsynqMux()
 	cryptoService := crypto.NewCryptoService()
 	authServiceInterface := auth.NewAuthService(userServiceInterface, cryptoService, env)
-	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepo, asynqClient, serveMux, cryptoService, authServiceInterface)
+	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepositoryInterface, asynqClient, serveMux, cryptoService, authServiceInterface)
 	return container, nil
 }
 
@@ -58,7 +59,13 @@ var notificationSet = wire.NewSet(notification.NewRepository, notification.NewSe
 
 var authSet = wire.NewSet(auth.NewAuthService)
 
-var CrypetoSet = wire.NewSet(crypto.NewCryptoService)
+var cryptoSet = wire.NewSet(crypto.NewCryptoService)
+
+var queueSet = wire.NewSet(queue.NewRepository)
+
+var asynqSet = wire.NewSet(
+	NewAsynqMux,
+)
 
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
 	return cache.NewService(redisClient, redisTTL)
