@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/notification"
@@ -39,8 +40,9 @@ func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redis
 	manager := ws.NewManager()
 	notificationServiceInterface := notification.NewService(notificationRepositoryInterface, manager)
 	serveMux := NewAsynqMux()
-	cryptoService := NewCryptoService()
-	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepo, asynqClient, serveMux, cryptoService)
+	cryptoService := crypto.NewCryptoService()
+	authServiceInterface := auth.NewAuthService(userServiceInterface, cryptoService, env)
+	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepo, asynqClient, serveMux, cryptoService, authServiceInterface)
 	return container, nil
 }
 
@@ -54,12 +56,12 @@ var mediaSet = wire.NewSet(media.NewMediaRepository, media.NewMediaService)
 
 var notificationSet = wire.NewSet(notification.NewRepository, notification.NewService)
 
+var authSet = wire.NewSet(auth.NewAuthService)
+
+var CrypetoSet = wire.NewSet(crypto.NewCryptoService)
+
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
 	return cache.NewService(redisClient, redisTTL)
-}
-
-func NewCryptoService() *crypto.CryptoService {
-	return crypto.NewCryptoService()
 }
 
 func NewAsynqMux() *asynq.ServeMux {

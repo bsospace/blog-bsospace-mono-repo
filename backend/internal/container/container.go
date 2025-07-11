@@ -2,6 +2,7 @@ package container
 
 import (
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/notification"
@@ -38,6 +39,7 @@ type Container struct {
 	AsynqClient   *asynq.Client
 	AsynqMux      *asynq.ServeMux
 	CryptoService *crypto.CryptoService
+	AuthService   auth.AuthServiceInterface
 }
 
 func NewContainer(
@@ -58,6 +60,7 @@ func NewContainer(
 	asynqClient *asynq.Client,
 	asynqMux *asynq.ServeMux,
 	cryptoService *crypto.CryptoService,
+	authService auth.AuthServiceInterface,
 ) *Container {
 	return &Container{
 		Env:                 env,
@@ -77,5 +80,6 @@ func NewContainer(
 		AsynqClient:         asynqClient,
 		AsynqMux:            asynqMux,
 		CryptoService:       cryptoService,
+		AuthService:         authService,
 	}
 }

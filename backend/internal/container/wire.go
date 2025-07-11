@@ -5,6 +5,7 @@ package container
 
 import (
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/notification"
@@ -44,12 +45,16 @@ var notificationSet = wire.NewSet(
 	notification.NewService,
 )
 
+var authSet = wire.NewSet(
+	auth.NewAuthService,
+)
+
+var CrypetoSet = wire.NewSet(
+	crypto.NewCryptoService,
+)
+
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
 	return cache.NewService(redisClient, redisTTL)
-}
-
-func NewCryptoService() *crypto.CryptoService {
-	return crypto.NewCryptoService()
 }
 
 func NewAsynqMux() *asynq.ServeMux {
@@ -73,8 +78,9 @@ func InitializeContainer(
 		mediaSet,
 		NewCacheService,
 		ws.NewManager,
-		NewCryptoService,
+		CrypetoSet,
 		NewAsynqMux,
+		authSet,
 	)
 	return &Container{}, nil
 }
