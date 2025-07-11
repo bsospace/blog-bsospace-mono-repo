@@ -50,3 +50,22 @@ func Exchange(container *container.Container) gin.HandlerFunc {
 		})
 	}
 }
+
+// log out
+func Logout(container *container.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		isProd := container.Env.AppEnv == "release"
+		domains := strings.Split(container.Env.Domain, ",")
+
+		for _, domain := range domains {
+			domain = strings.TrimSpace(domain)
+			c.SetCookie("blog.atk", "", -1, "/", domain, isProd, true)
+			c.SetCookie("blog.rtk", "", -1, "/", domain, isProd, true)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Logged out successfully",
+		})
+	}
+}
