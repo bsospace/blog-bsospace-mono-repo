@@ -54,112 +54,119 @@ func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 			return
 		}
 
+		var userDB *models.User
+
+		// Try cache first
 		userCache, err := a.CacheService.GetUserCache(claims.Email)
 		if err == nil && userCache != nil {
-			c.Set("user", userCache)
-			a.Logger.Info("[INFO] User found in cache:", zap.String("email", claims.Email))
-			c.Next()
-			return
+			userDB = userCache
+			a.Logger.Info("[INFO] User found in cache", zap.String("email", claims.Email))
 		} else {
-			a.Logger.Info("[INFO] User not found in cache, checking database:", zap.String("email", claims.Email))
-		}
+			a.Logger.Info("[INFO] User not found in cache, checking database", zap.String("email", claims.Email))
 
-		userDB, err := a.UserService.GetUserByEmail(claims.Email)
-		if userDB != nil {
-			if err := a.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
-				a.Logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
-			} else {
-				a.Logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
+			userDB, err = a.UserService.GetUserByEmail(claims.Email)
+			if userDB != nil {
+				// Cache it
+				if err := a.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
+					a.Logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
+				} else {
+					a.Logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
+				}
 			}
-		}
 
-		if err != nil {
-			userOpenID, err := a.UserService.GetUserProfileOpenId(tokenString)
+			// Register new user if not exist
 			if err != nil {
-				response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Failed to get user profile from OpenID")
-				a.Logger.Error("[ERROR] Failed to get user profile from OpenID", zap.Error(err))
-				c.Abort()
-				return
-			}
-			newUser := &models.User{
-				Email:    claims.Email,
-				Avatar:   userOpenID.Image,
-				UserName: strings.Split(claims.Email, "@")[0],
-				Role:     models.UserRole("NORMAL_USER"),
-			}
-			if _, err = a.UserService.RegisterUser(newUser); err != nil {
-				a.Logger.Error("[ERROR] Failed to register new user", zap.Error(err), zap.String("email", newUser.Email))
-				response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to register new user")
-				c.Abort()
-				return
-			}
-			a.Logger.Info("[INFO] New user registered successfully", zap.String("email", newUser.Email))
-			userDB = newUser
-			if err := a.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
-				a.Logger.Error("[ERROR] Failed to cache new user", zap.Error(err), zap.String("email", userDB.Email))
-			} else {
-				a.Logger.Info("[INFO] New user cached successfully", zap.String("email", userDB.Email))
+				userOpenID, err := a.UserService.GetUserProfileOpenId(tokenString)
+				if err != nil {
+					response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Failed to get user profile from OpenID")
+					a.Logger.Error("[ERROR] Failed to get user profile from OpenID", zap.Error(err))
+					c.Abort()
+					return
+				}
+
+				newUser := &models.User{
+					Email:    claims.Email,
+					Avatar:   userOpenID.Image,
+					UserName: strings.Split(claims.Email, "@")[0],
+					Role:     models.UserRole("NORMAL_USER"),
+				}
+
+				if _, err = a.UserService.RegisterUser(newUser); err != nil {
+					a.Logger.Error("[ERROR] Failed to register new user", zap.Error(err), zap.String("email", newUser.Email))
+					response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to register new user")
+					c.Abort()
+					return
+				}
+
+				a.Logger.Info("[INFO] New user registered successfully", zap.String("email", newUser.Email))
+				userDB = newUser
+
+				if err := a.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
+					a.Logger.Error("[ERROR] Failed to cache new user", zap.Error(err), zap.String("email", userDB.Email))
+				} else {
+					a.Logger.Info("[INFO] New user cached successfully", zap.String("email", userDB.Email))
+				}
 			}
 		}
+
+		// Generate OTP warp key
+		otpToken, err := a.CryptoService.GenerateSocketToken()
+		if err != nil {
+			a.Logger.Error("[ERROR] Failed to generate OTP token", zap.Error(err))
+			response.JSONError(c, http.StatusInternalServerError, "Internal Server Error", "Failed to generate OTP token")
+			c.Abort()
+			return
+		}
+
+		// Clear old warp key and set new one
+		a.CacheService.ClearWarpKey(userDB.Email)
+		if err := a.CacheService.SetWarpKey(userDB.Email, otpToken); err != nil {
+			a.Logger.Error("[ERROR] Failed to cache warp key", zap.Error(err), zap.String("email", userDB.Email))
+		}
+
+		// Set to Gin context
 		c.Set("user", userDB)
+		c.Set("warp_key", otpToken)
+
 		c.Next()
 	}
 }
 
 func SocketAuthMiddleware(userService *user.Service, cryptoService *crypto.CryptoService, cache *cache.Service, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		token := c.Query("warp")
 
-		token := c.Query("token")
-
-		// ตรวจสอบว่า Token มีค่าเป็น Bearer Token หรือไม่
 		if token == "" {
 			logger.Error("[ERROR] No token provided in request")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
 			return
 		}
 
-		tokenString := extractTokenString(token)
-		if tokenString == "" {
-			logger.Error("[ERROR] No token provided in request")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+		// Get email from warp key
+		email, exists := cache.GetWarpEmail(token)
+		if !exists || email == "" {
+			logger.Error("[ERROR] Invalid warp key", zap.String("warp_key", token))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid warp key"})
 			return
 		}
 
-		// ตรวจสอบ Token ผ่าน CryptoService (ใช้ Dependency Injection)
-		claims, err := verifyToken(tokenString, cryptoService, logger)
-
-		if err != nil {
-			logger.Error("[ERROR] Invalid token", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			return
-		}
-
-		// ค้นหา User ใน Cache ก่อน
-		userCache, err := cache.GetUserCache(claims.Email)
-
+		// Load user from cache or DB
+		userCache, err := cache.GetUserCache(email)
 		if err == nil && userCache != nil {
 			c.Set("user", userCache)
-			logger.Info("[INFO] User found in cache:", zap.String("email", claims.Email))
 			c.Next()
 			return
-		} else {
-			logger.Info("[INFO] User not found in cache, checking database:", zap.String("email", claims.Email))
 		}
 
-		// ค้นหา User ใน Database
-		userDB, err := userService.GetUserByEmail(claims.Email)
-
-		if userDB != nil {
-			if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
-				logger.Error("[ERROR] Failed to set user in cache", zap.Error(err), zap.String("email", userDB.Email))
-			} else {
-				logger.Info("[INFO] User cached successfully", zap.String("email", userDB.Email))
-			}
-		}
-
-		if err != nil {
+		userDB, err := userService.GetUserByEmail(email)
+		if err != nil || userDB == nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 			return
+		}
+
+		// Set to cache for next time
+		if err := cache.SetUserCache(userDB.Email, userDB); err != nil {
+			logger.Error("[ERROR] Failed to cache user", zap.Error(err))
 		}
 
 		c.Set("user", userDB)
@@ -167,28 +174,11 @@ func SocketAuthMiddleware(userService *user.Service, cryptoService *crypto.Crypt
 	}
 }
 
-// Extract Token จาก Header หรือ Cookie
-func extractTokenString(token string) string {
-	// ตรวจสอบว่า Header มีค่าเป็น Bearer Token หรือไม่
-	if strings.HasPrefix(token, "Bearer ") {
-		return strings.TrimPrefix(token, "Bearer ")
-	}
-	return ""
-}
-
 func extractToken(c *gin.Context) string {
-	authHeader := c.GetHeader("Authorization")
-
-	// ตรวจสอบ Bearer Token จาก Header
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		return strings.TrimPrefix(authHeader, "Bearer ")
-	}
-
-	// ตรวจสอบจาก cookie "openid.atk"
+	// allow cookie only
 	if cookie, err := c.Cookie("blog.atk"); err == nil {
 		return cookie
 	}
-
 	return ""
 }
 
