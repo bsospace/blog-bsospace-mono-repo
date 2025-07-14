@@ -13,6 +13,7 @@ import (
 	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/queue"
 	"rag-searchbot-backend/pkg/logger"
+	"rag-searchbot-backend/pkg/tiptap"
 	"strings"
 	"time"
 
@@ -56,6 +57,12 @@ func FilterPostContentByAIWorkerHandler(deps FilterPostWorker) asynq.HandlerFunc
 			return handleSkippedContent(deps, t, &payload, startedAt)
 		}
 
+		var readTime int
+		if payload.Post.HTMLContent != nil {
+			readTime = tiptap.EstimateReadTimeFromHTML(*payload.Post.HTMLContent)
+			deps.Logger.Info("Estimated read time", zap.Int("minutes", readTime))
+		}
+
 		prompt := buildModerationPrompt(payload)
 		result, err := getModerationResult(prompt)
 		if err != nil {
@@ -88,7 +95,7 @@ func FilterPostContentByAIWorkerHandler(deps FilterPostWorker) asynq.HandlerFunc
 		}
 
 		// Finalize all steps: log, update, notify
-		if err := finalizeModerationResult(deps, &payload, t, startedAt, status, message); err != nil {
+		if err := finalizeModerationResult(deps, &payload, t, startedAt, status, message, readTime); err != nil {
 			return err
 		}
 
@@ -103,6 +110,7 @@ func finalizeModerationResult(
 	startedAt time.Time,
 	status string,
 	message string,
+	readTime int,
 ) error {
 	// Save task log
 	if err := updateTaskLog(deps, task, payload, startedAt, status, message); err != nil {
@@ -111,7 +119,7 @@ func finalizeModerationResult(
 	}
 
 	// Update post status
-	if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), status, message); err != nil {
+	if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), status, message, readTime); err != nil {
 		deps.Logger.Error("Failed to update post status", zap.Error(err))
 		return err
 	}
@@ -146,7 +154,7 @@ func handleSkippedContent(deps FilterPostWorker, t *asynq.Task, payload *FilterP
 	deps.Logger.Info("Post content skipped due to short length", zap.String("post_id", payload.Post.ID.String()), zap.String("post_title", payload.Post.Title))
 
 	// Update post status to rejected
-	if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), "UNSAFE", "This is spam or too short content, skipping AI check and can't be published"); err != nil {
+	if err := UpdatePublishPostResult(deps, payload.Post.ID.String(), "UNSAFE", "This is spam or too short content, skipping AI check and can't be published", 0); err != nil {
 		deps.Logger.Error("Failed to update post status for skipped content", zap.String("post_id", payload.Post.ID.String()), zap.Error(err))
 		return err
 	}
@@ -384,6 +392,7 @@ func UpdatePublishPostResult(
 	postID string,
 	status string,
 	message string,
+	readTime int,
 ) error {
 	post, err := deps.PostRepo.GetByID(postID)
 	if err != nil {
@@ -405,6 +414,7 @@ func UpdatePublishPostResult(
 	now := time.Now()
 	post.PublishedAt = &now
 	post.Published = (status == "SUCCESS")
+	post.ReadTime = float64(readTime)
 
 	// log the post update
 	deps.Logger.Info("Updating post status in database",
