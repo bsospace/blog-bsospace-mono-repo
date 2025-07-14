@@ -412,7 +412,9 @@ func UpdatePublishPostResult(
 	}
 
 	now := time.Now()
-	post.PublishedAt = &now
+	if post.PublishedAt == nil || post.PublishedAt.IsZero() || post.PublishedAt.After(now) {
+		post.PublishedAt = &now
+	}
 	post.Published = (status == "SUCCESS")
 	post.ReadTime = float64(readTime)
 
