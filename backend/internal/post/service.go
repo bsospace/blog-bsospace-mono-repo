@@ -375,7 +375,6 @@ func (s *PostService) UnpublishPost(user *models.User, shortSlug string) error {
 	}
 
 	existingPost.Published = false
-	existingPost.PublishedAt = nil
 	existingPost.Status = models.PostDraft
 
 	return s.Repo.UnpublishPost(existingPost)
