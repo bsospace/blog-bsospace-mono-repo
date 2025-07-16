@@ -235,3 +235,18 @@ func (s *AIService) CreateChat(chat *models.AIResponse, postID string, user *mod
 
 	return s.AIRepo.CreateChat(chat)
 }
+
+// classifyContent classifies the content of a post using AI
+func (s *AIService) ClassifyContent(message string) (string, error) {
+	if message == "" {
+		return "", fmt.Errorf("message cannot be empty")
+	}
+
+	messageType := IntentClassifier(message)
+
+	if messageType == IntentUnknown {
+		return "", fmt.Errorf("unknown message type: %s", messageType)
+	}
+
+	return string(messageType), nil
+}
