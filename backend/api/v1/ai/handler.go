@@ -13,6 +13,7 @@ import (
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/ginctx"
 	"rag-searchbot-backend/pkg/response"
+	"rag-searchbot-backend/pkg/tiptap"
 	"rag-searchbot-backend/pkg/utils"
 	"sort"
 	"strconv"
@@ -155,26 +156,66 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		zap.String("post_id", postID),
 		zap.String("user_email", user.Email))
 
-	// 2. Validate post and AI chat availability
-	_, err = a.validatePost(c, postID)
-	if err != nil {
-		return // Error already handled in validatePost
+	// Classify the content
+	if strings.TrimSpace(req.Prompt) == "" {
+		a.logger.Warn("Empty prompt received")
+		response.JSONError(c, http.StatusBadRequest, "Bad request", "Prompt cannot be empty")
+		return
 	}
+
+	// classifyContent
+	intent, err := a.AIService.ClassifyContent(req.Prompt)
+	if err != nil {
+		a.logger.Warn("Failed to classify content", zap.Error(err))
+		// Continue with the rest of the pipeline even if classification fails
+	}
+
+	post, err := a.PosRepo.GetByID(postID)
+	if err != nil {
+		a.logger.Error("Error fetching post", zap.Error(err))
+		a.writeErrorEvent(c, "Post fetch error")
+		return
+	}
+
+	a.logger.Info("Content classified",
+		zap.String("intent", string(intent)))
 
 	// 3. Setup streaming response
 	a.setupStreamingHeaders(c)
 
-	// 4. Get RAG configuration
-	config := a.getRAGConfig()
+	plaintextContent := tiptap.ExtractTextFromTiptap(post.Content)
 
-	// 5. Process RAG pipeline
-	context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
-	if err != nil {
-		return // Error already handled in processRAGPipeline
+	if intent == "summarize_post" {
+		// log the intent
+		a.logger.Info("Intent detected: summarize_post",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt),
+			zap.String("plaintextContent", plaintextContent))
+
+		ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
 	}
 
-	// 6. Generate and stream response
-	a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+	if intent == "greeting_farewell" {
+		// log the intent
+		a.logger.Info("Intent detected: greeting_farewell",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt))
+
+		ai.StreamGreetingFarewellAgent(c, req.Prompt)
+		return
+	}
+
+	// // 4. Get RAG configuration
+	// config := a.getRAGConfig()
+
+	// // 5. Process RAG pipeline
+	// context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
+	// if err != nil {
+	// 	return // Error already handled in processRAGPipeline
+	// }
+
+	// // 6. Generate and stream response
+	// a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
 }
 
 func (a *AIHandler) validateChatRequest(c *gin.Context) (*ChatRequestDTO, string, *models.User, error) {
