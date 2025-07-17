@@ -205,17 +205,24 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	// // 4. Get RAG configuration
-	// config := a.getRAGConfig()
+	if intent == "blog_question" {
 
-	// // 5. Process RAG pipeline
-	// context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
-	// if err != nil {
-	// 	return // Error already handled in processRAGPipeline
-	// }
+		// log the intent
+		a.logger.Info("Intent detected: blog_question",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt))
+		// 4. Get RAG configuration
+		config := a.getRAGConfig()
 
-	// // 6. Generate and stream response
-	// a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+		// 5. Process RAG pipeline
+		context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
+		if err != nil {
+			return // Error already handled in processRAGPipeline
+		}
+
+		// 6. Generate and stream response
+		a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+	}
 }
 
 func (a *AIHandler) validateChatRequest(c *gin.Context) (*ChatRequestDTO, string, *models.User, error) {
@@ -609,6 +616,10 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 
 func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGConfig) (*http.Response, error) {
 	body, _ := json.Marshal(payload)
+
+	// logger
+	a.logger.Info("Sending request to LLM",
+		zap.String("payload", string(body)))
 
 	if config.UseSelfHost {
 		a.logger.Info("Using self-hosted Ollama", zap.String("host", config.Host))
