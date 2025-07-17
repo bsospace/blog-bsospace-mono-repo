@@ -52,8 +52,6 @@ You are an intent classifier for a blog Q&A system.
 Classify the user's question into one of these intents:
 - blog_question: ถามเนื้อหาบทความ เช่น "บทความนี้เกี่ยวกับอะไร", "RAG คืออะไร"
 - summarize_post: ขอให้สรุปบทความ เช่น "ช่วยสรุปให้หน่อย"
-- search_blog: ค้นหาบทความ เช่น "มีบทความที่พูดถึง Next.js ไหม"
-- generic_question: คำถามทั่วไป เช่น "แนะนำบทความหน่อย"
 - greeting_farewell: ทักทายหรือกล่าวลา เช่น "สวัสดี", "ลาก่อน"
 - unknown: ไม่เข้าใจคำถาม`
 
@@ -119,7 +117,7 @@ func parseStreamChunk(raw []byte) string {
 	return ""
 }
 
-// CASE : Summarize post agent
+// AGENT : Summarize post agent
 func StreamPostSummaryAgent(c *gin.Context, question string, htmlContent string) {
 	// 1. สร้าง system prompt
 	systemPrompt := fmt.Sprintf(`คุณเป็นผู้ช่วยสรุปเนื้อหาบทความใน BSO Space Blog
@@ -174,8 +172,7 @@ func StreamPostSummaryAgent(c *gin.Context, question string, htmlContent string)
 	writeEvent(c, "end", "สรุปเนื้อหาเสร็จสิ้น")
 }
 
-// CASE: greeting_farewell
-
+// AGENT: greeting_farewell agent
 func StreamGreetingFarewellAgent(c *gin.Context, question string) {
 	// 1. สร้าง system prompt
 	systemPrompt := `คุณเป็นผู้ช่วยทักทายและกล่าวลาใน BSO Space
@@ -222,6 +219,55 @@ func StreamGreetingFarewellAgent(c *gin.Context, question string) {
 
 	// 7. ส่ง event จบ
 	writeEvent(c, "end", "ตอบคำถามทักทาย/กล่าวลาเสร็จสิ้น")
+}
+
+// AGENT: Generic question agent
+func StreamGenericQuestionAgent(c *gin.Context, question string) {
+	// 1. สร้าง system prompt
+	systemPrompt := `คุณเป็นผู้ช่วยตอบคำถามทั่วไปใน BSO Space
+โปรดตอบคำถามต่อไปนี้อย่างสุภาพและเป็นประโยชน์
+คำถาม: ` + question
+
+	// 2. เตรียม payload
+	payload := map[string]interface{}{
+		"model":  os.Getenv("AI_MODEL"),
+		"stream": true,
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": question},
+		},
+	}
+
+	// 3. เตรียม HTTP request
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("AI_API_KEY"))
+	req.Header.Set("HTTP-Referer", "https://blog.bsospace.com")
+	req.Header.Set("X-Title", "https://blog.bsospace.com")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		writeErrorEvent(c, "เรียกใช้ LLM ไม่สำเร็จ")
+		return
+	}
+	defer resp.Body.Close()
+
+	// 4. ตั้ง header สำหรับ SSE
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Writer.Flush()
+
+	// 5. ส่ง event เริ่ม
+	writeEvent(c, "start", "เริ่มการตอบคำถามทั่วไป")
+
+	// 6. อ่านและส่ง stream
+	streamLLMResponse(c, resp)
+
+	// 7. ส่ง event จบ
+	writeEvent(c, "end", "ตอบคำถามทั่วไปเสร็จสิ้น")
 }
 
 // parseIntentFromLLM extracts the intent keyword from LLM response.
