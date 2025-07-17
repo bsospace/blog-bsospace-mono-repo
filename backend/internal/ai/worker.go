@@ -28,8 +28,8 @@ type EmbedPostWorker struct {
 }
 
 const (
-	ChunkSize   = 6 // Number of words per chunk
-	OverlapSize = 3 // Number of overlapping words between chunks
+	ChunkSize   = 100 // Number of words per chunk
+	OverlapSize = 10  // Number of overlapping words between chunks
 )
 
 func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
