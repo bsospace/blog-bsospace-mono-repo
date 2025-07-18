@@ -28,8 +28,8 @@ type EmbedPostWorker struct {
 }
 
 const (
-	ChunkSize   = 100 // Number of words per chunk
-	OverlapSize = 10  // Number of overlapping words between chunks
+	ChunkSize   = 10 // Number of words per chunk
+	OverlapSize = 2  // Number of overlapping words between chunks
 )
 
 func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
@@ -57,8 +57,11 @@ func NewEmbedPostWorkerHandler(deps EmbedPostWorker) asynq.HandlerFunc {
 		}
 
 		// Convert TipTap JSON content to plain text
-		plainText := tiptap.ExtractTextFromTiptap(existingPost.Content)
+		plainText := tiptap.ExtractTextFromTiptapToMD(existingPost.Content)
 		chunks := SplitTextToChunks(plainText, ChunkSize, OverlapSize)
+
+		// Log the number of chunks generated
+		deps.Logger.Info("Generated chunks for embedding", zap.Int("num_chunks", len(chunks)), zap.String("post_id", postID))
 		if len(chunks) == 0 {
 			return errors.New("no chunks generated from content")
 		}
