@@ -212,6 +212,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 			zap.String("plaintextContent", plaintextContent))
 
 		ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
+		return
 	}
 
 	if string(intent) == "greeting_farewell" {
