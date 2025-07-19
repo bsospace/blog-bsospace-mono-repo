@@ -38,7 +38,7 @@ func GetEmbedding(text string) ([]float32, error) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embedding API returned non-200: %s", string(body))
+		return nil, fmt.Errorf("embedding API returned non-200 status: %s", string(body))
 	}
 
 	var embeddingResp EmbeddingResponse
