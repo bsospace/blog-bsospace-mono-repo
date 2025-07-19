@@ -67,7 +67,7 @@ func ConnectRedis() *redis.Client {
 	log.Println("[INFO] Connecting to Redis...")
 	config := LoadConfig()
 	client := redis.NewClient(&redis.Options{
-		Addr:     config.RedisHost + ":" + "6379",
+		Addr:     config.RedisHost + ":" + config.RedisPort,
 		Password: config.RedisPassword,
 		DB:       0,
 		Protocol: 2,
