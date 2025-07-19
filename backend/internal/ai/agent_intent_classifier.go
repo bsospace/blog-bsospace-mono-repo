@@ -253,6 +253,8 @@ func (a *agentIntentClassifierService) ClassifyWithOpenRouter(message string, co
 
 		Use the blog context to help guide your classification.
 
+		Example answers: blog_question
+
 		Blog Context:
 		"""` + joinedContext + `"""`
 
