@@ -17,16 +17,6 @@ import (
 )
 
 // Intent represents the type of user question.
-type Intent string
-
-const (
-	IntentBlogQuestion     Intent = "blog_question"
-	IntentSummarizePost    Intent = "summarize_post"
-	IntentSearchBlog       Intent = "search_blog"
-	IntentGeneric          Intent = "generic_question"
-	IntentUnknown          Intent = "unknown"
-	IntentGreetingFarewell Intent = "greeting_farewell"
-)
 
 // Agent is the interface for all agents.
 type Agent interface {
@@ -273,6 +263,7 @@ func StreamGenericQuestionAgent(c *gin.Context, question string) {
 // parseIntentFromLLM extracts the intent keyword from LLM response.
 func parseIntentFromLLM(resp string) Intent {
 	resp = strings.TrimSpace(resp)
+
 	// Try to parse as JSON (OpenRouter format)
 	var parsed struct {
 		Choices []struct {
@@ -300,7 +291,9 @@ func parseIntentFromLLM(resp string) Intent {
 	}
 
 	// fallback: direct string match
+	// fallback: direct string match
 	resp = strings.ToLower(resp)
+	resp = strings.Trim(resp, "\"") // <-- เพิ่มบรรทัดนี้เพื่อกัน "blog_question"
 	switch resp {
 	case "blog_question":
 		return IntentBlogQuestion
@@ -315,6 +308,7 @@ func parseIntentFromLLM(resp string) Intent {
 	default:
 		return IntentUnknown
 	}
+
 }
 
 // SendLLMRequestToOpenRouter is a utility for agents to call OpenRouter or Ollama.
