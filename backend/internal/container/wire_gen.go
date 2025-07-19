@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
@@ -43,7 +44,8 @@ func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redis
 	serveMux := NewAsynqMux()
 	cryptoService := crypto.NewCryptoService()
 	authServiceInterface := auth.NewAuthService(userServiceInterface, cryptoService, env)
-	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepositoryInterface, asynqClient, serveMux, cryptoService, authServiceInterface)
+	agentIntentClassifierServiceInterface := ai.NewAgentIntentClassifier(log, postRepositoryInterface)
+	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepositoryInterface, asynqClient, serveMux, cryptoService, authServiceInterface, agentIntentClassifierServiceInterface)
 	return container, nil
 }
 
@@ -66,6 +68,8 @@ var queueSet = wire.NewSet(queue.NewRepository)
 var asynqSet = wire.NewSet(
 	NewAsynqMux,
 )
+
+var aiSet = wire.NewSet(ai.NewAgentIntentClassifier)
 
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
 	return cache.NewService(redisClient, redisTTL)

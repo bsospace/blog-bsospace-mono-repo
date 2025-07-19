@@ -13,6 +13,7 @@ import (
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/ginctx"
 	"rag-searchbot-backend/pkg/response"
+	"rag-searchbot-backend/pkg/tiptap"
 	"rag-searchbot-backend/pkg/utils"
 	"sort"
 	"strconv"
@@ -27,16 +28,18 @@ import (
 )
 
 type AIHandler struct {
-	AIService *ai.AIService
-	PosRepo   post.PostRepositoryInterface
-	logger    *zap.Logger
+	AIService                    *ai.AIService
+	AgentIntentClassifierService ai.AgentIntentClassifierServiceInterface
+	PosRepo                      post.PostRepositoryInterface
+	logger                       *zap.Logger
 }
 
-func NewAIHandler(aiService *ai.AIService, posRepo post.PostRepositoryInterface, logger *zap.Logger) *AIHandler {
+func NewAIHandler(aiService *ai.AIService, agentIntentClassifierService ai.AgentIntentClassifierServiceInterface, posRepo post.PostRepositoryInterface, logger *zap.Logger) *AIHandler {
 	return &AIHandler{
-		AIService: aiService,
-		PosRepo:   posRepo,
-		logger:    logger,
+		AIService:                    aiService,
+		PosRepo:                      posRepo,
+		logger:                       logger,
+		AgentIntentClassifierService: agentIntentClassifierService,
 	}
 }
 
@@ -117,11 +120,11 @@ type AskRequest struct {
 }
 
 const (
-	DefaultTopK                = 10
-	DefaultSimilarityThreshold = 0.35
-	MaxTopK                    = 20
-	MinSimilarityThreshold     = 0.1
-	StrictThreshold            = 0.4
+	DefaultTopK                = 10   // จำนวน context สูงสุดที่ดึงกลับมาต่อครั้ง (Top-K retrieval)
+	DefaultSimilarityThreshold = 0.35 // ใช้เป็น threshold ปกติ ถ้าไม่มี override
+	MaxTopK                    = 20   // กันไม่ให้ดึงเกินนี้แม้จะ fuzzy
+	MinSimilarityThreshold     = 0.1  // ล่างสุดที่ยอมให้ผ่าน (fuzzy จริง ๆ)
+	StrictThreshold            = 0.7  // ใช้ตอนต้องการ “เนื้อหาที่มั่นใจมาก” เท่านั้น
 )
 
 type RAGConfig struct {
@@ -155,26 +158,91 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		zap.String("post_id", postID),
 		zap.String("user_email", user.Email))
 
-	// 2. Validate post and AI chat availability
-	_, err = a.validatePost(c, postID)
+	// Classify the content
+	if strings.TrimSpace(req.Prompt) == "" {
+		a.logger.Warn("Empty prompt received")
+		response.JSONError(c, http.StatusBadRequest, "Bad request", "Prompt cannot be empty")
+		return
+	}
+
+	post, err := a.validatePost(c, postID)
+
+	a.logger.Info("Post validated for AI chat",
+		zap.String("post_id", postID),
+		zap.String("post_title", post.Title))
 	if err != nil {
 		return // Error already handled in validatePost
 	}
 
+	a.logger.Info("Post validated for AI chat", zap.String("post_id", postID),
+		zap.String("post_title", post.Title))
+
+	// classifyContent
+	intent, err := a.AgentIntentClassifierService.ClassifyIntent(req.Prompt, post)
+	if err != nil {
+		a.logger.Warn("Failed to classify content", zap.Error(err))
+		response.JSONError(c, http.StatusInternalServerError, "Internal server error", "Failed to classify content")
+		return
+	}
+
+	a.logger.Info("Content classified",
+		zap.String("intent", string(intent)))
+
+	// classifyContent เดิม
+	// intent, err := a.AIService.ClassifyContent(req.Prompt)
+	// if err != nil {
+	// 	a.logger.Warn("Failed to classify content", zap.Error(err))
+	// 	// Continue with the rest of the pipeline even if classification fails
+	// }
+
+	a.logger.Info("Content classified",
+		zap.String("intent_raw", fmt.Sprintf("%q", string(intent))),
+		zap.String("intent", string(intent)))
+
 	// 3. Setup streaming response
 	a.setupStreamingHeaders(c)
 
-	// 4. Get RAG configuration
-	config := a.getRAGConfig()
+	plaintextContent := tiptap.ExtractTextFromTiptap(post.Content)
 
-	// 5. Process RAG pipeline
-	context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
-	if err != nil {
-		return // Error already handled in processRAGPipeline
+	if string(intent) == "summarize_post" {
+		// log the intent
+		a.logger.Info("Intent detected: summarize_post",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt),
+			zap.String("plaintextContent", plaintextContent))
+
+		ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
+		return
 	}
 
-	// 6. Generate and stream response
-	a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+	if string(intent) == "greeting_farewell" {
+		// log the intent
+		a.logger.Info("Intent detected: greeting_farewell",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt))
+
+		ai.StreamGreetingFarewellAgent(c, req.Prompt)
+		return
+	}
+
+	if string(intent) == "blog_question" {
+
+		// log the intent
+		a.logger.Info("Intent detected: blog_question",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt))
+		// 4. Get RAG configuration
+		config := a.getRAGConfig()
+
+		// 5. Process RAG pipeline
+		context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
+		if err != nil {
+			return // Error already handled in processRAGPipeline
+		}
+
+		// 6. Generate and stream response
+		a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+	}
 }
 
 func (a *AIHandler) validateChatRequest(c *gin.Context) (*ChatRequestDTO, string, *models.User, error) {
@@ -452,25 +520,22 @@ func (a *AIHandler) buildContext(chunks []ScoredChunk) string {
 func (a *AIHandler) buildSystemPrompt(context string) string {
 	if strings.TrimSpace(context) == "" {
 		a.logger.Warn("No context provided, using fallback system message")
-		return `หากเป็นคำทักทาย เช่น "สวัสดี", "สวัสดีค่ะ", "ไงบ้าง", "เฮลโหล"
-ให้ตอบกลับอย่างสุภาพและเป็นมิตร เช่น "สวัสดีค่ะ ยินดีให้บริการค่ะ 😊"
+		return `บทความนี้ไม่มีข้อมูลประกอบการตอบคำถาม
 
-หากไม่ใช่คำทักทาย และไม่มีข้อมูลบทความ ให้ตอบว่า
-"ไม่พบข้อมูลในบทความนี้ค่ะ ลองถามคำถามอื่นได้นะคะ 😊"
+หากไม่สามารถตอบได้จากเนื้อหาที่มี ให้ตอบสุภาพว่า
+"ไม่สามารถหาคำตอบจากเนื้อหาในบทความนี้ได้ค่ะ ลองถามคำถามอื่นได้นะคะ 😊"
 `
 	}
 
-	return fmt.Sprintf(`คุณเป็นผู้ช่วยสรุปเนื้อหาจากบทความเท่านั้น ห้ามใช้ความรู้ภายนอกเด็ดขาด
+	return fmt.Sprintf(`คุณเป็นผู้ช่วยในการตอบคำถามจากบทความ **โดยใช้เฉพาะเนื้อหาที่กำหนดด้านล่างนี้เท่านั้น** ห้ามใช้ความรู้ภายนอก
 
-หากผู้ใช้พิมพ์คำทักทาย เช่น "สวัสดี", "เฮลโหล", "ไง", "หวัดดี", "hi", "hello"  
-ให้ตอบกลับอย่างสุภาพ เช่น "สวัสดีค่ะ ยินดีให้บริการนะคะ 😊"
+หากผู้ใช้ถามคำถาม ให้พยายามตอบคำถามอย่างตรงประเด็นมากที่สุด  
+โดยอิงจากเนื้อหาด้านล่างเท่านั้น  
+หากไม่สามารถตอบได้จากเนื้อหาที่มี ให้ตอบสุภาพว่า  
+"ไม่สามารถหาคำตอบจากเนื้อหาในบทความนี้ได้ค่ะ ลองถามคำถามอื่นได้นะคะ 😊"
 
-หากผู้ใช้ถามคำถาม ให้ตอบโดยอิงจากเนื้อหาด้านล่างนี้เท่านั้น  
-หากไม่มีข้อมูลเกี่ยวข้อง ให้ตอบว่า  
-"ไม่พบข้อมูลในบทความนี้ค่ะ ลองถามคำถามอื่นได้นะคะ 😊"
-
------  
-%s  
+-----
+%s
 -----`, context)
 }
 
@@ -568,6 +633,10 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 
 func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGConfig) (*http.Response, error) {
 	body, _ := json.Marshal(payload)
+
+	// logger
+	a.logger.Info("Sending request to LLM",
+		zap.String("payload", string(body)))
 
 	if config.UseSelfHost {
 		a.logger.Info("Using self-hosted Ollama", zap.String("host", config.Host))

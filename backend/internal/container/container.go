@@ -2,6 +2,7 @@ package container
 
 import (
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
@@ -33,13 +34,14 @@ type Container struct {
 	MediaRepo media.MediaRepositoryInterface
 
 	// Add these fields for full DI
-	CacheService  cache.ServiceInterface
-	SocketManager *ws.Manager
-	QueueRepo     queue.QueueRepositoryInterface
-	AsynqClient   *asynq.Client
-	AsynqMux      *asynq.ServeMux
-	CryptoService *crypto.CryptoService
-	AuthService   auth.AuthServiceInterface
+	CacheService                 cache.ServiceInterface
+	SocketManager                *ws.Manager
+	QueueRepo                    queue.QueueRepositoryInterface
+	AsynqClient                  *asynq.Client
+	AsynqMux                     *asynq.ServeMux
+	CryptoService                *crypto.CryptoService
+	AuthService                  auth.AuthServiceInterface
+	AgentIntentClassifierService ai.AgentIntentClassifierServiceInterface
 }
 
 func NewContainer(
@@ -61,25 +63,28 @@ func NewContainer(
 	asynqMux *asynq.ServeMux,
 	cryptoService *crypto.CryptoService,
 	authService auth.AuthServiceInterface,
+	agentIntentClassifierService ai.AgentIntentClassifierServiceInterface,
+
 ) *Container {
 	return &Container{
-		Env:                 env,
-		DB:                  db,
-		Log:                 log,
-		UserRepo:            userRepo,
-		PostRepo:            postRepo,
-		NotiRepo:            notiRepo,
-		MediaRepo:           mediaRepo,
-		UserService:         userService,
-		PostService:         postService,
-		NotificationService: notiService,
-		MediaService:        mediaService,
-		CacheService:        cacheService,
-		SocketManager:       socketManager,
-		QueueRepo:           queueRepo,
-		AsynqClient:         asynqClient,
-		AsynqMux:            asynqMux,
-		CryptoService:       cryptoService,
-		AuthService:         authService,
+		Env:                          env,
+		DB:                           db,
+		Log:                          log,
+		UserRepo:                     userRepo,
+		PostRepo:                     postRepo,
+		NotiRepo:                     notiRepo,
+		MediaRepo:                    mediaRepo,
+		UserService:                  userService,
+		PostService:                  postService,
+		NotificationService:          notiService,
+		MediaService:                 mediaService,
+		CacheService:                 cacheService,
+		SocketManager:                socketManager,
+		QueueRepo:                    queueRepo,
+		AsynqClient:                  asynqClient,
+		AsynqMux:                     asynqMux,
+		CryptoService:                cryptoService,
+		AuthService:                  authService,
+		AgentIntentClassifierService: agentIntentClassifierService,
 	}
 }

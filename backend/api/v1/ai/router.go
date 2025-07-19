@@ -16,7 +16,9 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 	aiTaskEnqueuer := ai.NewTaskEnqueuer(container.AsynqClient)
 	aiRepo := ai.NewAIRepository(container.DB)
 	aiService := ai.NewAIService(postRepo, aiTaskEnqueuer, aiRepo)
-	handler := NewAIHandler(aiService, postRepo, container.Log)
+	aiContentClassifier := ai.NewAgentIntentClassifier(container.Log, postRepo)
+	handler := NewAIHandler(aiService, aiContentClassifier, postRepo, container.Log)
+
 	authMiddleware := middleware.NewAuthMiddleware(
 		container.UserService,
 		container.CryptoService, // now correct type from internal/crypto
