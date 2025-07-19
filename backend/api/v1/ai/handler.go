@@ -28,16 +28,18 @@ import (
 )
 
 type AIHandler struct {
-	AIService *ai.AIService
-	PosRepo   post.PostRepositoryInterface
-	logger    *zap.Logger
+	AIService                    *ai.AIService
+	AgentIntentClassifierService ai.AgentIntentClassifierServiceInterface
+	PosRepo                      post.PostRepositoryInterface
+	logger                       *zap.Logger
 }
 
-func NewAIHandler(aiService *ai.AIService, posRepo post.PostRepositoryInterface, logger *zap.Logger) *AIHandler {
+func NewAIHandler(aiService *ai.AIService, agentIntentClassifierService ai.AgentIntentClassifierServiceInterface, posRepo post.PostRepositoryInterface, logger *zap.Logger) *AIHandler {
 	return &AIHandler{
-		AIService: aiService,
-		PosRepo:   posRepo,
-		logger:    logger,
+		AIService:                    aiService,
+		PosRepo:                      posRepo,
+		logger:                       logger,
+		AgentIntentClassifierService: agentIntentClassifierService,
 	}
 }
 
@@ -163,21 +165,38 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	// classifyContent
-	intent, err := a.AIService.ClassifyContent(req.Prompt)
+	post, err := a.validatePost(c, postID)
+
+	a.logger.Info("Post validated for AI chat",
+		zap.String("post_id", postID),
+		zap.String("post_title", post.Title))
 	if err != nil {
-		a.logger.Warn("Failed to classify content", zap.Error(err))
-		// Continue with the rest of the pipeline even if classification fails
+		return // Error already handled in validatePost
 	}
 
-	post, err := a.PosRepo.GetByID(postID)
+	a.logger.Info("Post validated for AI chat", zap.String("post_id", postID),
+		zap.String("post_title", post.Title))
+
+	// classifyContent
+	intent, err := a.AgentIntentClassifierService.ClassifyIntent(req.Prompt, post)
 	if err != nil {
-		a.logger.Error("Error fetching post", zap.Error(err))
-		a.writeErrorEvent(c, "Post fetch error")
+		a.logger.Warn("Failed to classify content", zap.Error(err))
+		response.JSONError(c, http.StatusInternalServerError, "Internal server error", "Failed to classify content")
 		return
 	}
 
 	a.logger.Info("Content classified",
+		zap.String("intent", string(intent)))
+
+	// classifyContent เดิม
+	// intent, err := a.AIService.ClassifyContent(req.Prompt)
+	// if err != nil {
+	// 	a.logger.Warn("Failed to classify content", zap.Error(err))
+	// 	// Continue with the rest of the pipeline even if classification fails
+	// }
+
+	a.logger.Info("Content classified",
+		zap.String("intent_raw", fmt.Sprintf("%q", string(intent))),
 		zap.String("intent", string(intent)))
 
 	// 3. Setup streaming response
@@ -185,7 +204,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 
 	plaintextContent := tiptap.ExtractTextFromTiptap(post.Content)
 
-	if intent == "summarize_post" {
+	if string(intent) == "summarize_post" {
 		// log the intent
 		a.logger.Info("Intent detected: summarize_post",
 			zap.String("post_id", postID),
@@ -195,7 +214,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
 	}
 
-	if intent == "greeting_farewell" {
+	if string(intent) == "greeting_farewell" {
 		// log the intent
 		a.logger.Info("Intent detected: greeting_farewell",
 			zap.String("post_id", postID),
@@ -205,7 +224,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	if intent == "blog_question" {
+	if string(intent) == "blog_question" {
 
 		// log the intent
 		a.logger.Info("Intent detected: blog_question",
