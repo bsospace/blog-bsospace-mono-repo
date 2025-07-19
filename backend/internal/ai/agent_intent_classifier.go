@@ -161,7 +161,7 @@ func (a *agentIntentClassifierService) RetrieveContext(message string, post *mod
 		)
 	}
 
-	var intent string
+	var intent string = string(IntentUnknown)
 	if len(selectedChunks) == 0 {
 		var err error
 		intent, err = a.ClassifyWithOpenRouter(message, []string{"[No context available]"})
