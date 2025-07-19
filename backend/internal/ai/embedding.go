@@ -21,13 +21,15 @@ type EmbeddingResponse struct {
 func GetEmbedding(text string) ([]float32, error) {
 	fmt.Println("---- GetEmbedding ----")
 
-	reqBody := EmbeddingRequest{
-		Model:  "nomic-embed-text",
-		Prompt: text,
+	ollamaURL := os.Getenv("AI_HOST")
+	if ollamaURL == "" {
+		return nil, fmt.Errorf("AI_HOST env var is empty")
 	}
+	fmt.Println("Embedding API:", ollamaURL)
+
+	reqBody := EmbeddingRequest{Model: "nomic-embed-text", Prompt: text}
 	bodyBytes, _ := json.Marshal(reqBody)
 
-	ollamaURL := os.Getenv("AI_HOST")
 	resp, err := http.Post(ollamaURL+"/api/embeddings", "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to call embedding API: %v", err)
@@ -35,9 +37,8 @@ func GetEmbedding(text string) ([]float32, error) {
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
-
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embedding API returned non-200 status: %s", body)
+		return nil, fmt.Errorf("embedding API returned non-200: %s", string(body))
 	}
 
 	var embeddingResp EmbeddingResponse
@@ -46,10 +47,10 @@ func GetEmbedding(text string) ([]float32, error) {
 		return nil, fmt.Errorf("failed to parse embedding response: %v", err)
 	}
 
-	const expectedDim = 384
 	embedding := embeddingResp.Embedding
+	fmt.Println("Embedding length before padding:", len(embedding))
 
-	// ปรับความยาวให้ตรง 384 มิติพอดี
+	const expectedDim = 384
 	switch {
 	case len(embedding) < expectedDim:
 		padding := make([]float32, expectedDim-len(embedding))
@@ -58,5 +59,6 @@ func GetEmbedding(text string) ([]float32, error) {
 		embedding = embedding[:expectedDim]
 	}
 
+	fmt.Println("Final embedding length:", len(embedding))
 	return embedding, nil
 }
