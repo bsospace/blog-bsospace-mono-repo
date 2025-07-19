@@ -22,6 +22,7 @@ type ServiceInterface interface {
 	GetUserProfileOpenId(token string) (*OpenIDProfileData, error)
 	GetExistingUsername(username string) (bool, error)
 	UpdateUser(user *models.User) error
+	RefreshTokenOpenId(token string) (string, error)
 }
 
 type Service struct {
@@ -150,4 +151,52 @@ func (s *Service) UpdateUser(user *models.User) error {
 	s.Cache.ClearUserCache(user.Email)
 
 	return nil
+}
+
+func (s *Service) RefreshTokenOpenId(token string) (string, error) {
+	cfg := config.LoadConfig()
+	url := fmt.Sprintf("%s/auth/refresh?service=blog", cfg.OpenIDURL)
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("x-refresh-token", token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request error: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to refresh token: %s", string(responseBody))
+	}
+
+	var response struct {
+		Success      bool   `json:"success"`
+		Message      string `json:"message"`
+		AccessToken  string `json:"accessToken"`
+		RefreshToken string `json:"refreshToken"`
+		Error        string `json:"error,omitempty"`
+	}
+
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		return "", fmt.Errorf("failed to parse response JSON: %w", err)
+	}
+
+	if !response.Success {
+		return "", fmt.Errorf("refresh failed: %s", response.Error)
+	}
+
+	if response.AccessToken == "" {
+		return "", errors.New("access token not found in response")
+	}
+
+	return response.AccessToken, nil
 }

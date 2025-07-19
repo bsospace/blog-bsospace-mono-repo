@@ -5,6 +5,7 @@ package container
 
 import (
 	"rag-searchbot-backend/config"
+	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/media"
@@ -63,6 +64,10 @@ var asynqSet = wire.NewSet(
 	NewAsynqMux,
 )
 
+var aiSet = wire.NewSet(
+	ai.NewAgentIntentClassifier,
+)
+
 // ----- Wire Providers -----
 
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
@@ -73,7 +78,7 @@ func NewAsynqMux() *asynq.ServeMux {
 	return asynq.NewServeMux()
 }
 
-// ----- Wire Injector -----
+// ----- Wire Injector ----
 
 func InitializeContainer(
 	env *config.Config,
@@ -95,6 +100,7 @@ func InitializeContainer(
 		asynqSet,
 		NewCacheService,
 		ws.NewManager,
+		aiSet,
 	)
 	return &Container{}, nil
 }
