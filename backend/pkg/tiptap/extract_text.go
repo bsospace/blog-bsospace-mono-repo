@@ -163,7 +163,7 @@ func walkTiptapToMD(node interface{}, builder *strings.Builder, parentType strin
 		// Recurse into children
 		if arr, ok := content.([]interface{}); ok {
 			for _, c := range arr {
-				walkTiptap(c, builder, parentType)
+				walkTiptapToMD(c, builder, parentType)
 			}
 		}
 
