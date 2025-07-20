@@ -586,45 +586,10 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	// Stream the response
 	fullText := a.streamLLMResponse(c, resp)
 
-	// Get real token usage
-	var realTotalTokens int
-	if !config.UseSelfHost {
-		// clone payload และเปลี่ยน stream = false
-		usagePayload := map[string]interface{}{
-			"model":      config.Model,
-			"stream":     false,
-			"max_tokens": maxNewTokens,
-			"messages": []map[string]string{
-				{"role": "system", "content": systemPrompt},
-				{"role": "user", "content": question},
-			},
-		}
+	// Token usage = input + streamed output
+	realTotalTokens := inputTokens + token.CountTokens(fullText)
 
-		usageResp, err := a.sendLLMRequest(usagePayload, config)
-		if err == nil && usageResp.StatusCode == http.StatusOK {
-			defer usageResp.Body.Close()
-			var result map[string]interface{}
-			if err := json.NewDecoder(usageResp.Body).Decode(&result); err == nil {
-				if usage, ok := result["usage"].(map[string]interface{}); ok {
-					promptTokens := int(usage["prompt_tokens"].(float64))
-					completionTokens := int(usage["completion_tokens"].(float64))
-					realTotalTokens = promptTokens + completionTokens
-
-					a.logger.Info("Token usage from OpenRouter",
-						zap.Int("prompt_tokens", promptTokens),
-						zap.Int("completion_tokens", completionTokens),
-						zap.Int("total_tokens", realTotalTokens))
-				}
-			}
-		}
-	}
-
-	// Fallback to input tokens + full text tokens if real total tokens not available
-	if realTotalTokens == 0 {
-		realTotalTokens = inputTokens + token.CountTokens(fullText)
-	}
-
-	// Log the final token usage
+	// Save history
 	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, question, realTotalTokens); err != nil {
 		a.logger.Error("Failed to save chat history", zap.Error(err))
 		a.writeErrorEvent(c, "Failed to save chat history")
