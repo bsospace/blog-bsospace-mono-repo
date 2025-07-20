@@ -22,7 +22,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Starting deployment pipeline for master branch..."
+                    echo "📥 Starting deployment pipeline for master branch..."
                     checkout scm
                 }
             }
@@ -34,7 +34,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Setting up credentials..."
+                    echo "🔐 Setting up credentials..."
 
                     withCredentials([
                         file(credentialsId: 'blog-access-public-key-pem', variable: 'PUBLIC_KEY_FILE'),
@@ -49,7 +49,7 @@ pipeline {
                         '''
                     }
 
-                    echo "Credentials setup completed"
+                    echo "✅ Credentials setup completed"
                 }
             }
         }
@@ -60,7 +60,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Validating credentials..."
+                    echo "✅ Validating credentials..."
 
                     if (env.DISCORD_WEBHOOK == null || env.DISCORD_WEBHOOK == '') {
                         error "DISCORD_WEBHOOK credential is not set"
@@ -71,7 +71,7 @@ pipeline {
                         error "PEM key file is empty or invalid"
                     }
 
-                    echo "All credentials validated successfully"
+                    echo "🔒 All credentials validated successfully"
                 }
             }
         }
@@ -82,7 +82,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Validating environment files..."
+                    echo "🔍 Validating environment files..."
 
                     if (!fileExists('frontend/.env')) {
                         error "frontend/.env file is missing"
@@ -102,7 +102,7 @@ pipeline {
                         error "backend/.env file is empty"
                     }
 
-                    echo "All environment files validated successfully"
+                    echo "✅ All environment files validated successfully"
                 }
             }
         }
@@ -113,10 +113,10 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Starting deployment..."
+                    echo "🚀 Starting deployment..."
                     sh 'chmod +x deploy.sh'
                     sh './deploy.sh'
-                    echo "Deployment completed successfully"
+                    echo "✅ Deployment completed successfully"
                 }
             }
         }
@@ -125,71 +125,49 @@ pipeline {
     post {
         always {
             script {
-                // Capture build status safely
-                env.BUILD_STATUS = currentBuild.currentResult ?: 'UNKNOWN'
+                def result = currentBuild.result ?: 'SUCCESS'
+                def color = (result == 'SUCCESS') ? 3066993 : 15158332
+                def status = (result == 'SUCCESS') ? '✅ Success' : '❌ Failure'
+                def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))
 
-                if (env.BUILD_STATUS != 'UNKNOWN') {
-                    sendDiscordNotification()
+                def payload = [
+                    content: null,
+                    embeds: [[
+                        title: "🚀 Pipeline Execution Report For BSO Blog",
+                        description: "Pipeline execution details below:",
+                        color: color,
+                        thumbnail: [
+                            url: "https://raw.githubusercontent.com/bsospace/assets/refs/heads/main/LOGO/LOGO%20WITH%20CIRCLE.ico"
+                        ],
+                        fields: [
+                            [name: "Job", value: "${env.JOB_NAME} [#${env.BUILD_NUMBER}]", inline: true],
+                            [name: "Status", value: status, inline: true],
+                            [name: "Branch", value: "${env.BRANCH_NAME ?: 'unknown'}", inline: true]
+                        ],
+                        footer: [
+                            text: "Pipeline executed at",
+                            icon_url: "https://raw.githubusercontent.com/bsospace/assets/refs/heads/main/LOGO/LOGO%20WITH%20CIRCLE.ico"
+                        ],
+                        timestamp: timestamp
+                    ]]
+                ]
+
+                try {
+                    if (env.DISCORD_WEBHOOK) {
+                        httpRequest(
+                            url: env.DISCORD_WEBHOOK,
+                            httpMode: 'POST',
+                            contentType: 'APPLICATION_JSON',
+                            requestBody: groovy.json.JsonOutput.toJson(payload)
+                        )
+                        echo "✅ Discord notification sent."
+                    } else {
+                        echo "⚠️ DISCORD_WEBHOOK is not set. Skipping Discord notification."
+                    }
+                } catch (err) {
+                    echo "❌ Failed to send Discord notification: ${err.getMessage()}"
                 }
-
-                cleanWs()
             }
         }
-
-        success {
-            echo "Pipeline completed successfully!"
-        }
-
-        failure {
-            echo "Pipeline failed!"
-        }
     }
-}
-
-// ======= Discord Webhook Function =========
-def sendDiscordNotification() {
-    def color = 0x808080
-    def title = '❓ Deployment Status Unknown'
-
-    switch(env.BUILD_STATUS) {
-        case 'SUCCESS':
-            color = 0x00ff00
-            title = '✅ Deployment Successful'
-            break
-        case 'FAILURE':
-            color = 0xff0000
-            title = '❌ Deployment Failed'
-            break
-        case 'ABORTED':
-            color = 0xffff00
-            title = '⚠️ Deployment Aborted'
-            break
-    }
-
-    def payload = [
-        username: "Jenkins CI",
-        embeds: [
-            [
-                title: title,
-                description: """**Project:** Blog BSO Space
-**Branch:** ${env.BRANCH_NAME}
-**Build Number:** #${env.BUILD_NUMBER}
-**Duration:** ${currentBuild.durationString}
-**Build URL:** ${env.BUILD_URL}""",
-                color: color,
-                timestamp: new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC')),
-                footer: [ text: "Jenkins Pipeline" ]
-            ]
-        ]
-    ]
-
-    def jsonPayload = groovy.json.JsonOutput.toJson(payload)
-
-    // Send to Discord
-    sh """
-        curl -H "Content-Type: application/json" \\
-             -X POST \\
-             -d '${jsonPayload}' \\
-             '${env.DISCORD_WEBHOOK}'
-    """
 }
