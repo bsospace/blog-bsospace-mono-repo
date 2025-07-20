@@ -1,8 +1,10 @@
 #!/bin/bash
-
 set -e
 
 echo "Starting deployment..."
+
+# Ensure same project name across environments (Jenkins + local)
+export COMPOSE_PROJECT_NAME=blog-bsospace
 
 # Clean up previous combined .env file
 if [ -f .env ]; then
@@ -12,7 +14,6 @@ fi
 
 # Combine frontend and backend .env files
 echo "Combining frontend/.env and backend/.env into root .env..."
-
 if [ -f frontend/.env ] && [ -f backend/.env ]; then
   cat frontend/.env > .env
   echo "" >> .env
@@ -35,4 +36,4 @@ git pull origin master
 echo "Starting production containers with docker-compose.prod.yml..."
 docker compose -f docker-compose.prod.yml up -d --build
 
-echo "Deployment complete!"
+echo "✅ Deployment complete!"
