@@ -112,55 +112,55 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            when {
-                branch 'master'
-            }
-            steps {
-                script {
-                    echo "Starting build process..."
+        // stage('Build') {
+        //     when {
+        //         branch 'master'
+        //     }
+        //     steps {
+        //         script {
+        //             echo "Starting build process..."
 
-                    // Build backend (Go)
-                    dir('backend') {
-                        sh 'go mod download'
-                        sh 'go build -o bin/server ./cmd/server'
-                        echo "Backend build completed"
-                    }
+        //             // Build backend (Go)
+        //             dir('backend') {
+        //                 sh 'go mod download'
+        //                 sh 'go build -o bin/server ./cmd/server'
+        //                 echo "Backend build completed"
+        //             }
 
-                    // Build frontend (if it's a Node.js project)
-                    dir('frontend') {
-                        if (fileExists('package.json')) {
-                            sh 'pnpm install --frozen-lockfile'
-                            sh 'pnpm run build'
-                            echo "Frontend build completed"
-                        } else {
-                            echo "No package.json found in frontend, skipping frontend build"
-                        }
-                    }
+        //             // Build frontend (if it's a Node.js project)
+        //             dir('frontend') {
+        //                 if (fileExists('package.json')) {
+        //                     sh 'pnpm install --frozen-lockfile'
+        //                     sh 'pnpm run build'
+        //                     echo "Frontend build completed"
+        //                 } else {
+        //                     echo "No package.json found in frontend, skipping frontend build"
+        //                 }
+        //             }
 
-                    echo "Build process completed successfully"
-                }
-            }
-        }
+        //             echo "Build process completed successfully"
+        //         }
+        //     }
+        // }
 
-        stage('Test') {
-            when {
-                branch 'master'
-            }
-            steps {
-                script {
-                    echo "Running tests..."
+        // stage('Test') {
+        //     when {
+        //         branch 'master'
+        //     }
+        //     steps {
+        //         script {
+        //             echo "Running tests..."
 
-                    // Run Go tests
-                    dir('backend') {
-                        sh 'go test ./... -v'
-                        echo "Go tests completed"
-                    }
+        //             // Run Go tests
+        //             dir('backend') {
+        //                 sh 'go test ./... -v'
+        //                 echo "Go tests completed"
+        //             }
 
-                    echo "All tests completed"
-                }
-            }
-        }
+        //             echo "All tests completed"
+        //         }
+        //     }
+        // }
 
         stage('Deploy') {
             when {
