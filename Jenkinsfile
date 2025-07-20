@@ -132,33 +132,33 @@ pipeline {
             }
         }
 
-        stage('Clear Build Cache') {
-            when {
-                branch 'master'
-            }
-            steps {
-                script {
-                    echo "Clearing build cache..."
+        // stage('Clear Build Cache') {
+        //     when {
+        //         branch 'master'
+        //     }
+        //     steps {
+        //         script {
+        //             echo "Clearing build cache..."
 
-                    // Clean Go cache
-                    dir('backend') {
-                        sh 'go clean -cache -modcache -testcache'
-                    }
+        //             // Clean Go cache
+        //             dir('backend') {
+        //                 sh 'go clean -cache -modcache -testcache'
+        //             }
 
-                    // Clean pnpm cache (if frontend exists)
-                    dir('frontend') {
-                        if (fileExists('package.json')) {
-                            sh 'pnpm store prune'
-                        }
-                    }
+        //             // Clean pnpm cache (if frontend exists)
+        //             dir('frontend') {
+        //                 if (fileExists('package.json')) {
+        //                     sh 'pnpm store prune'
+        //                 }
+        //             }
 
-                    // Clean Docker cache
-                    sh 'docker system prune -f'
+        //             // Clean Docker cache
+        //             sh 'docker system prune -f'
 
-                    echo "Build cache cleared successfully"
-                }
-            }
-        }
+        //             echo "Build cache cleared successfully"
+        //         }
+        //     }
+        // }
     }
 
     post {
