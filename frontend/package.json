@@ -66,7 +66,7 @@
     "highlight.js": "^11.11.1",
     "jsonwebtoken": "^9.0.2",
     "lowlight": "^3.3.0",
-    "lucide-react": "^0.514.0",
+    "lucide-react": "^0.524.0",
     "moment": "^2.30.1",
     "nanoid": "^5.1.5",
     "next": "^15.3.1",
