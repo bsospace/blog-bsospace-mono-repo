@@ -42,15 +42,8 @@ pipeline {
                         file(credentialsId: 'blog-backend-env', variable: 'BACKEND_ENV_FILE')
                     ]) {
                         sh '''
-                            # Create folders if not exist
-                            mkdir -p backend/keys
-                            mkdir -p frontend
-                            mkdir -p backend
-
-                            # Copy PEM key
+                            mkdir -p backend/keys frontend backend
                             cp "$PUBLIC_KEY_FILE" backend/keys/blogPublicAccess.pem
-
-                            # Copy .env files
                             cp "$FRONTEND_ENV_FILE" frontend/.env
                             cp "$BACKEND_ENV_FILE" backend/.env
                         '''
@@ -69,14 +62,12 @@ pipeline {
                 script {
                     echo "Validating credentials..."
 
-                    // Check if Discord webhook is set
                     if (env.DISCORD_WEBHOOK == null || env.DISCORD_WEBHOOK == '') {
                         error "DISCORD_WEBHOOK credential is not set"
                     }
 
-                    // Check if PEM key file exists and has content
                     def pemContent = readFile('backend/keys/blogPublicAccess.pem')
-                    if (pemContent == null || pemContent.trim() == '') {
+                    if (!pemContent?.trim()) {
                         error "PEM key file is empty or invalid"
                     }
 
@@ -102,12 +93,12 @@ pipeline {
                     }
 
                     def frontendEnv = readFile('frontend/.env')
-                    if (frontendEnv == null || frontendEnv.trim() == '') {
+                    if (!frontendEnv?.trim()) {
                         error "frontend/.env file is empty"
                     }
 
                     def backendEnv = readFile('backend/.env')
-                    if (backendEnv == null || backendEnv.trim() == '') {
+                    if (!backendEnv?.trim()) {
                         error "backend/.env file is empty"
                     }
 
@@ -123,129 +114,82 @@ pipeline {
             steps {
                 script {
                     echo "Starting deployment..."
-
-                    // Make deploy.sh executable and run it
                     sh 'chmod +x deploy.sh'
                     sh './deploy.sh'
-
                     echo "Deployment completed successfully"
                 }
             }
         }
-
-        // stage('Clear Build Cache') {
-        //     when {
-        //         branch 'master'
-        //     }
-        //     steps {
-        //         script {
-        //             echo "Clearing build cache..."
-
-        //             // Clean Go cache
-        //             dir('backend') {
-        //                 sh 'go clean -cache -modcache -testcache'
-        //             }
-
-        //             // Clean pnpm cache (if frontend exists)
-        //             dir('frontend') {
-        //                 if (fileExists('package.json')) {
-        //                     sh 'pnpm store prune'
-        //                 }
-        //             }
-
-        //             // Clean Docker cache
-        //             sh 'docker system prune -f'
-
-        //             echo "Build cache cleared successfully"
-        //         }
-        //     }
-        // }
     }
 
     post {
         always {
             script {
-                // Set build status for notification
-                if (currentBuild.result == 'SUCCESS') {
-                    env.BUILD_STATUS = 'SUCCESS'
-                } else if (currentBuild.result == 'FAILURE') {
-                    env.BUILD_STATUS = 'FAILURE'
-                } else if (currentBuild.result == 'ABORTED') {
-                    env.BUILD_STATUS = 'ABORTED'
-                } else {
-                    env.BUILD_STATUS = 'UNKNOWN'
-                }
+                // Capture build status safely
+                env.BUILD_STATUS = currentBuild.currentResult ?: 'UNKNOWN'
 
-                // Send Discord notification
                 if (env.BUILD_STATUS != 'UNKNOWN') {
                     sendDiscordNotification()
                 }
 
-                // Cleanup workspace
                 cleanWs()
             }
         }
 
         success {
-            script {
-                echo "Pipeline completed successfully!"
-            }
+            echo "Pipeline completed successfully!"
         }
 
         failure {
-            script {
-                echo "Pipeline failed!"
-            }
+            echo "Pipeline failed!"
         }
     }
 }
 
-// Function to send notification to Discord via webhook
+// ======= Discord Webhook Function =========
 def sendDiscordNotification() {
-    def color = ''
-    def title = ''
+    def color = 0x808080
+    def title = '❓ Deployment Status Unknown'
 
-    // Set color and title based on build status
     switch(env.BUILD_STATUS) {
         case 'SUCCESS':
-            color = '00ff00' // Green
+            color = 0x00ff00
             title = '✅ Deployment Successful'
             break
         case 'FAILURE':
-            color = 'ff0000' // Red
+            color = 0xff0000
             title = '❌ Deployment Failed'
             break
         case 'ABORTED':
-            color = 'ffff00' // Yellow
+            color = 0xffff00
             title = '⚠️ Deployment Aborted'
             break
-        default:
-            color = '808080' // Gray
-            title = '❓ Deployment Status Unknown'
     }
 
-    // Construct Discord embed payload
     def payload = [
+        username: "Jenkins CI",
         embeds: [
             [
                 title: title,
-                description: "**Project:** Blog BSO Space\n**Branch:** ${env.BRANCH_NAME}\n**Build:** #${env.BUILD_NUMBER}\n**Duration:** ${currentBuild.durationString}",
-                color: color.toInteger(),
-                timestamp: new Date().toISOString(),
-                footer: [
-                    text: "Jenkins Pipeline"
-                ]
+                description: """**Project:** Blog BSO Space
+**Branch:** ${env.BRANCH_NAME}
+**Build Number:** #${env.BUILD_NUMBER}
+**Duration:** ${currentBuild.durationString}
+**Build URL:** ${env.BUILD_URL}""",
+                color: color,
+                timestamp: new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC')),
+                footer: [ text: "Jenkins Pipeline" ]
             ]
         ]
     ]
 
     def jsonPayload = groovy.json.JsonOutput.toJson(payload)
 
-    // Send notification to Discord
+    // Send to Discord
     sh """
         curl -H "Content-Type: application/json" \\
              -X POST \\
              -d '${jsonPayload}' \\
-             ${env.DISCORD_WEBHOOK}
+             '${env.DISCORD_WEBHOOK}'
     """
 }
