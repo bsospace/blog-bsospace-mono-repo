@@ -4,8 +4,6 @@ pipeline {
     environment {
         DISCORD_WEBHOOK = credentials('discord-webhook')
         BLOG_ACCESS_PUBLIC_KEY_PEM_PROD = credentials('blog-access-public-key-pem')
-        FRONTEND_ENV = credentials('blog-frontend-env')
-        BACKEND_ENV = credentials('blog-backend-env')
         BUILD_STATUS = 'UNKNOWN'
     }
 
@@ -39,15 +37,23 @@ pipeline {
                 script {
                     echo "Setting up credentials..."
 
-                    // Create backend/keys directory if it doesn't exist
+                    // Setup PEM key (still using Secret Text)
                     sh 'mkdir -p backend/keys'
-
-                    // Write the PEM key to backend/keys/blogPublicAccess.pem
                     writeFile file: 'backend/keys/blogPublicAccess.pem', text: BLOG_ACCESS_PUBLIC_KEY_PEM_PROD
 
-                    // Create .env files from Jenkins credentials
-                    writeFile file: 'frontend/.env', text: FRONTEND_ENV
-                    writeFile file: 'backend/.env', text: BACKEND_ENV
+                    // Setup env files from Secret File
+                    withCredentials([
+                        file(credentialsId: 'blog-frontend-env', variable: 'FRONTEND_ENV_FILE'),
+                        file(credentialsId: 'blog-backend-env', variable: 'BACKEND_ENV_FILE')
+                    ]) {
+                        sh '''
+                            mkdir -p frontend
+                            mkdir -p backend
+
+                            cp "$FRONTEND_ENV_FILE" frontend/.env
+                            cp "$BACKEND_ENV_FILE" backend/.env
+                        '''
+                    }
 
                     echo "Credentials setup completed"
                 }
@@ -86,17 +92,14 @@ pipeline {
                 script {
                     echo "Validating environment files..."
 
-                    // Check if frontend .env exists
                     if (!fileExists('frontend/.env')) {
                         error "frontend/.env file is missing"
                     }
 
-                    // Check if backend .env exists
                     if (!fileExists('backend/.env')) {
                         error "backend/.env file is missing"
                     }
 
-                    // Validate that .env files are not empty
                     def frontendEnv = readFile('frontend/.env')
                     if (frontendEnv == null || frontendEnv.trim() == '') {
                         error "frontend/.env file is empty"
@@ -111,56 +114,6 @@ pipeline {
                 }
             }
         }
-
-        // stage('Build') {
-        //     when {
-        //         branch 'master'
-        //     }
-        //     steps {
-        //         script {
-        //             echo "Starting build process..."
-
-        //             // Build backend (Go)
-        //             dir('backend') {
-        //                 sh 'go mod download'
-        //                 sh 'go build -o bin/server ./cmd/server'
-        //                 echo "Backend build completed"
-        //             }
-
-        //             // Build frontend (if it's a Node.js project)
-        //             dir('frontend') {
-        //                 if (fileExists('package.json')) {
-        //                     sh 'pnpm install --frozen-lockfile'
-        //                     sh 'pnpm run build'
-        //                     echo "Frontend build completed"
-        //                 } else {
-        //                     echo "No package.json found in frontend, skipping frontend build"
-        //                 }
-        //             }
-
-        //             echo "Build process completed successfully"
-        //         }
-        //     }
-        // }
-
-        // stage('Test') {
-        //     when {
-        //         branch 'master'
-        //     }
-        //     steps {
-        //         script {
-        //             echo "Running tests..."
-
-        //             // Run Go tests
-        //             dir('backend') {
-        //                 sh 'go test ./... -v'
-        //                 echo "Go tests completed"
-        //             }
-
-        //             echo "All tests completed"
-        //         }
-        //     }
-        // }
 
         stage('Deploy') {
             when {
