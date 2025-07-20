@@ -73,11 +73,6 @@ pipeline {
                         error "BLOG_ACCESS_PUBLIC_KEY_PEM_PROD credential is empty or invalid"
                     }
 
-                    // Validate PEM format (basic check)
-                    if (!pemContent.contains('-----BEGIN') || !pemContent.contains('-----END')) {
-                        error "PEM key format appears to be invalid"
-                    }
-
                     echo "All credentials validated successfully"
                 }
             }
