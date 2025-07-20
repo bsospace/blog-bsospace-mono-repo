@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         DISCORD_WEBHOOK = credentials('discord-webhook')
-        BLOG_ACCESS_PUBLIC_KEY_PEM_PROD = credentials('blog-access-public-key-pem')
         BUILD_STATUS = 'UNKNOWN'
     }
 
@@ -37,19 +36,21 @@ pipeline {
                 script {
                     echo "Setting up credentials..."
 
-                    // Setup PEM key (still using Secret Text)
-                    sh 'mkdir -p backend/keys'
-                    writeFile file: 'backend/keys/blogPublicAccess.pem', text: BLOG_ACCESS_PUBLIC_KEY_PEM_PROD
-
-                    // Setup env files from Secret File
                     withCredentials([
+                        file(credentialsId: 'blog-access-public-key-pem', variable: 'PUBLIC_KEY_FILE'),
                         file(credentialsId: 'blog-frontend-env', variable: 'FRONTEND_ENV_FILE'),
                         file(credentialsId: 'blog-backend-env', variable: 'BACKEND_ENV_FILE')
                     ]) {
                         sh '''
+                            # Create folders if not exist
+                            mkdir -p backend/keys
                             mkdir -p frontend
                             mkdir -p backend
 
+                            # Copy PEM key
+                            cp "$PUBLIC_KEY_FILE" backend/keys/blogPublicAccess.pem
+
+                            # Copy .env files
                             cp "$FRONTEND_ENV_FILE" frontend/.env
                             cp "$BACKEND_ENV_FILE" backend/.env
                         '''
@@ -76,7 +77,7 @@ pipeline {
                     // Check if PEM key file exists and has content
                     def pemContent = readFile('backend/keys/blogPublicAccess.pem')
                     if (pemContent == null || pemContent.trim() == '') {
-                        error "BLOG_ACCESS_PUBLIC_KEY_PEM_PROD credential is empty or invalid"
+                        error "PEM key file is empty or invalid"
                     }
 
                     echo "All credentials validated successfully"
@@ -180,7 +181,7 @@ pipeline {
                     sendDiscordNotification()
                 }
 
-                // Cleanup
+                // Cleanup workspace
                 cleanWs()
             }
         }
