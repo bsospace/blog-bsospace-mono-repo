@@ -4,6 +4,8 @@ pipeline {
     environment {
         DISCORD_WEBHOOK = credentials('discord-webhook')
         BLOG_ACCESS_PUBLIC_KEY_PEM_PROD = credentials('blog-access-public-key-pem')
+        FRONTEND_ENV = credentials('blog-frontend-env')
+        BACKEND_ENV = credentials('blog-backend-env')
         BUILD_STATUS = 'UNKNOWN'
     }
     
@@ -43,6 +45,10 @@ pipeline {
                     // Write the PEM key to backend/keys/blogPublicAccess.pem
                     writeFile file: 'backend/keys/blogPublicAccess.pem', text: BLOG_ACCESS_PUBLIC_KEY_PEM_PROD
                     
+                    // Create .env files from Jenkins credentials
+                    writeFile file: 'frontend/.env', text: FRONTEND_ENV
+                    writeFile file: 'backend/.env', text: BACKEND_ENV
+                    
                     echo "Credentials setup completed"
                 }
             }
@@ -73,6 +79,40 @@ pipeline {
                     }
                     
                     echo "All credentials validated successfully"
+                }
+            }
+        }
+        
+        stage('Validate Environment Files') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    echo "Validating environment files..."
+                    
+                    // Check if frontend .env exists
+                    if (!fileExists('frontend/.env')) {
+                        error "frontend/.env file is missing"
+                    }
+                    
+                    // Check if backend .env exists
+                    if (!fileExists('backend/.env')) {
+                        error "backend/.env file is missing"
+                    }
+                    
+                    // Validate that .env files are not empty
+                    def frontendEnv = readFile('frontend/.env')
+                    if (frontendEnv == null || frontendEnv.trim() == '') {
+                        error "frontend/.env file is empty"
+                    }
+                    
+                    def backendEnv = readFile('backend/.env')
+                    if (backendEnv == null || backendEnv.trim() == '') {
+                        error "backend/.env file is empty"
+                    }
+                    
+                    echo "All environment files validated successfully"
                 }
             }
         }
