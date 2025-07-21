@@ -257,6 +257,8 @@ interface ImageUploadPreviewProps {
   onUploaded?: (src: string) => void
   editor: any
   fileItem: FileItem
+  imageWidth: number
+  setImageWidth: (width: number) => void
 }
 
 const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
@@ -268,6 +270,8 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
   editor,
   fileItem,
   onUploaded,
+  imageWidth,
+  setImageWidth,
 }) => {
 
   const [preview, setPreview] = React.useState<string | null>(null)
@@ -281,6 +285,7 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
 
   const objectUrlRef = React.useRef<string | null>(null)
   const uploadedRef = React.useRef(false) // ป้องกัน insert ซ้ำ
+  const [modalOpen, setModalOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (fileItem?.status === "success" && fileItem.url) {
@@ -317,11 +322,53 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
   return (
     <div className="tiptap-image-upload-preview">
       {preview && (
-        <img
-          src={preview}
-          alt={file.name}
-          className="object-contain rounded mb-2"
-        />
+        <>
+          <img
+            src={preview}
+            alt={file.name}
+            className="object-contain rounded mb-2 cursor-zoom-in"
+            onClick={() => setModalOpen(true)}
+            style={{ width: `${imageWidth}%`, maxWidth: '100%' }}
+          />
+          <div className="flex items-center gap-2 mb-2">
+            <label htmlFor="image-width-slider" className="text-xs text-gray-500 dark:text-gray-400">ขนาดรูป:</label>
+            <input
+              id="image-width-slider"
+              type="range"
+              min={10}
+              max={100}
+              value={imageWidth}
+              onChange={e => setImageWidth(Number(e.target.value))}
+              className="w-32"
+            />
+            <input
+              type="number"
+              min={10}
+              max={100}
+              value={imageWidth}
+              onChange={e => setImageWidth(Number(e.target.value))}
+              className="w-14 px-1 py-0.5 border rounded text-xs"
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-400">%</span>
+          </div>
+          {modalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModalOpen(false)}>
+              <img
+                src={preview}
+                alt={file.name}
+                className="max-h-[90vh] max-w-[90vw] rounded shadow-lg border-2 border-white"
+                onClick={e => e.stopPropagation()}
+              />
+              <button
+                className="absolute top-4 right-4 text-white text-3xl font-bold bg-black/60 rounded-full px-3 py-1 hover:bg-black/80"
+                onClick={() => setModalOpen(false)}
+                aria-label="Close preview"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {status === "uploading" && (
@@ -391,6 +438,7 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
   const uploadedSrcs = React.useRef<string[]>([])
   const extension = props.extension
 
+  const [imageWidth, setImageWidth] = React.useState(100); // percent
 
   const uploadOptions: UploadOptions = {
     maxSize: 5 * 1024 * 1024, // 5MB
@@ -495,6 +543,8 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
           getPos={props.getPos}
           editor={props.editor}
           fileItem={fileItem}
+          imageWidth={imageWidth}
+          setImageWidth={setImageWidth}
           onUploaded={(src) => {
             uploadedSrcs.current.push(src)
             const pos = props.getPos?.()
@@ -509,10 +559,10 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
                     src,
                     alt: "Uploaded image",
                     title: "Uploaded image",
+                    style: `width: ${imageWidth}%; max-width: 100%;`,
                   },
                 })
                 .run()
-            
             }
           }}
         />
