@@ -410,10 +410,10 @@ pre {
 .tiptap.ProseMirror {
   img {
     @apply max-w-full h-auto block transition-all duration-300 ease-out;
-
-    &:hover {
+    /* Remove scale/hover effect */
+    /* &:hover {
       @apply transform scale-105 shadow-lg;
-    }
+    } */
   }
 
   >img:not([data-type='emoji'] img) {
@@ -687,4 +687,9 @@ td {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Utility for z-60 (z-index: 60) */
+.z-60 {
+  z-index: 60 !important;
 }
