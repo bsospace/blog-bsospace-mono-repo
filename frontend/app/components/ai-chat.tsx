@@ -7,6 +7,9 @@ import { useAuth } from '../contexts/authContext';
 import envConfig from '../configs/envConfig';
 import { Post } from '../interfaces';
 import { useRouter } from 'next/navigation'
+// import { countTokens, isTokenLimitExceeded } from '../utils/token';
+
+const WORD_LIMIT = 100;
 
 interface AIProps {
   isOpen?: boolean;
@@ -202,6 +205,9 @@ const BlogAIChat: React.FC<AIProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const [wordCount, setWordCount] = useState(0);
+  const [wordLimitExceeded, setWordLimitExceeded] = useState(false);
+  const [wordError, setWordError] = useState('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -211,8 +217,26 @@ const BlogAIChat: React.FC<AIProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  // Update word count on input change
+  useEffect(() => {
+    const count = inputText.trim().split(/\s+/).filter(Boolean).length;
+    setWordCount(count);
+    const exceeded = count > WORD_LIMIT;
+    setWordLimitExceeded(exceeded);
+    if (exceeded) {
+      setWordError('คำถามยาวเกินไป');
+    } else {
+      setWordError('');
+    }
+  }, [inputText]);
+
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
+    if (wordLimitExceeded) {
+      setWordError('คำถามยาวเกินไป');
+      return;
+    }
+    setWordError('');
 
     // Check if user is authenticated
     if (!user) {
@@ -346,7 +370,7 @@ const BlogAIChat: React.FC<AIProps> = ({
   // Fixed positioning logic
   const getContainerClasses = () => {
     if (isFullscreen) {
-      return 'fixed inset-0 z-50 p-4';
+      return 'fixed inset-0 z-50';
     }
     return 'fixed z-50 bottom-8 right-4';
   };
@@ -397,13 +421,6 @@ const BlogAIChat: React.FC<AIProps> = ({
                 title={isFullscreen ? "ย่อหน้าต่าง" : "ขยายเต็มจอ"}
               >
                 {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </button>
-              <button
-                onClick={handleMinimize}
-                className="inline-flex items-center justify-center rounded-md w-8 h-8 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title={isFullscreen ? "ย่อหน้าต่าง" : "ย่อเก็บ"}
-              >
-                <Minimize2 className="h-4 w-4" />
               </button>
               <button
                 onClick={handleClose}
@@ -489,30 +506,33 @@ const BlogAIChat: React.FC<AIProps> = ({
           </div>
 
           {/* Input */}
-          <div className={`p-4 border-t border-border ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''
-            }`}>
+          <div className={`p-4 border-t border-border ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}
+          >
             <div className="flex space-x-2">
               <Textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={!user ? "กรุณาเข้าสู่ระบบเพื่อแชท..." : "พิมพ์ข้อความของคุณ..."}
-                className={`flex-1 min-h-9 px-3 py-2 text-sm ${isFullscreen ? 'max-h-32' : 'max-h-20'
-                  }`}
+                className={`flex-1 min-h-9 px-3 py-2 text-sm ${isFullscreen ? 'max-h-32' : 'max-h-20'}`}
                 rows={1}
                 disabled={!user}
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!inputText.trim() || isTyping || !user}
+                disabled={!inputText.trim() || isTyping || !user || wordLimitExceeded}
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3"
               >
                 <Send className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {!user ? "กรุณาเข้าสู่ระบบเพื่อใช้งาน AI Chat" : "Enter เพื่อส่ง • Shift+Enter บรรทัดใหม่"}
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className={`text-xs ${wordError ? 'text-red-500 font-bold dark:text-red-500' : 'text-muted-foreground'}`}>
+                {wordError
+                  ? wordError
+                  : (!user ? "กรุณาเข้าสู่ระบบเพื่อใช้งาน AI Chat" : "Enter เพื่อส่ง • Shift+Enter บรรทัดใหม่")}
+              </p>
+            </div>
           </div>
         </div>
       )}
