@@ -312,7 +312,6 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
     } else {
       console.error("Unsupported file type:", file.type)
       setPreview(null)
-      extension.options.onError?.(new Error("Unsupported file type"))
     }
 
     return () => {
@@ -453,7 +452,7 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
     accept: "image/*",
     upload: async (file, onProgress, signal) => {
       const formData = new FormData()
-      const postId = localStorage.getItem("pid") ||  null
+      const postId = localStorage.getItem("pid") || null
       formData.append("file", file)
       formData.append("post_id", postId || "")
 
