@@ -1,7 +1,7 @@
 import { generateHTML } from '@tiptap/core'
 
 import { StarterKit } from "@tiptap/starter-kit"
-import { Image } from "@tiptap/extension-image"
+import { Image as TiptapImage } from "@tiptap/extension-image"
 import { TaskItem } from "@tiptap/extension-task-item"
 import { TaskList } from "@tiptap/extension-task-list"
 import { TextAlign } from "@tiptap/extension-text-align"
@@ -19,6 +19,20 @@ import { ImageUploadNode } from "@/app/components/tiptap-node/image-upload-node/
 import { JSONContent } from "@tiptap/react"
 
 export function generateHtmlFromContent(content: JSONContent): string {
+  const ImageWithStyle = TiptapImage.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        style: {
+          default: null,
+          parseHTML: element => element.getAttribute('style'),
+          renderHTML: attributes => {
+            return attributes.style ? { style: attributes.style } : {};
+          },
+        },
+      };
+    },
+  });
   return generateHTML(content, [
     StarterKit,
     TextAlign.configure({
@@ -29,7 +43,7 @@ export function generateHtmlFromContent(content: JSONContent): string {
     TaskList,
     TaskItem,
     Highlight.configure({ multicolor: true }),
-    Image,
+    ImageWithStyle,
     Typography,
     Superscript,
     Subscript,
