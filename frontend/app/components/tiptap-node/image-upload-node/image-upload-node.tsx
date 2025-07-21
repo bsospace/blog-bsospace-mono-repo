@@ -304,9 +304,16 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
       return
     }
 
-    const objectUrl = URL.createObjectURL(file)
-    objectUrlRef.current = objectUrl
-    setPreview(objectUrl)
+    const validImageTypes = ["image/jpeg", "image/png", "image/gif"]
+    if (validImageTypes.includes(file.type)) {
+      const objectUrl = URL.createObjectURL(file)
+      objectUrlRef.current = objectUrl
+      setPreview(objectUrl)
+    } else {
+      console.error("Unsupported file type:", file.type)
+      setPreview(null)
+      extension.options.onError?.(new Error("Unsupported file type"))
+    }
 
     return () => {
       if (objectUrlRef.current) {
