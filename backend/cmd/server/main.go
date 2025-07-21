@@ -137,7 +137,7 @@ func main() {
 
 	StartMediaCleanupCron(db, cacheService, logger.Log)
 
-	containerDI, err := container.InitializeContainer(&cfg, db, logger.Log, redisClient, 15*time.Minute, asynqClient)
+	containerDI, err := container.InitializeContainer(&cfg, db, logger.Log, redisClient, 24*time.Hour, asynqClient)
 	if err != nil {
 		log.Fatal(err)
 	}
