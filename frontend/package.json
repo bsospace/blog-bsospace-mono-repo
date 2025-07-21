@@ -64,6 +64,7 @@
     "cookie": "^1.0.1",
     "dotenv": "^16.4.5",
     "highlight.js": "^11.11.1",
+    "js-tiktoken": "^1.0.20",
     "jsonwebtoken": "^9.0.2",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.503.0",

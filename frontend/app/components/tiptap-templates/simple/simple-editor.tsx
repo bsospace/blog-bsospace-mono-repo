@@ -29,6 +29,9 @@ import {
 
 // --- Tiptap Node ---
 import { ImageUploadNode } from "@/app/components/tiptap-node/image-upload-node/image-upload-node-extension"
+import { TiptapImageNodeView } from "@/app/components/tiptap-node/image-node/TiptapImageNodeView";
+import { Image as TiptapImage, ImageOptions } from "@tiptap/extension-image";
+import { ReactNodeViewRenderer } from "@tiptap/react";
 
 // --- Tiptap UI ---
 import { HeadingDropdownMenu } from "@/app/components/tiptap-ui/heading-dropdown-menu"
@@ -286,7 +289,11 @@ export function SimpleEditor(
           class: 'highlight',
         },
       }),
-      Image.configure({
+      TiptapImage.extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(TiptapImageNodeView);
+        },
+      }).configure({
         HTMLAttributes: {
           class: 'editor-image',
           loading: 'lazy',
