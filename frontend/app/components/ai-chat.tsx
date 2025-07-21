@@ -84,7 +84,7 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
   patterns.forEach((pattern) => {
     let match;
     const regex = new RegExp(pattern.regex.source, 'g');
-    
+
     while ((match = regex.exec(text)) !== null) {
       matches.push({
         start: match.index,
@@ -101,7 +101,7 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
 
   // Remove overlapping matches (keep the first one)
   const validMatches = matches.filter((match, index) => {
-    return !matches.slice(0, index).some(prevMatch => 
+    return !matches.slice(0, index).some(prevMatch =>
       match.start < prevMatch.end && match.end > prevMatch.start
     );
   });
@@ -137,8 +137,8 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
         break;
       case 'link':
         elements.push(
-          <a key={key} href={match.url} target="_blank" rel="noopener noreferrer" 
-             className="text-blue-500 hover:text-blue-700 underline">
+          <a key={key} href={match.url} target="_blank" rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-700 underline">
             {match.content}
           </a>
         );
@@ -277,8 +277,8 @@ const BlogAIChat: React.FC<AIProps> = ({
 
               if (content) {
                 botMessage += content;
-                setMessages((prev) => prev.map(msg => 
-                  msg.id === botMessageId 
+                setMessages((prev) => prev.map(msg =>
+                  msg.id === botMessageId
                     ? { ...msg, content: botMessage }
                     : msg
                 ));
@@ -292,8 +292,8 @@ const BlogAIChat: React.FC<AIProps> = ({
     } catch (err) {
       console.error('Streaming error:', err);
       // Show error message
-      setMessages((prev) => prev.map(msg => 
-        msg.id === botMessageId 
+      setMessages((prev) => prev.map(msg =>
+        msg.id === botMessageId
           ? { ...msg, content: 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง' }
           : msg
       ));
@@ -418,36 +418,55 @@ const BlogAIChat: React.FC<AIProps> = ({
           {/* Messages */}
           <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''
             }`}>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex max-w-[85%] ${isFullscreen ? 'max-w-2xl' : 'max-w-[85%]'
-                  } ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`flex-shrink-0 ${message.type === 'user' ? 'ml-2' : 'mr-2'}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${message.type === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                      }`}>
-                      {message.type === 'user' ? getUserAvatar() : <Bot className="h-3 w-3" />}
+            {messages.map((message) => {
+              if (!message.content) return null;
+
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`flex max-w-[85%] ${isFullscreen ? 'max-w-2xl' : 'max-w-[85%]'
+                      } ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    <div
+                      className={`flex-shrink-0 ${message.type === 'user' ? 'ml-2' : 'mr-2'}`}
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center ${message.type === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                          }`}
+                      >
+                        {message.type === 'user' ? getUserAvatar() : <Bot className="h-3 w-3" />}
+                      </div>
                     </div>
-                  </div>
-                  <div className={`rounded-lg px-3 py-2 ${message.type === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'
-                    }`}>
-                    <div className={`text-sm ${message.type == "user" ? "text-white" : ""}`}>
-                      {parseMarkdown(message.content)}
+                    <div
+                      className={`rounded-lg px-3 py-2 ${message.type === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground'
+                        }`}
+                    >
+                      <div
+                        className={`text-sm ${message.type === 'user' ? 'text-white' : ''}`}
+                      >
+                        {parseMarkdown(message.content)}
+                      </div>
+                      <p
+                        className={`text-xs mt-1 ${message.type === 'user'
+                          ? 'text-primary-foreground/70'
+                          : 'text-muted-foreground'
+                          }`}
+                      >
+                        {formatTime(message.timestamp)}
+                      </p>
                     </div>
-                    <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                      }`}>
-                      {formatTime(message.timestamp)}
-                    </p>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+
 
             {/* Typing Indicator - แสดงเฉพาะเมื่อกำลัง typing และไม่มี content ใน bot message ล่าสุด */}
             {isTyping && (
