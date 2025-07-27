@@ -771,3 +771,27 @@ func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *mod
 
 	return nil
 }
+
+func (h *AIHandler) GetChatsByPost(c *gin.Context) {
+	postID := c.Param("post_id")
+	limit := 50
+	offset := 0
+	if l := c.Query("limit"); l != "" {
+		fmt.Sscanf(l, "%d", &limit)
+	}
+	if o := c.Query("offset"); o != "" {
+		fmt.Sscanf(o, "%d", &offset)
+	}
+	var userIDPtr *uuid.UUID
+	if userObj, exists := c.Get("user"); exists {
+		if user, ok := userObj.(*models.User); ok {
+			userIDPtr = &user.ID
+		}
+	}
+	chats, err := h.AIService.GetChatsByPost(postID, userIDPtr, limit, offset)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, chats)
+}

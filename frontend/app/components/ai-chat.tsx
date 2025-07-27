@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 // import { countTokens, isTokenLimitExceeded } from '../utils/token';
 
 const WORD_LIMIT = 100;
+const PAGE_SIZE = 20;
 
 interface AIProps {
   isOpen?: boolean;
@@ -192,14 +193,11 @@ const BlogAIChat: React.FC<AIProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(initialIsOpen || false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: 'สวัสดีครับ! ผมเป็น **AI Assistant** ของ blog นี้ ผมพร้อมตอบคำถามเกี่ยวกับเนื้อหา blog, การเขียน, หรือหัวข้อที่น่าสนใจ มีอะไรให้ช่วยไหมครับ?\n\nคุณสามารถใช้ markdown ได้ เช่น:\n- **ตัวหนา**\n- *ตัวเอียง*\n- `โค้ด`\n- [ลิงก์](https://example.com)',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyOffset, setHistoryOffset] = useState(0);
+  const chatWindowRef = useRef<HTMLDivElement>(null);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -216,6 +214,83 @@ const BlogAIChat: React.FC<AIProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const fetchChatHistory = async (offset = 0) => {
+    setLoadingHistory(true);
+    const prevScrollHeight = chatWindowRef.current?.scrollHeight || 0;
+    try {
+      const res = await fetch(`${envConfig.apiBaseUrl}/ai/${Post.id}/chats?limit=${PAGE_SIZE}&offset=${offset}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const history = data.flatMap((chat: any) => [
+        {
+          id: chat.id * 2,
+          type: 'user',
+          content: chat.prompt,
+          timestamp: new Date(chat.used_at || chat.created_at)
+        },
+        {
+          id: chat.id * 2 + 1,
+          type: 'bot',
+          content: chat.response,
+          timestamp: new Date(chat.used_at || chat.created_at)
+        }
+      ]);
+      setMessages(prev => [...history, ...prev]);
+      setHasMore(data.length === PAGE_SIZE);
+      setHistoryOffset(offset + PAGE_SIZE);
+      // รอ render เสร็จแล้วค่อยปรับ scrollTop
+      setTimeout(() => {
+        if (chatWindowRef.current) {
+          const newScrollHeight = chatWindowRef.current.scrollHeight;
+          chatWindowRef.current.scrollTop = newScrollHeight - prevScrollHeight;
+        }
+      }, 0);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || !Post?.id) return;
+    setMessages([]);
+    setHistoryOffset(0);
+    setHasMore(true);
+    fetchChatHistory(0).then(() => {
+      // ถ้าไม่มีแชทเก่าเลย ให้แสดง welcome bot
+      setTimeout(() => {
+        setMessages(prev => {
+          if (prev.length === 0) {
+            return [
+              {
+                id: 1,
+                type: 'bot',
+                content: 'สวัสดีครับ! ผมเป็น **AI Assistant** ของ blog นี้ ผมพร้อมตอบคำถามเกี่ยวกับเนื้อหา blog, การเขียน, หรือหัวข้อที่น่าสนใจ มีอะไรให้ช่วยไหมครับ?\n\nคุณสามารถใช้ markdown ได้ เช่น:\n- **ตัวหนา**\n- *ตัวเอียง*\n- `โค้ด`\n- [ลิงก์](https://example.com)',
+                timestamp: new Date()
+              }
+            ];
+          }
+          return prev;
+        });
+      }, 0);
+    });
+  }, [isOpen, Post?.id]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Lock scroll
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Unlock scroll
+      document.body.style.overflow = '';
+    }
+    // Cleanup เผื่อ component ถูก unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // Update word count on input change
   useEffect(() => {
@@ -367,6 +442,13 @@ const BlogAIChat: React.FC<AIProps> = ({
     return <User className="h-3 w-3" />;
   }
 
+  const handleScroll = () => {
+    if (!chatWindowRef.current || loadingHistory || !hasMore) return;
+    if (chatWindowRef.current.scrollTop === 0) {
+      fetchChatHistory(historyOffset);
+    }
+  };
+
   // Fixed positioning logic
   const getContainerClasses = () => {
     if (isFullscreen) {
@@ -433,8 +515,24 @@ const BlogAIChat: React.FC<AIProps> = ({
           </div>
 
           {/* Messages */}
-          <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''
-            }`}>
+          <div
+            ref={chatWindowRef}
+            onScroll={handleScroll}
+            className={`flex-1 overflow-y-auto p-4 space-y-3 ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}
+            style={{
+              maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '22rem',
+              minHeight: '6rem',
+              maxWidth: isFullscreen ? '56rem' : '22rem', // 896px หรือ 352px
+              width: '100%',
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#cbd5e1 #f1f5f9',
+            }}
+          >
+            {loadingHistory && (
+              <div className="flex justify-center py-2 text-xs text-muted-foreground">กำลังโหลดแชทเก่า...</div>
+            )}
             {messages.map((message) => {
               if (!message.content) return null;
 

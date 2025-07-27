@@ -250,3 +250,28 @@ func (s *AIService) ClassifyContent(message string) (string, error) {
 
 	return string(messageType), nil
 }
+
+func ToChatDTO(chat models.AIResponse) ChatDTO {
+	return ChatDTO{
+		ID:        chat.ID,
+		UsedAt:    chat.UsedAt,
+		Prompt:    chat.Prompt,
+		Response:  chat.Response,
+		TokenUsed: chat.TokenUsed,
+		Success:   chat.Success,
+		CreatedAt: chat.CreatedAt,
+		UpdatedAt: chat.UpdatedAt,
+	}
+}
+
+func (s *AIService) GetChatsByPost(postID string, userID *uuid.UUID, limit, offset int) ([]ChatDTO, error) {
+	chats, err := s.AIRepo.GetChatsByPost(postID, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	var dtos []ChatDTO
+	for _, chat := range chats {
+		dtos = append(dtos, ToChatDTO(chat))
+	}
+	return dtos, nil
+}
