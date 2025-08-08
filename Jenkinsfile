@@ -108,7 +108,7 @@ pipeline {
         }
         stage('SonarQube Analysis') {
             when {
-                branch 'main'
+                branch 'master'
             }
             environment {
                 scannerHome = tool 'SonarQube-Scanner'
