@@ -145,7 +145,13 @@ export default function HomePage() {
           <div className="relative z-10">
             <div className="flex justify-center items-center mb-6">
               <FiCode className="w-8 h-8 text-orange-400 mr-3" />
-              <h1 className="text-2xl md:text-7xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-yellow-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-7xl font-bold" style={{
+                background: 'linear-gradient(to right, #fb923c, #f87171, #facc15)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                lineHeight: '1.5'
+              }}>
                 Be Simple but Outstanding
               </h1>
               <FiCpu className="w-8 h-8 text-red-400 ml-3" />
@@ -157,7 +163,7 @@ export default function HomePage() {
                 <input
                   type="text"
                   placeholder="ค้นหาบทความ..."
-                  className="w-full p-4 pl-12 pr-6 rounded-2xl bg-slate-800/50 backdrop-blur-md border border-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300"
+                  className="w-full p-4 pl-12 pr-6 text-black rounded-2xl bg-slate-800/50 backdrop-blur-md border border-slate-700/50 dark:text-white placeholder-slate-400 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300"
                   onChange={handleSearchChange}
                 />
                 <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-orange-400" />
