@@ -122,9 +122,9 @@ pipeline {
                     sh """
                         ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=bso-blog-mono-repo \
-                            -Dsonar.sources=backend,frontend/src \
-                            -Dsonar.exclusions=**/node_modules/**,**/vendor/**,**/mocks/**,**/tmp/**,**/logs/**,**/*.test.js,**/*.test.ts,**/*.spec.js,**/*.spec.ts \
-                            -Dsonar.tests=backend,frontend/src \
+                            -Dsonar.sources=backend,frontend \
+                            -Dsonar.exclusions=**/node_modules/**,**/vendor/**,**/mocks/**,**/tmp/**,**/logs/**,**/*.test.js,**/*.test.ts,**/*.spec.js,**/*.spec.ts,**/.next/**,**/coverage/** \
+                            -Dsonar.tests=backend,frontend \
                             -Dsonar.test.inclusions=**/*_test.go,**/*.test.js,**/*.test.ts,**/*.spec.js,**/*.spec.ts \
                             -Dsonar.go.coverage.reportPaths=coverage.out \
                             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info \
