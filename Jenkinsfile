@@ -22,7 +22,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "📥 Starting deployment pipeline for master branch..."
+                    echo '📥 Starting deployment pipeline for master branch...'
                     checkout scm
                 }
             }
@@ -34,7 +34,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🔐 Setting up credentials..."
+                    echo '🔐 Setting up credentials...'
 
                     withCredentials([
                         file(credentialsId: 'blog-access-public-key-pem', variable: 'PUBLIC_KEY_FILE'),
@@ -49,7 +49,7 @@ pipeline {
                         '''
                     }
 
-                    echo "✅ Credentials setup completed"
+                    echo '✅ Credentials setup completed'
                 }
             }
         }
@@ -60,18 +60,18 @@ pipeline {
             }
             steps {
                 script {
-                    echo "✅ Validating credentials..."
+                    echo '✅ Validating credentials...'
 
                     if (env.DISCORD_WEBHOOK == null || env.DISCORD_WEBHOOK == '') {
-                        error "DISCORD_WEBHOOK credential is not set"
+                        error 'DISCORD_WEBHOOK credential is not set'
                     }
 
                     def pemContent = readFile('backend/keys/blogPublicAccess.pem')
                     if (!pemContent?.trim()) {
-                        error "PEM key file is empty or invalid"
+                        error 'PEM key file is empty or invalid'
                     }
 
-                    echo "🔒 All credentials validated successfully"
+                    echo '🔒 All credentials validated successfully'
                 }
             }
         }
@@ -82,27 +82,54 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🔍 Validating environment files..."
+                    echo '🔍 Validating environment files...'
 
                     if (!fileExists('frontend/.env')) {
-                        error "frontend/.env file is missing"
+                        error 'frontend/.env file is missing'
                     }
 
                     if (!fileExists('backend/.env')) {
-                        error "backend/.env file is missing"
+                        error 'backend/.env file is missing'
                     }
 
                     def frontendEnv = readFile('frontend/.env')
                     if (!frontendEnv?.trim()) {
-                        error "frontend/.env file is empty"
+                        error 'frontend/.env file is empty'
                     }
 
                     def backendEnv = readFile('backend/.env')
                     if (!backendEnv?.trim()) {
-                        error "backend/.env file is empty"
+                        error 'backend/.env file is empty'
                     }
 
-                    echo "✅ All environment files validated successfully"
+                    echo '✅ All environment files validated successfully'
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            when {
+                branch 'main'
+            }
+            environment {
+                scannerHome = tool 'SonarQube-Scanner'
+            }
+            steps {
+                script {
+                    echo '🔍 Starting SonarQube analysis...'
+                }
+
+                withSonarQubeEnv('SonarQube-Scanner') {
+                    sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=bso-blog-mono-repo \
+                            -Dsonar.sources=backend,frontend/src \
+                            -Dsonar.exclusions=**/node_modules/**,**/vendor/**,**/mocks/**,**/tmp/**,**/logs/**,**/*.test.js,**/*.test.ts,**/*.spec.js,**/*.spec.ts \
+                            -Dsonar.tests=backend,frontend/src \
+                            -Dsonar.test.inclusions=**/*_test.go,**/*.test.js,**/*.test.ts,**/*.spec.js,**/*.spec.ts \
+                            -Dsonar.go.coverage.reportPaths=coverage.out \
+                            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info \
+                            -Dsonar.sourceEncoding=UTF-8
+                    """
                 }
             }
         }
@@ -113,10 +140,10 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🚀 Starting deployment..."
+                    echo '🚀 Starting deployment...'
                     sh 'chmod +x deploy.sh'
                     sh './deploy.sh'
-                    echo "✅ Deployment completed successfully"
+                    echo '✅ Deployment completed successfully'
                 }
             }
         }
@@ -133,20 +160,20 @@ pipeline {
                 def payload = [
                     content: null,
                     embeds: [[
-                        title: "🚀 Pipeline Execution Report For BSO Blog",
-                        description: "Pipeline execution details below:",
+                        title: '🚀 Pipeline Execution Report For BSO Blog',
+                        description: 'Pipeline execution details below:',
                         color: color,
                         thumbnail: [
-                            url: "https://raw.githubusercontent.com/bsospace/assets/refs/heads/main/LOGO/LOGO%20WITH%20CIRCLE.ico"
+                            url: 'https://raw.githubusercontent.com/bsospace/assets/refs/heads/main/LOGO/LOGO%20WITH%20CIRCLE.ico'
                         ],
                         fields: [
-                            [name: "Job", value: "${env.JOB_NAME} [#${env.BUILD_NUMBER}]", inline: true],
-                            [name: "Status", value: status, inline: true],
-                            [name: "Branch", value: "${env.BRANCH_NAME ?: 'unknown'}", inline: true]
+                            [name: 'Job', value: "${env.JOB_NAME} [#${env.BUILD_NUMBER}]", inline: true],
+                            [name: 'Status', value: status, inline: true],
+                            [name: 'Branch', value: "${env.BRANCH_NAME ?: 'unknown'}", inline: true]
                         ],
                         footer: [
-                            text: "Pipeline executed at",
-                            icon_url: "https://raw.githubusercontent.com/bsospace/assets/refs/heads/main/LOGO/LOGO%20WITH%20CIRCLE.ico"
+                            text: 'Pipeline executed at',
+                            icon_url: 'https://raw.githubusercontent.com/bsospace/assets/refs/heads/main/LOGO/LOGO%20WITH%20CIRCLE.ico'
                         ],
                         timestamp: timestamp
                     ]]
@@ -160,9 +187,9 @@ pipeline {
                             contentType: 'APPLICATION_JSON',
                             requestBody: groovy.json.JsonOutput.toJson(payload)
                         )
-                        echo "✅ Discord notification sent."
+                        echo '✅ Discord notification sent.'
                     } else {
-                        echo "⚠️ DISCORD_WEBHOOK is not set. Skipping Discord notification."
+                        echo '⚠️ DISCORD_WEBHOOK is not set. Skipping Discord notification.'
                     }
                 } catch (err) {
                     echo "❌ Failed to send Discord notification: ${err.getMessage()}"
