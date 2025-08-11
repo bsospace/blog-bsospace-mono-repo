@@ -14,15 +14,16 @@ const PAGE_SIZE = 20;
 
 interface AIProps {
   isOpen?: boolean;
+  isFullOpen?: boolean;
   messages?: { id: number; type: 'user' | 'bot'; content: string; timestamp: Date }[];
   onClose?: () => void;
   Post: Post;
   onSendMessage?: (message: string) => void;
   onToggle?: () => void;
-  onInputChange?: (value: string) => void;
+  onInputChange?: (text: string) => void;
   inputText?: string;
   isTyping?: boolean;
-  setIsTyping?: (isTyping: boolean) => void;
+  setIsTyping?: (typing: boolean) => void;
 }
 
 // Markdown parser function
@@ -181,6 +182,7 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
 
 const BlogAIChat: React.FC<AIProps> = ({
   isOpen: initialIsOpen,
+  isFullOpen: initialIsFullOpen,
   messages: initialMessages,
   onClose,
   Post,
@@ -192,7 +194,7 @@ const BlogAIChat: React.FC<AIProps> = ({
   setIsTyping: externalSetIsTyping
 }) => {
   const [isOpen, setIsOpen] = useState(initialIsOpen || false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(initialIsFullOpen || false);
   const [messages, setMessages] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -206,6 +208,16 @@ const BlogAIChat: React.FC<AIProps> = ({
   const [wordCount, setWordCount] = useState(0);
   const [wordLimitExceeded, setWordLimitExceeded] = useState(false);
   const [wordError, setWordError] = useState('');
+
+  // Update states when props change (for URL-based control)
+  useEffect(() => {
+    if (initialIsOpen !== undefined) {
+      setIsOpen(initialIsOpen);
+    }
+    if (initialIsFullOpen !== undefined) {
+      setIsFullscreen(initialIsFullOpen);
+    }
+  }, [initialIsOpen, initialIsFullOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -417,6 +429,19 @@ const BlogAIChat: React.FC<AIProps> = ({
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+
+    // Update URL based on fullscreen state
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (!isFullscreen) {
+        url.searchParams.set('chat_full', 'true');
+        url.searchParams.delete('chat');
+      } else {
+        url.searchParams.set('chat', 'true');
+        url.searchParams.delete('chat_full');
+      }
+      router.push(url.pathname + url.search);
+    }
   };
 
   const handleMinimize = () => {
@@ -432,6 +457,14 @@ const BlogAIChat: React.FC<AIProps> = ({
     // Reset fullscreen when closing
     if (isFullscreen) {
       setIsFullscreen(false);
+    }
+
+    // Update URL to remove chat parameters
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('chat');
+      url.searchParams.delete('chat_full');
+      router.push(url.pathname + url.search);
     }
   };
 

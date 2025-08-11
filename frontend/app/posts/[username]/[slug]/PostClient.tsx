@@ -17,6 +17,7 @@ import Loading from "@/app/components/Loading";
 import BlogAIChat from "@/app/components/ai-chat";
 import { generateStructuredData } from '@/app/utils/seo';
 import Image from "next/image";
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface PostClientProps {
   post: Post;
@@ -29,6 +30,33 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   const [toc, setToc] = useState<{ level: number; text: string; href: string }[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const isChatOpen = searchParams.get('chat') === 'true';
+  const isChatFullOpen = searchParams.get('chat_full') === 'true';
+
+  // URL management functions for chat
+  const openChat = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('chat', 'true');
+    url.searchParams.delete('chat_full');
+    router.push(url.pathname + url.search);
+  };
+
+  const openFullChat = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('chat_full', 'true');
+    url.searchParams.delete('chat');
+    router.push(url.pathname + url.search);
+  };
+
+  const closeChat = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('chat');
+    url.searchParams.delete('chat_full');
+    router.push(url.pathname + url.search);
+  };
 
   const [metadata, setMetadata] = useState({
     title: "Loading...",
@@ -179,6 +207,39 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
               <IoChevronForward className="w-4 h-4" />
               <span className="text-gray-900 dark:text-white font-medium truncate">{metadata.title}</span>
             </nav>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                <span className="flex items-center gap-2">
+                  <FaCalendar className="text-orange-500" />
+                  {metadata.publishDate}
+                </span>
+                <span className="flex items-center gap-2">
+                  <FaClock className="text-orange-500" />
+                  {metadata.readTime}
+                </span>
+                <span className="flex items-center gap-2">
+                  <FaUser className="text-orange-500" />
+                  {metadata.author}
+                </span>
+              </div>
+
+              {/* Chat Status Indicator */}
+              {post?.ai_chat_open && post.ai_ready && (
+                <div className="flex items-center gap-2">
+                  {isChatOpen || isChatFullOpen ? (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      AI Chat เปิดอยู่
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-sm">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      AI Chat พร้อมใช้งาน
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="mb-8">
               <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 leading-tight break-words">
                 {metadata.title}
@@ -186,18 +247,6 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
                 {metadata.description}
               </p>
-              <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-gray-400 mb-6">
-                <div className="flex items-center gap-2"><FaUser /><span>{metadata.author}</span></div>
-                <div className="flex items-center gap-2"><FaCalendar /><span>{metadata.publishDate}</span></div>
-                <div className="flex items-center gap-2"><FaClock /><span>{metadata.readTime}</span></div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-8">
-                {/* {metadata.tags.map((tag, index) => (
-                  <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    #{tag}
-                  </span>
-                ))} */}
-              </div>
             </div>
             <div className="mb-8">
 
@@ -248,6 +297,44 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
                 <DynamicPreviewEditor content={contentState} />
               )}
             </div>
+
+            {/* Chat Control Buttons */}
+            {post?.ai_chat_open && post.ai_ready && (
+              <div className="mt-8 flex flex-wrap gap-3 justify-center">
+                {!isChatOpen && !isChatFullOpen ? (
+                  <>
+                    <button
+                      onClick={openChat}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      เปิด AI Chat
+                    </button>
+                    <button
+                      onClick={openFullChat}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                      เปิด AI Chat แบบเต็มหน้าจอ
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={closeChat}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    ปิด AI Chat
+                  </button>
+                )}
+              </div>
+            )}
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
               {/* <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -299,7 +386,11 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
         </div>
       </div>
       {post?.ai_chat_open && post.ai_ready && (
-        <BlogAIChat Post={post} />
+        <BlogAIChat
+          Post={post}
+          isOpen={isChatOpen || isChatFullOpen}
+          isFullOpen={isChatFullOpen}
+        />
       )}
     </SEOProvider>
   );
