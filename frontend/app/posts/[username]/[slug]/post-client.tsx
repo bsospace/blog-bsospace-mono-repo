@@ -36,28 +36,6 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   const isChatOpen = searchParams.get('chat') === 'true';
   const isChatFullOpen = searchParams.get('chat_full') === 'true';
 
-  // URL management functions for chat
-  const openChat = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('chat', 'true');
-    url.searchParams.delete('chat_full');
-    router.push(url.pathname + url.search);
-  };
-
-  const openFullChat = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('chat_full', 'true');
-    url.searchParams.delete('chat');
-    router.push(url.pathname + url.search);
-  };
-
-  const closeChat = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('chat');
-    url.searchParams.delete('chat_full');
-    router.push(url.pathname + url.search);
-  };
-
   const [metadata, setMetadata] = useState({
     title: "Loading...",
     description: "Loading...",
