@@ -222,23 +222,6 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
                   {metadata.author}
                 </span>
               </div>
-
-              {/* Chat Status Indicator */}
-              {post?.ai_chat_open && post.ai_ready && (
-                <div className="flex items-center gap-2">
-                  {isChatOpen || isChatFullOpen ? (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      AI Chat เปิดอยู่
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-sm">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      AI Chat พร้อมใช้งาน
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
             <div className="mb-8">
               <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 leading-tight break-words">
