@@ -27,22 +27,6 @@ services:
     networks:
       - internal
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: blog-pgadmin
-    restart: always
-    env_file:
-      - .env
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-    ports:
-      - "100.101.123.56:${PGADMIN_PORT}:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - internal
-
   backend:
     build:
       context: ./backend
@@ -100,7 +84,6 @@ services:
 
 volumes:
   postgres_data:
-  pgadmin_data:
   redis_data:
   
 
