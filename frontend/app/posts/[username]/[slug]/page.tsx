@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { Post } from '@/app/interfaces';
 import { axiosInstanceServer } from '@/app/utils/api-server';
-import PostClient from './PostClient';
+import PostClient from './post-client';
 import { notFound } from 'next/navigation';
 
 function sanitizeParam(value: string): string {
