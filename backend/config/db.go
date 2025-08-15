@@ -50,6 +50,7 @@ func ConnectDatabase() *gorm.DB {
 		&models.AIResponse{},
 		&models.ImageUpload{},
 		&models.QueueTaskLog{},
+		&models.PostView{},
 	)
 
 	if err != nil {
