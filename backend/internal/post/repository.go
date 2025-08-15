@@ -3,6 +3,7 @@ package post
 import (
 	"rag-searchbot-backend/internal/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +24,8 @@ type PostRepositoryInterface interface {
 	UpdateEmbedding(post *models.Post, embedding models.Embedding) error
 	DeleteEmbeddingsByPostID(postID string) error
 	BulkInsertEmbeddings(post *models.Post, embeddings []models.Embedding) error
+	RecordPostView(postID string, userID *string, fingerprint string, ipAddress, userAgent string) error
+	GetPostViews(postID string) (int, error)
 }
 
 type PostRepository struct {
@@ -352,4 +355,63 @@ func (r *PostRepository) BulkInsertEmbeddings(post *models.Post, embeddings []mo
 		return nil
 	}
 	return r.DB.Create(&embeddings).Error
+}
+
+// RecordPostView บันทึก view ของ post
+func (r *PostRepository) RecordPostView(postID string, userID *string, fingerprint string, ipAddress, userAgent string) error {
+	// แปลง string เป็น uuid.UUID
+	postUUID, err := uuid.Parse(postID)
+	if err != nil {
+		return err
+	}
+
+	var userUUID *uuid.UUID
+	if userID != nil {
+		parsedUserID, err := uuid.Parse(*userID)
+		if err != nil {
+			return err
+		}
+		userUUID = &parsedUserID
+	}
+
+	// ตรวจสอบว่า fingerprint นี้เคย view post นี้แล้วหรือไม่
+	var existingView models.PostView
+	err = r.DB.Where("post_id = ? AND fingerprint = ?", postUUID, fingerprint).First(&existingView).Error
+
+	// ถ้าไม่เคย view ให้สร้างใหม่
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			postView := models.PostView{
+				PostID:      postUUID,
+				UserID:      userUUID,
+				Fingerprint: fingerprint,
+				IPAddress:   ipAddress,
+				UserAgent:   userAgent,
+			}
+
+			// สร้าง PostView ใหม่
+			if err := r.DB.Create(&postView).Error; err != nil {
+				return err
+			}
+
+			// อัปเดต view count ในตาราง posts
+			if err := r.DB.Model(&models.Post{}).Where("id = ?", postUUID).UpdateColumn("views", gorm.Expr("views + ?", 1)).Error; err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetPostViews ดึงจำนวน view ของ post
+func (r *PostRepository) GetPostViews(postID string) (int, error) {
+	var count int64
+	err := r.DB.Model(&models.PostView{}).Where("post_id = ?", postID).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }
