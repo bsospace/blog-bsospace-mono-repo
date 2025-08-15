@@ -7,6 +7,8 @@ import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
+import { axiosInstanceServer } from "@/app/utils/api-server"
+import { axiosInstance } from "@/app/utils/api"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -189,6 +191,26 @@ function useToast() {
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
+}
+
+// Hook สำหรับเรียก API view
+export function usePostView() {
+  const recordView = async (postId: string, fingerprint: string) => {
+    try {
+      const response = await axiosInstance.post(`posts/${postId}/view`, { fingerprint });
+
+      if (response.status !== 200) {
+        throw new Error('Failed to record view');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error recording post view:', error);
+      return null;
+    }
+  };
+
+  return { recordView };
 }
 
 export { useToast, toast }
