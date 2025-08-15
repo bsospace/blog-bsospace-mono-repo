@@ -32,6 +32,9 @@ func (m *MockPostRepository) GetAll(limit, offset int, search string) (*post.Pos
 }
 func (m *MockPostRepository) GetByID(id string) (*models.Post, error) {
 	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*models.Post), args.Error(1)
 }
 func (m *MockPostRepository) GetBySlug(slug string) (*models.Post, error) {
@@ -85,6 +88,17 @@ func (m *MockPostRepository) DeleteEmbeddingsByPostID(postID string) error {
 func (m *MockPostRepository) BulkInsertEmbeddings(post *models.Post, embeddings []models.Embedding) error {
 	args := m.Called(post, embeddings)
 	return args.Error(0)
+}
+
+// เพิ่ม method ใหม่ที่ขาดหายไป
+func (m *MockPostRepository) RecordPostView(postID string, userID *string, fingerprint string, ipAddress, userAgent string) error {
+	args := m.Called(postID, userID, fingerprint, ipAddress, userAgent)
+	return args.Error(0)
+}
+
+func (m *MockPostRepository) GetPostViews(postID string) (int, error) {
+	args := m.Called(postID)
+	return args.Int(0), args.Error(1)
 }
 
 // Mock for MediaServiceInterface (minimal for this test)
@@ -143,6 +157,95 @@ func TestCreatePost_UpdateExisting(t *testing.T) {
 	id, err := service.CreatePost(postReq, user)
 	assert.NoError(t, err)
 	assert.Equal(t, existing.ID.String(), id)
+
+	repo.AssertExpectations(t)
+}
+
+// Test case สำหรับ RecordPostView
+func TestRecordPostView_Success(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	user := &models.User{ID: uuid.New()}
+	postID := uuid.New().String()
+	fingerprint := "test-fingerprint-123"
+	ipAddress := "192.168.1.1"
+	userAgent := "Mozilla/5.0 Test Browser"
+
+	// Mock expectations
+	repo.On("GetByID", postID).Return(&models.Post{ID: uuid.MustParse(postID)}, nil)
+	repo.On("RecordPostView", postID, mock.AnythingOfType("*string"), fingerprint, ipAddress, userAgent).Return(nil)
+	repo.On("GetPostViews", postID).Return(42, nil)
+
+	// Test
+	result, err := service.RecordPostView(postID, user, fingerprint, ipAddress, userAgent)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, "View recorded successfully", result.Message)
+	assert.Equal(t, 42, result.Views)
+
+	repo.AssertExpectations(t)
+}
+
+// Test case สำหรับ RecordPostView โดยไม่มี user (anonymous)
+func TestRecordPostView_AnonymousUser(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	postID := uuid.New().String()
+	fingerprint := "test-fingerprint-456"
+	ipAddress := "192.168.1.2"
+	userAgent := "Mozilla/5.0 Anonymous Browser"
+
+	// Mock expectations
+	repo.On("GetByID", postID).Return(&models.Post{ID: uuid.MustParse(postID)}, nil)
+	repo.On("RecordPostView", postID, (*string)(nil), fingerprint, ipAddress, userAgent).Return(nil)
+	repo.On("GetPostViews", postID).Return(15, nil)
+
+	// Test
+	result, err := service.RecordPostView(postID, nil, fingerprint, ipAddress, userAgent)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, "View recorded successfully", result.Message)
+	assert.Equal(t, 15, result.Views)
+
+	repo.AssertExpectations(t)
+}
+
+// Test case สำหรับ RecordPostView เมื่อ post ไม่มีอยู่
+func TestRecordPostView_PostNotFound(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	postID := "non-existent-post-id"
+	fingerprint := "test-fingerprint-789"
+	ipAddress := "192.168.1.3"
+	userAgent := "Mozilla/5.0 Test Browser"
+
+	// Mock expectations - post not found
+	repo.On("GetByID", postID).Return(nil, assert.AnError)
+
+	// Test
+	result, err := service.RecordPostView(postID, nil, fingerprint, ipAddress, userAgent)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Nil(t, result)
 
 	repo.AssertExpectations(t)
 }

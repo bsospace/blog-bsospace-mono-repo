@@ -24,6 +24,7 @@ type PostServiceInterface interface {
 	GetPostBySlug(slug string) (*PostByIdResponse, error)
 	UpdatePost(post *models.Post) error
 	MyPosts(user *models.User) (*MyPostsResponseDTO, error)
+	RecordPostView(postID string, user *models.User, fingerprint string, ipAddress, userAgent string) (*PostViewResponse, error)
 }
 
 type PostService struct {
@@ -554,4 +555,37 @@ func (s *PostService) MakeAllNotUsedImageStatus(post *models.Post) error {
 	}
 
 	return nil
+}
+
+// RecordPostView บันทึก view ของ post
+func (s *PostService) RecordPostView(postID string, user *models.User, fingerprint string, ipAddress, userAgent string) (*PostViewResponse, error) {
+	// ตรวจสอบว่า post มีอยู่จริงหรือไม่
+	_, err := s.Repo.GetByID(postID)
+	if err != nil {
+		return nil, err
+	}
+
+	var userID *string
+	if user != nil {
+		userIDStr := user.ID.String()
+		userID = &userIDStr
+	}
+
+	// บันทึก view
+	err = s.Repo.RecordPostView(postID, userID, fingerprint, ipAddress, userAgent)
+	if err != nil {
+		return nil, err
+	}
+
+	// ดึงจำนวน view ปัจจุบัน
+	views, err := s.Repo.GetPostViews(postID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PostViewResponse{
+		Success: true,
+		Message: "View recorded successfully",
+		Views:   views,
+	}, nil
 }

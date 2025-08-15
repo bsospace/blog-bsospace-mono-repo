@@ -3,6 +3,7 @@ import { Post } from '@/app/interfaces';
 import { axiosInstanceServer } from '@/app/utils/api-server';
 import PostClient from './post-client';
 import { notFound } from 'next/navigation';
+import { generateFingerprint } from '@/lib/fingerprint';
 
 function sanitizeParam(value: string): string {
   return decodeURIComponent(value).replace(/^@/, '').split(/[?#]/)[0].trim();
@@ -68,6 +69,21 @@ export async function generateMetadata({
   }
 }
 
+const recordView = async (postId: string, fingerprint: string) => {
+  try {
+    const response = await axiosInstanceServer.post(`posts/${postId}/view`, { fingerprint });
+
+    if (response.status !== 200) {
+      throw new Error('Failed to record view');
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error recording post view:', error);
+    return null;
+  }
+};
+
 
 export default async function PostPage({
   params,
@@ -79,9 +95,19 @@ export default async function PostPage({
   const slug = sanitizeParam(rawSlug);
   const apiUrl = `/posts/public/${username}/${slug}`;
 
+
   try {
     const res = await axiosInstanceServer.get(apiUrl);
     const post = res.data.data as Post;
+    const recordViewAsync = async () => {
+      try {
+        const fingerprint = await generateFingerprint();
+        recordView(post.id, fingerprint);
+      } catch (error) {
+        console.error('Failed to generate fingerprint:', error);
+      }
+    };
+    recordViewAsync();
     return <PostClient post={post} isLoadingPost={false} />;
   } catch (e: any) {
     console.error('[PostPage] API Error:', e.response?.status, e.response?.data);

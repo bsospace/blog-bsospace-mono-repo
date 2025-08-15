@@ -50,6 +50,7 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 	// Public routes
 	postsRoutes.GET("", handler.GetAll)
 	postsRoutes.GET("/public/:username/:slug", handler.GetPublicPostBySlugAndUsername)
+	postsRoutes.POST("/:id/view", handler.RecordPostView) // API สำหรับนับ view
 
 	// Protected routes
 	postsRoutes.Use(authMiddleware.Handler())

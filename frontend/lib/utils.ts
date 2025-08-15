@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { nanoid } from 'nanoid';
 
@@ -17,6 +17,7 @@ export function getnerateId() {
   const first = nanoid(8)
   return first
 }
+
 
 
 export const formatDate = (dateString: string) => {

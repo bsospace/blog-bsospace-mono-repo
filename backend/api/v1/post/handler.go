@@ -299,3 +299,38 @@ func (h *PostHandler) GetPublicPostBySlugAndUsername(c *gin.Context) {
 		"message": "Get public post by slug and username successfully.",
 	})
 }
+
+// RecordPostView บันทึก view ของ post
+func (h *PostHandler) RecordPostView(c *gin.Context) {
+	postID := c.Param("id")
+	if postID == "" {
+		response.JSONError(c, http.StatusBadRequest, "Post ID is required", "Post ID cannot be empty")
+		return
+	}
+
+	var req post.PostViewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.JSONError(c, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// ดึง user จาก context (อาจเป็น nil ถ้าไม่ได้ login)
+	user, _ := c.Get("user")
+	var userData *models.User
+	if u, ok := user.(*models.User); ok {
+		userData = u
+	}
+
+	// ดึง IP address และ User-Agent
+	ipAddress := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	// บันทึก view
+	result, err := h.service.RecordPostView(postID, userData, req.Fingerprint, ipAddress, userAgent)
+	if err != nil {
+		response.JSONError(c, http.StatusInternalServerError, "Failed to record post view", err.Error())
+		return
+	}
+
+	response.JSONSuccess(c, http.StatusOK, "Post view recorded successfully", result)
+}

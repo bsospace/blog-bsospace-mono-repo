@@ -199,3 +199,18 @@ type QueueTaskLog struct {
 	UserID uuid.UUID `gorm:"index" json:"user_id"`                                  // ID ของผู้ใช้ที่สร้าง task นี้
 	User   User      `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"` // ผู้ใช้ที่สร้าง task นี้
 }
+
+// PostView สำหรับเก็บข้อมูล view ของ post
+type PostView struct {
+	ID          uint       `gorm:"primaryKey;autoIncrement" json:"id"`
+	PostID      uuid.UUID  `gorm:"type:uuid;not null;index" json:"post_id"`
+	UserID      *uuid.UUID `gorm:"type:uuid;index" json:"user_id,omitempty"`     // null ถ้าไม่ได้ login
+	Fingerprint string     `gorm:"not null;index" json:"fingerprint"`            // unique fingerprint ของ browser
+	IPAddress   string     `gorm:"type:varchar(45)" json:"ip_address,omitempty"` // IPv4 หรือ IPv6
+	UserAgent   string     `gorm:"type:text" json:"user_agent,omitempty"`
+	ViewedAt    time.Time  `gorm:"autoCreateTime" json:"viewed_at"`
+	BaseModel
+
+	Post Post  `gorm:"foreignKey:PostID;references:ID" json:"post,omitempty"`
+	User *User `gorm:"foreignKey:UserID;references:ID" json:"user,omitempty"`
+}

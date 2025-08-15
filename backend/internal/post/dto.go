@@ -230,3 +230,17 @@ type PublishPostRequestDTO struct {
 	Thumbnail   string   `json:"thumbnail"`
 	HTMLContent *string  `json:"html_content"`
 }
+
+// PostViewRequest สำหรับ API นับ view
+type PostViewRequest struct {
+	Fingerprint string `json:"fingerprint" binding:"required"`
+	IPAddress   string `json:"ip_address,omitempty"`
+	UserAgent   string `json:"user_agent,omitempty"`
+}
+
+// PostViewResponse สำหรับ response ของ view API
+type PostViewResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Views   int    `json:"views"`
+}

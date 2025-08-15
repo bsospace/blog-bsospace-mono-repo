@@ -2,15 +2,11 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaCalendar, FaClock, FaUser } from "react-icons/fa";
-import { IoChevronDown, IoChevronForward } from "react-icons/io5";
+import { IoChevronForward } from "react-icons/io5";
 import ScrollProgressBar from "@/app/components/ScrollProgress";
-import { PreviewEditor, DynamicPreviewEditor } from "@/app/components/tiptap-templates/simple/view-editor";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlignJustify } from "lucide-react";
+import { DynamicPreviewEditor } from "@/app/components/tiptap-templates/simple/view-editor";
 import { JSONContent } from "@tiptap/react";
 import { Post } from "@/app/interfaces";
-import { toast } from "@/hooks/use-toast";
 import NotFound from "@/app/components/NotFound";
 import { SEOProvider } from "@/app/contexts/seoContext";
 import Loading from "@/app/components/Loading";
@@ -54,6 +50,7 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
 
   // Update metadata when post changes
   useEffect(() => {
