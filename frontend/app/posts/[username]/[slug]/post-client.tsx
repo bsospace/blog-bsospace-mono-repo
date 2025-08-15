@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AlignJustify } from "lucide-react";
 import { JSONContent } from "@tiptap/react";
 import { Post } from "@/app/interfaces";
-import { toast } from "@/hooks/use-toast";
+import { toast, usePostView } from "@/hooks/use-toast";
 import NotFound from "@/app/components/NotFound";
 import { SEOProvider } from "@/app/contexts/seoContext";
 import Loading from "@/app/components/Loading";
@@ -18,6 +18,7 @@ import BlogAIChat from "@/app/components/ai-chat";
 import { generateStructuredData } from '@/app/utils/seo';
 import Image from "next/image";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { generateFingerprint } from "@/lib/utils";
 
 interface PostClientProps {
   post: Post;
@@ -32,6 +33,7 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { recordView } = usePostView();
 
   const isChatOpen = searchParams.get('chat') === 'true';
   const isChatFullOpen = searchParams.get('chat_full') === 'true';
@@ -54,6 +56,21 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Record post view when post loads
+  useEffect(() => {
+    if (isClient && post?.id) {
+      const recordViewAsync = async () => {
+        try {
+          const fingerprint = await generateFingerprint();
+          recordView(post.id, fingerprint);
+        } catch (error) {
+          console.error('Failed to generate fingerprint:', error);
+        }
+      };
+      recordViewAsync();
+    }
+  }, [isClient, post?.id, recordView]);
 
   // Update metadata when post changes
   useEffect(() => {
