@@ -1,6 +1,6 @@
-"use client";
+"use server";
 import { Meta, Post } from "@/app/interfaces";
-import { axiosInstance } from "../utils/api";
+import { axiosInstanceServer } from "../utils/api-server";
 
 export async function fetchPostBySlug(slug: string, key: string = "") {
   try {
@@ -55,7 +55,7 @@ export async function fetchPosts(
   search: string = ""
 ): Promise<{ data: Post[]; meta: Meta }> {
   try {
-    const response = await axiosInstance.get<{
+    const response = await axiosInstanceServer.get<{
       data: PostResponse;
       message: string;
       success: boolean;
