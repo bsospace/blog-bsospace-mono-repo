@@ -374,7 +374,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                               }}
                             >
                               <Settings className="w-5 h-5" />
-                              <span>Setting (Comming soon)</span>
+                              <span>Setting (Coming soon)</span>
                             </Link>
                             <button
                               onClick={handleLogout}
