@@ -24,6 +24,8 @@ go.work.sum
 # env file
 .env
 
+# Server binary
+server
 
 cmd/server/tmp*
 keys
