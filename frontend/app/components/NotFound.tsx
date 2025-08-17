@@ -23,7 +23,9 @@ export default function NotFound() {
                     404
                 </h1>
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-700 via-pink-500 to-orange-400 text-transparent bg-clip-text animate-pulse">
+                    <span
+                        className="w-full text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-700 via-pink-500 to-orange-400 text-transparent bg-clip-text animate-pulse"
+                        style={{ lineHeight: 1.3, paddingTop: '0.25em', paddingBottom: '0.25em', paddingLeft: '0.1em', paddingRight: '0.1em' }}>
                         ไม่พบหน้านี้
                     </span>
                 </div>

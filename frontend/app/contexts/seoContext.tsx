@@ -15,12 +15,12 @@ interface SEOProps {
 }
 
 const defaultSEO: SEOProps = {
-    title: 'BSOSPACE Blog',
-    description: 'BSOSPACE Blog',
+    title: 'BSO Blog',
+    description: 'BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences in software development, programming, and technology.',
     image: '/favicon.ico',
     url: 'https://blog.bsospace.com',
     keywords: 'BSO, Blog, Software Engineering, Dev, บทความเทคโนโลยี',
-    author: 'BSO Team',
+    author: 'BSO Space Team',
     robots: 'index, follow',
     twitterCardType: 'summary_large_image',
     canonical: 'https://blog.bsospace.com',
@@ -34,7 +34,7 @@ export const SEOProvider = ({ children, value }: { children: ReactNode; value?: 
     return (
         <SEOContext.Provider value={seo}>
             <Helmet>
-                <title>BSOSPACE Blog | {seo.title}</title>
+                <title>BSO Blog | {seo.title}</title>
                 <meta name="description" content={seo.description} />
                 <meta name="keywords" content={seo.keywords} />
                 <meta name="author" content={seo.author} />
