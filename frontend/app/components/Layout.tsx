@@ -363,7 +363,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                               }}
                             >
                               <UserCircle className="w-5 h-5" />
-                              <span>Profile (Comming soon)</span>
+                              <span>Profile (Coming soon)</span>
                             </Link>
                             <Link
                               href="/settings"
