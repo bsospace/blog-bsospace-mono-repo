@@ -756,7 +756,7 @@ td {
 
 /* === Tiptap CodeBlock UI === */
 .code-block-wrapper {
-  @apply rounded-lg border overflow-hidden mb-6;
+  @apply rounded-lg border mb-6 overflow-visible;
   background-color: var(--tt-codeblock-bg);
   color: var(--tt-codeblock-text);
   border-color: var(--tt-codeblock-border);
