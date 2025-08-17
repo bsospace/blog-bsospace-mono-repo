@@ -15,8 +15,7 @@ import { Subscript } from "@tiptap/extension-subscript"
 import { Superscript } from "@tiptap/extension-superscript"
 import { Underline } from "@tiptap/extension-underline"
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
-// Lowlight typings don't match our installed version; use require to stay compatible
-const lowlightLib: any = require("lowlight")
+import * as lowlightLib from "lowlight"
 import { TiptapImageNodeView } from "@/app/components/tiptap-node/image-node/TiptapImageNodeView";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import CodeBlockNode from "@/app/components/tiptap-node/code-block-node/code-block-node";
@@ -32,7 +31,7 @@ interface PreviewEditorProps {
 }
 
 export function PreviewEditor({ content }: PreviewEditorProps) {
-  const lowlight = React.useMemo(() => lowlightLib.createLowlight(lowlightLib.common), [])
+  const lowlight = React.useMemo(() => (lowlightLib as any).createLowlight((lowlightLib as any).common), [])
   const editor = useEditor({
     editable: false,
     immediatelyRender: false, // แก้ไข SSR error
