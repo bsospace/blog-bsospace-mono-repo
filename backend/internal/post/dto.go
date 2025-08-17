@@ -14,7 +14,6 @@ import (
 **/
 
 type PostSummaryDTO struct {
-	ID          uuid.UUID  `json:"id"`
 	Slug        string     `json:"slug"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
@@ -58,7 +57,6 @@ type Meta struct {
 
 func MapPostToSummaryDTO(post models.Post) PostSummaryDTO {
 	dto := PostSummaryDTO{
-		ID:          post.ID,
 		Slug:        post.Slug,
 		Title:       post.Title,
 		Description: post.Description,
