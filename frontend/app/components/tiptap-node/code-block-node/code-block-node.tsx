@@ -33,10 +33,16 @@ const CodeBlockNode: React.FC<ReactNodeViewProps> = ({
     setIsLanguageOpen(false);
   };
 
-  const languages = (extension as any)?.options?.lowlight?.listLanguages?.() || [];
+  interface ExtensionWithLowlightOptions {
+    lowlight?: {
+      listLanguages?: () => string[]
+    }
+  }
+  type ExtensionWithLowlight = { options?: ExtensionWithLowlightOptions }
+  const languages = (extension as ExtensionWithLowlight)?.options?.lowlight?.listLanguages?.() || [];
   const commonLanguages = [
     'javascript', 'typescript', 'html', 'css', 'python', 'java', 'csharp', 'sql', 'json',
-    'php', 'ruby', 'go', 'rust', 'cpp', 'c', 'csharp', 'swift', 'kotlin', 'scala'
+    'php', 'ruby', 'go', 'rust', 'cpp', 'c', 'swift', 'kotlin', 'scala'
   ];
 
   const filteredLanguages = languages.filter((lang: string) => 
