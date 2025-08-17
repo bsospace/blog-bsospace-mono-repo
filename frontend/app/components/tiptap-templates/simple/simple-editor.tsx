@@ -14,7 +14,8 @@ import { Subscript } from "@tiptap/extension-subscript"
 import { Superscript } from "@tiptap/extension-superscript"
 import { Underline } from "@tiptap/extension-underline"
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
-// Lowlight typings may not match installed version; use namespace import and assert at usage
+// Note: lowlight typings (as of @types/lowlight 2.x) may not match the installed lowlight version (currently v2.x).
+// This import uses a namespace to avoid type errors; check compatibility if upgrading lowlight or its types.
 import * as lowlightLib from "lowlight"
 
 // --- Custom Extensions ---
