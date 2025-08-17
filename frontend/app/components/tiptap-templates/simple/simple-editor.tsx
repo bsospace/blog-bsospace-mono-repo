@@ -14,8 +14,8 @@ import { Subscript } from "@tiptap/extension-subscript"
 import { Superscript } from "@tiptap/extension-superscript"
 import { Underline } from "@tiptap/extension-underline"
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
-// Lowlight typings don't match our installed version; use require to stay compatible
-const lowlightLib: any = require("lowlight")
+// Lowlight typings may not match installed version; use namespace import and assert at usage
+import * as lowlightLib from "lowlight"
 
 // --- Custom Extensions ---
 import { Link } from "@/app/components/tiptap-extension/link-extension"
@@ -214,7 +214,7 @@ interface SimpleEditorProps {
 export function SimpleEditor(
   { onContentChange, initialContent }: SimpleEditorProps
 ) {
-  const lowlight = React.useMemo(() => lowlightLib.createLowlight(lowlightLib.common), [])
+  const lowlight = React.useMemo(() => (lowlightLib as any).createLowlight((lowlightLib as any).common), [])
   const isMobile = useMobile()
   const windowSize = useWindowSize()
   const [mobileView, setMobileView] = React.useState<MobileViewType>("main")
