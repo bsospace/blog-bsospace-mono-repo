@@ -606,7 +606,7 @@ hr {
 
 /* === Code Block & Inline Code === */
 pre {
-  @apply bg-gray-100 dark:bg-gray-800 text-black dark:text-white p-4 rounded-md overflow-x-auto mb-4;
+  @apply bg-gray-800 text-black dark:text-white p-4 rounded-md overflow-x-auto mb-4;
 }
 
 /* === Table === */
@@ -650,6 +650,21 @@ td {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Code block theme variables (light) */
+    --tt-codeblock-bg: #f5f5f5;
+    --tt-codeblock-text: #111827;
+    --tt-codeblock-border: #e5e7eb;
+    --tt-codeblock-header-bg: #f3f4f6;
+    --tt-codeblock-header-text: #374151;
+    --tt-codeblock-header-border: #e5e7eb;
+    --tt-codeblock-button-bg: #ffffff;
+    --tt-codeblock-button-text: #111827;
+    --tt-codeblock-button-border: #e5e7eb;
+    --tt-codeblock-button-hover-bg: #f3f4f6;
+    --tt-codeblock-dropdown-bg: #ffffff;
+    --tt-codeblock-dropdown-border: #e5e7eb;
+    --tt-codeblock-dropdown-item-hover-bg: #f3f4f6;
   }
 
   .dark {
@@ -677,6 +692,21 @@ td {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Code block theme variables (dark) */
+    --tt-codeblock-bg: #0f172a; /* slate-900 */
+    --tt-codeblock-text: #e5e7eb; /* gray-200 */
+    --tt-codeblock-border: #1f2937; /* gray-800 */
+    --tt-codeblock-header-bg: #111827; /* gray-900 */
+    --tt-codeblock-header-text: #d1d5db; /* gray-300 */
+    --tt-codeblock-header-border: #1f2937; /* gray-800 */
+    --tt-codeblock-button-bg: #0b1220;
+    --tt-codeblock-button-text: #e5e7eb;
+    --tt-codeblock-button-border: #1f2937;
+    --tt-codeblock-button-hover-bg: #111827;
+    --tt-codeblock-dropdown-bg: #0b1220;
+    --tt-codeblock-dropdown-border: #1f2937;
+    --tt-codeblock-dropdown-item-hover-bg: #111827;
   }
 }
 
@@ -692,4 +722,129 @@ td {
 /* Utility for z-60 (z-index: 60) */
 .z-60 {
   z-index: 60 !important;
+}
+
+@layer utilities {
+  /* Utility for z-90 (z-index: 90) used via @apply */
+  .z-90 {
+    z-index: 90;
+  }
+}
+
+/* === Lowlight (highlight.js) theme overrides with light/dark support === */
+/* Light mode */
+.hljs { color: #1f2937; background: transparent; display: block; overflow-x: auto; }
+.hljs-comment, .hljs-quote { color: #6b7280; }
+.hljs-variable, .hljs-template-variable, .hljs-attribute, .hljs-tag,
+.hljs-name, .hljs-regexp, .hljs-link, .hljs-selector-id, .hljs-selector-class { color: #b91c1c; }
+.hljs-number, .hljs-meta, .hljs-built_in, .hljs-builtin-name,
+.hljs-literal, .hljs-type, .hljs-params { color: #b45309; }
+.hljs-string, .hljs-symbol, .hljs-bullet { color: #166534; }
+.hljs-title, .hljs-section { color: #92400e; }
+.hljs-keyword, .hljs-selector-tag { color: #1d4ed8; }
+
+/* Dark mode */
+.dark .hljs { color: #e5e7eb; background: transparent; }
+.dark .hljs-comment, .dark .hljs-quote { color: #9ca3af; }
+.dark .hljs-variable, .dark .hljs-template-variable, .dark .hljs-attribute, .dark .hljs-tag,
+.dark .hljs-name, .dark .hljs-regexp, .dark .hljs-link, .dark .hljs-selector-id, .dark .hljs-selector-class { color: #fca5a5; }
+.dark .hljs-number, .dark .hljs-meta, .dark .hljs-built_in, .dark .hljs-builtin-name,
+.dark .hljs-literal, .dark .hljs-type, .dark .hljs-params { color: #fdba74; }
+.dark .hljs-string, .dark .hljs-symbol, .dark .hljs-bullet { color: #bbf7d0; }
+.dark .hljs-title, .dark .hljs-section { color: #fef08a; }
+.dark .hljs-keyword, .dark .hljs-selector-tag { color: #7dd3fc; }
+
+/* === Tiptap CodeBlock UI === */
+.code-block-wrapper {
+  @apply rounded-lg border overflow-hidden mb-6;
+  background-color: var(--tt-codeblock-bg);
+  color: var(--tt-codeblock-text);
+  border-color: var(--tt-codeblock-border);
+}
+
+.code-block-header {
+  @apply flex items-center justify-between px-3 py-2 border-b;
+  background-color: var(--tt-codeblock-header-bg);
+  color: var(--tt-codeblock-header-text);
+  border-color: var(--tt-codeblock-header-border);
+}
+
+.code-block-language-selector {
+  @apply relative;
+}
+
+.language-selector-button {
+  @apply inline-flex items-center gap-2 text-sm px-2 py-1 rounded-md border transition;
+  background-color: var(--tt-codeblock-button-bg);
+  color: var(--tt-codeblock-button-text);
+  border-color: var(--tt-codeblock-button-border);
+}
+
+.language-selector-button:hover {
+  background-color: var(--tt-codeblock-button-hover-bg);
+}
+
+.language-label {
+  @apply font-medium;
+}
+
+.chevron-icon {
+  @apply w-4 h-4 opacity-70;
+}
+
+.language-dropdown {
+  @apply absolute mt-2 min-w-[10rem] rounded-md border shadow-lg z-50 overflow-hidden;
+  background-color: var(--tt-codeblock-dropdown-bg);
+  border-color: var(--tt-codeblock-dropdown-border);
+}
+
+.language-option {
+  @apply text-sm px-3 py-2 cursor-pointer transition;
+}
+
+.language-option:hover {
+  background-color: var(--tt-codeblock-dropdown-item-hover-bg);
+}
+
+.language-option.selected {
+  @apply font-semibold;
+}
+
+.language-separator {
+  @apply h-px w-full;
+  background-color: var(--tt-codeblock-dropdown-border);
+}
+
+.copy-button {
+  @apply inline-flex items-center justify-center w-8 h-8 rounded-md border transition;
+  background-color: var(--tt-codeblock-button-bg);
+  color: var(--tt-codeblock-button-text);
+  border-color: var(--tt-codeblock-button-border);
+}
+
+.copy-button:hover {
+  background-color: var(--tt-codeblock-button-hover-bg);
+}
+
+.copy-icon {
+  @apply w-4 h-4;
+}
+
+.copy-icon.copied {
+  @apply text-green-500;
+}
+
+.code-block-content {
+  @apply overflow-auto;
+}
+
+.code-block-content pre {
+  @apply m-0 p-4 rounded-none border-0;
+  background-color: transparent;
+  color: var(--tt-codeblock-text);
+}
+
+.code-block-content pre code {
+  @apply bg-transparent border-none rounded-none;
+  color: inherit;
 }
