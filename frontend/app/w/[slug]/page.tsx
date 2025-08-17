@@ -4,8 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import { JSONContent } from "@tiptap/react";
-import { useRouter } from 'next/navigation';
-import { use } from "react";
+import { useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 // Components
@@ -40,7 +39,7 @@ interface Metadata {
     slug: string;
 }
 
-export default function EditPost({ params }: { params: Promise<{ slug: string }> }) {
+export default function EditPost() {
     // State management
     const [post, setPost] = useState<Post | null>(null);
     const [contentState, setContentState] = useState<JSONContent>();
@@ -62,7 +61,8 @@ export default function EditPost({ params }: { params: Promise<{ slug: string }>
         slug: ''
     });
 
-    const { slug } = use(params);
+    const routeParams = useParams<{ slug: string }>();
+    const slug = (routeParams?.slug as string) || "";
     const { toast } = useToast();
 
     // Status helpers
@@ -262,6 +262,7 @@ export default function EditPost({ params }: { params: Promise<{ slug: string }>
     }, [contentState, post?.status]);
 
     useEffect(() => {
+        if (!slug) return;
         getPostByShortSlug(slug);
     }, [slug]);
 
