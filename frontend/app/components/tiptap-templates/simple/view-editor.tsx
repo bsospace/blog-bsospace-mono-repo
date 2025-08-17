@@ -14,8 +14,12 @@ import { Highlight } from "@tiptap/extension-highlight"
 import { Subscript } from "@tiptap/extension-subscript"
 import { Superscript } from "@tiptap/extension-superscript"
 import { Underline } from "@tiptap/extension-underline"
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
+// Lowlight typings don't match our installed version; use require to stay compatible
+const lowlightLib: any = require("lowlight")
 import { TiptapImageNodeView } from "@/app/components/tiptap-node/image-node/TiptapImageNodeView";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import CodeBlockNode from "@/app/components/tiptap-node/code-block-node/code-block-node";
 
 // Custom Extensions
 import { Link } from "@/app/components/tiptap-extension/link-extension"
@@ -28,11 +32,12 @@ interface PreviewEditorProps {
 }
 
 export function PreviewEditor({ content }: PreviewEditorProps) {
+  const lowlight = React.useMemo(() => lowlightLib.createLowlight(lowlightLib.common), [])
   const editor = useEditor({
     editable: false,
     immediatelyRender: false, // แก้ไข SSR error
     extensions: [
-      StarterKit.configure({}),
+      StarterKit.configure({ codeBlock: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Underline,
       TaskList,
@@ -46,6 +51,11 @@ export function PreviewEditor({ content }: PreviewEditorProps) {
           return ReactNodeViewRenderer(TiptapImageNodeView);
         },
       }),
+      CodeBlockLowlight.extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(CodeBlockNode);
+        },
+      }).configure({ lowlight }),
       Selection,
       TrailingNode,
       Link.configure({ openOnClick: true }),
