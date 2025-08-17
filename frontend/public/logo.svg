@@ -10,6 +10,11 @@
         fill: #F97316;
         animation: blipCycle 60s infinite;
       }
+        @media (prefers-color-scheme: dark) {
+          .cls-1 {
+            fill: #fff;
+          }
+        }
 
       @keyframes blipCycle {
         0%, 24%   { fill: #F97316; }
