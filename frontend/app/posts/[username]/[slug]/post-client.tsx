@@ -29,8 +29,8 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const isChatOpen = searchParams.get('chat') === 'true';
-  const isChatFullOpen = searchParams.get('chat_full') === 'true';
+  const isChatOpen = searchParams?.get('chat') === 'true';
+  const isChatFullOpen = searchParams?.get('chat_full') === 'true';
 
   const [metadata, setMetadata] = useState({
     title: "Loading...",
