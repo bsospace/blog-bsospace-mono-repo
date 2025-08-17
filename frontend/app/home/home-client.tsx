@@ -64,7 +64,7 @@ export default function HomePageClient({ fetchPosts }: { fetchPosts: (page: numb
       setLoadingMore(false);
       setIsFirstLoad(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, fetchPosts]);
 
   const getPopularPosts = useCallback(async () => {
     try {
