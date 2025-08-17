@@ -30,7 +30,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 opacity-20 blur-lg"></div>
 
             <Image
-              src="/BSO LOGO.svg"
+              src="/logo.svg"
               alt="Blog Logo"
               width={64}
               height={64}
