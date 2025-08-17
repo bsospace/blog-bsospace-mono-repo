@@ -1,3 +1,4 @@
+"use client"
 import * as React from "react"
 import { EditorContent, EditorContext, JSONContent, useEditor } from "@tiptap/react"
 
@@ -12,6 +13,9 @@ import { Highlight } from "@tiptap/extension-highlight"
 import { Subscript } from "@tiptap/extension-subscript"
 import { Superscript } from "@tiptap/extension-superscript"
 import { Underline } from "@tiptap/extension-underline"
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
+// Lowlight typings don't match our installed version; use require to stay compatible
+const lowlightLib: any = require("lowlight")
 
 // --- Custom Extensions ---
 import { Link } from "@/app/components/tiptap-extension/link-extension"
@@ -32,6 +36,7 @@ import { ImageUploadNode } from "@/app/components/tiptap-node/image-upload-node/
 import { TiptapImageNodeView } from "@/app/components/tiptap-node/image-node/TiptapImageNodeView";
 import { Image as TiptapImage, ImageOptions } from "@tiptap/extension-image";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import CodeBlockNode from "@/app/components/tiptap-node/code-block-node/code-block-node";
 
 // --- Tiptap UI ---
 import { HeadingDropdownMenu } from "@/app/components/tiptap-ui/heading-dropdown-menu"
@@ -209,6 +214,7 @@ interface SimpleEditorProps {
 export function SimpleEditor(
   { onContentChange, initialContent }: SimpleEditorProps
 ) {
+  const lowlight = React.useMemo(() => lowlightLib.createLowlight(lowlightLib.common), [])
   const isMobile = useMobile()
   const windowSize = useWindowSize()
   const [mobileView, setMobileView] = React.useState<MobileViewType>("main")
@@ -266,6 +272,7 @@ export function SimpleEditor(
         history: {
           depth: 500,
         },
+        codeBlock: false,
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
@@ -299,6 +306,11 @@ export function SimpleEditor(
           loading: 'lazy',
         },
       }),
+      CodeBlockLowlight.extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(CodeBlockNode);
+        },
+      }).configure({ lowlight }),
       Typography,
       Superscript,
       Subscript,
