@@ -9,6 +9,9 @@ import { FiCode, FiCpu, FiSearch, FiTrendingUp, FiZap } from "react-icons/fi";
 import Loading from "../components/Loading";
 
 export default function HomePageClient({ fetchPosts }: { fetchPosts: (page: number, limit: number, search: string) => Promise<{ data: Post[]; meta: Meta }> }) {
+  // Constants
+  const NO_SEARCH_QUERY = "";
+  
   const [posts, setPosts] = useState<Post[]>([]);
   const [popularPosts, setPopularPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +69,7 @@ export default function HomePageClient({ fetchPosts }: { fetchPosts: (page: numb
   const getPopularPosts = useCallback(async () => {
     try {
       setLoadingPopular(true);
-      const res = await fetchPosts(1, 5, "");
+      const res = await fetchPosts(1, 5, NO_SEARCH_QUERY);
       setPopularPosts(res.data);
     } catch (err) {
       console.error("Failed to load popular posts:", err);
