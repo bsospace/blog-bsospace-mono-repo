@@ -76,7 +76,7 @@ export default function HomePageClient({ fetchPosts }: { fetchPosts: (page: numb
     } finally {
       setLoadingPopular(false);
     }
-  }, []);
+  }, [fetchPosts]);
 
   // Improved Intersection Observer
   useEffect(() => {
