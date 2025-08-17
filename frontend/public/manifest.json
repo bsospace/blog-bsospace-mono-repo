@@ -1,6 +1,6 @@
 {
-  "name": "BSO Space Blog",
-  "short_name": "BSO Blog",
+  "name": "BSO Blog",
+  "short_name": "Blog",
   "description": "Software Engineering Knowledge Hub - Collaborative blogging platform for students",
   "start_url": "/home",
   "display": "standalone",
