@@ -1,0 +1,95 @@
+# Rate Limiting Configuration Example
+# Copy this file to ratelimit.yaml and customize as needed
+
+# Global rate limiting applied to all routes
+global:
+  enabled: true
+  strategy: "sliding_window"  # "token_bucket", "sliding_window", "fixed_window"
+  max_requests: 1000          # Maximum requests per window
+  window_size: "1m"           # Time window (e.g., "1m", "1h", "24h")
+
+# IP-based rate limiting
+ip:
+  enabled: true
+  strategy: "sliding_window"
+  max_requests: 100           # Per IP address
+  window_size: "1m"
+
+# API key-based rate limiting
+api:
+  enabled: true
+  strategy: "token_bucket"
+  max_requests: 1000          # Per API key
+  window_size: "1h"
+  refill_rate: 0.2777777778   # 1000 requests / 3600 seconds
+  bucket_capacity: 1000
+
+# Route-specific rate limiting
+routes:
+  "/api/v1/auth/login":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 5            # 5 login attempts per window
+    window_size: "15m"        # 15 minutes
+
+  "/api/v1/auth/register":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 3            # 3 registration attempts per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/auth/forgot-password":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 3            # 3 password reset attempts per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/ai/chat":
+    enabled: true
+    strategy: "token_bucket"
+    max_requests: 50           # 50 chat requests per window
+    window_size: "1h"         # 1 hour
+    refill_rate: 0.0138888889 # 50 requests / 3600 seconds
+    bucket_capacity: 50
+
+  "/api/v1/ai/generate":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 20           # 20 generation requests per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/media/upload":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 10           # 10 file uploads per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/media/delete":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 20           # 20 file deletions per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/post/create":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 10           # 10 post creations per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/post/update":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 20           # 20 post updates per window
+    window_size: "1h"         # 1 hour
+
+  "/api/v1/user/profile":
+    enabled: true
+    strategy: "sliding_window"
+    max_requests: 100          # 100 profile updates per window
+    window_size: "1h"         # 1 hour
+
+# Redis configuration for distributed rate limiting
+redis:
+  enabled: true                # Set to false to use local memory
+  key_prefix: "rate_limit"    # Prefix for Redis keys
+  default_ttl: 3600           # Default TTL in seconds (1 hour)
