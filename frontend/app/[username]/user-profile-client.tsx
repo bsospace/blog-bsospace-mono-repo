@@ -217,8 +217,6 @@ export default function UserProfileClient({ initialProfileData }: { initialProfi
 
   // Check if current user can edit this profile
   useEffect(() => {
-    console.log("Current User", currentUser);
-    console.log("User", user);
     if (currentUser && user) {
       setIsOwnProfile(currentUser.username === user.username);
     }
