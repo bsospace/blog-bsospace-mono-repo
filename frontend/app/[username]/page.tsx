@@ -808,7 +808,7 @@ export default function UserProfilePage() {
           </span>
         </div>
 
-        {posts.posts.length === 0 ? (
+        {posts && posts.posts && posts.posts.length === 0 ? (
           <Card className="bg-slate-900 border-slate-700/50">
             <CardContent className="text-center py-6 sm:py-8">
               <div className="text-slate-500 mb-1.5 sm:mb-2">
@@ -821,7 +821,7 @@ export default function UserProfilePage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
-            {posts.posts.map((post) => (
+            {posts?.posts?.map((post) => (
               <BlogCard key={post.slug} post={post} />
             ))}
           </div>
