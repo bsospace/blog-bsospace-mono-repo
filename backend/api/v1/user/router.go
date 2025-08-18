@@ -3,14 +3,12 @@ package user
 import (
 	"rag-searchbot-backend/internal/container"
 	"rag-searchbot-backend/internal/middleware"
-	"rag-searchbot-backend/internal/post"
-	"rag-searchbot-backend/internal/user"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutes(router *gin.RouterGroup, container *container.Container) {
-	handler := NewUserHandler(container.UserService.(*user.Service), container.PostService.(post.PostServiceInterface))
+	handler := NewUserHandler(container.UserService, container.PostService)
 	authMiddleware := middleware.NewAuthMiddleware(
 		container.UserService,
 		container.CryptoService,
