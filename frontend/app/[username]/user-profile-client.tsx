@@ -704,9 +704,9 @@ export default function UserProfileClient({ initialProfileData }: { initialProfi
             </Avatar>
 
             <div className="space-y-0.5">
-              <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight">{displayName}</CardTitle>
+              <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold dark:text-white text-black leading-tight">{displayName}</CardTitle>
               <p className="text-sm sm:text-base text-orange-300">@{user.username}</p>
-              {user.role === 'WRITER_USER' && (
+              {posts.meta.total > 0 && (
                 <Badge variant="secondary" className="mt-1 px-1.5 py-0.5 text-xs bg-orange-500/20 text-orange-300 border-orange-500/30">
                   <User className="w-3 h-3 mr-1" />
                   นักเขียน
