@@ -199,8 +199,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
 
   // Fetch initial notifications on mount and when dropdown opens
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
+    const loggedIn = localStorage.getItem("logged_in") === "true";
+    if (loggedIn) {
       fetchNotifications(1);
     }
   }, []);

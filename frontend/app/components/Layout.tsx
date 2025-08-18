@@ -37,6 +37,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       if (response.data.success) {
         // Clear local storage or any other state management
         localStorage.removeItem("warp");
+        localStorage.removeItem("logged_in");
+        localStorage.removeItem("pid");
         // Redirect to login page
         window.location.href = "/home"
       }

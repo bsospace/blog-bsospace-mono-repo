@@ -37,11 +37,21 @@ type User struct {
 	Email     string    `gorm:"uniqueIndex;not null" json:"email"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
-	Avatar    string    `json:"avatar,omitempty"`
+	Avatar    string    `json:"avatar,omitempty" gorm:"column:avatar;default:null"`
 	UserName  string    `gorm:"column:username;uniqueIndex;not null" json:"username"`
-	Bio       string    `json:"bio,omitempty"`
+	Bio       string    `json:"bio,omitempty" gorm:"column:bio;default:null"`
 	Role      UserRole  `gorm:"type:varchar(20);default:NORMAL_USER" json:"role"`
 	NewUser   bool      `gorm:"default:true" json:"new_user"`
+	Location  string    `json:"location,omitempty" gorm:"column:location;default:null"`   // Auto-detected region like "Thailand"
+	Website   string    `json:"website,omitempty" gorm:"column:website;default:null"`     // Personal website
+	GitHub    string    `json:"github,omitempty" gorm:"column:github;default:null"`       // GitHub username
+	Twitter   string    `json:"twitter,omitempty" gorm:"column:twitter;default:null"`     // Twitter/X username
+	LinkedIn  string    `json:"linkedin,omitempty" gorm:"column:linkedin;default:null"`   // LinkedIn profile URL
+	Instagram string    `json:"instagram,omitempty" gorm:"column:instagram;default:null"` // Instagram username
+	Facebook  string    `json:"facebook,omitempty" gorm:"column:facebook;default:null"`   // Facebook profile URL
+	YouTube   string    `json:"youtube,omitempty" gorm:"column:youtube;default:null"`     // YouTube channel URL
+	Discord   string    `json:"discord,omitempty" gorm:"column:discord;default:null"`     // Discord username
+	Telegram  string    `json:"telegram,omitempty" gorm:"column:telegram;default:null"`   // Telegram username
 	BaseModel
 
 	Posts         []Post         `gorm:"foreignKey:AuthorID;references:ID" json:"posts,omitempty"`

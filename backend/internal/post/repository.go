@@ -16,6 +16,7 @@ type PostRepositoryInterface interface {
 	GetMyPosts(user *models.User) ([]*models.Post, error)
 	GetByShortSlug(shortSlug string) (*models.Post, error)
 	GetPublicPostBySlugAndUsername(slug string, username string) (*models.Post, error)
+	GetPublishedPostsByAuthor(username string, page, limit int) ([]models.Post, int64, error)
 	PublishPost(post *models.Post) error
 	UnpublishPost(post *models.Post) error
 	DeletePost(post *models.Post) error
@@ -414,4 +415,56 @@ func (r *PostRepository) GetPostViews(postID string) (int, error) {
 		return 0, err
 	}
 	return int(count), nil
+}
+
+// GetPublishedPostsByAuthor ดึงบทความที่ published โดย author คนหนึ่ง
+func (r *PostRepository) GetPublishedPostsByAuthor(username string, page, limit int) ([]models.Post, int64, error) {
+	var posts []models.Post
+	offset := (page - 1) * limit
+
+	// ดึง user ID จาก username
+	var user models.User
+	err := r.DB.Where("username = ? AND deleted_at IS NULL", username).First(&user).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ดึงบทความที่ published โดย author คนนี้
+	query := r.DB.
+		Select("id", "slug", "title", "description", "thumbnail",
+			"published", "published_at", "author_id", "likes",
+			"views", "read_time", "ai_chat_open", "ai_ready").
+		Where("author_id = ?", user.ID).
+		Where("published = ?", true).
+		Where("deleted_at IS NULL").
+		Where("published_at IS NOT NULL").
+		Where("status = ?", models.PostPublished).
+		Preload("Author", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "username", "avatar")
+		}).
+		Preload("Tags").
+		Preload("Categories").
+		Order("published_at DESC").
+		Limit(limit).
+		Offset(offset)
+
+	err = query.Find(&posts).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// นับจำนวนบทความทั้งหมด
+	var total int64
+	err = r.DB.Model(&models.Post{}).
+		Where("author_id = ?", user.ID).
+		Where("published = ?", true).
+		Where("deleted_at IS NULL").
+		Where("published_at IS NOT NULL").
+		Where("status = ?", models.PostPublished).
+		Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return posts, total, nil
 }
