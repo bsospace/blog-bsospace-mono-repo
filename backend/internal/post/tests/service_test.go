@@ -101,6 +101,12 @@ func (m *MockPostRepository) GetPostViews(postID string) (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
+// Add missing method GetPublishedPostsByAuthor
+func (m *MockPostRepository) GetPublishedPostsByAuthor(username string, page, limit int) ([]models.Post, int64, error) {
+	args := m.Called(username, page, limit)
+	return args.Get(0).([]models.Post), args.Get(1).(int64), args.Error(2)
+}
+
 // Mock for MediaServiceInterface (minimal for this test)
 type MockMediaService struct {
 	mock.Mock

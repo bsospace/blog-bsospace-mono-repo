@@ -19,6 +19,8 @@ import {
     Eye
 } from "lucide-react";
 import { axiosInstance } from "@/app/utils/api";
+import { imageService } from "@/app/services/imageService";
+import { useAlert } from "@/app/components/CustomAlert";
 
 type PublishStatus = 'idle' | 'publishing' | 'published' | 'error';
 
@@ -56,32 +58,48 @@ export const PublishModal: React.FC<PublishModalProps> = ({
     generateSlug
 }) => {
     const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [newTag, setNewTag] = useState('');
+    const { error: showError, warning } = useAlert();
 
     const uploadThumbnail = async (file: File) => {
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('post_id', localStorage.getItem('pid') || '');
             setIsUploadingThumbnail(true);
+            setUploadProgress(0);
+
+            const formData = new FormData();
+            formData.append('file', file); // Use 'file' field name for media service
 
             const response = await axiosInstance.post('/media/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                onUploadProgress: (event) => {
+                    if (event.total) {
+                        const percent = Math.round((event.loaded * 100) / event.total);
+                        setUploadProgress(percent);
+                    }
+                },
             });
 
             if (response.status === 200) {
-                const url = response?.data?.data?.image_url;
-                handleMetadataChange('thumbnail', url);
+                const url = response?.data?.data?.image_url || response?.data?.data?.url;
+                if (url) {
+                    handleMetadataChange('thumbnail', url);
+                    console.log('Thumbnail uploaded successfully:', url);
+                } else {
+                    throw new Error('No image URL returned from server');
+                }
             } else {
                 throw new Error('Failed to upload image');
             }
 
-            setIsUploadingThumbnail(false);
         } catch (error) {
-            console.error('Image upload failed:', error);
+            console.error('Thumbnail upload failed:', error);
+            showError('Failed to upload thumbnail. Please try again.');
+        } finally {
             setIsUploadingThumbnail(false);
+            setUploadProgress(0);
         }
     };
 
@@ -176,9 +194,25 @@ export const PublishModal: React.FC<PublishModalProps> = ({
                                     </p>
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-center space-x-2">
-                                    <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                                    <span className="text-sm text-gray-500">Uploading...</span>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-center space-x-2">
+                                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                                        <span className="text-sm text-gray-500">Uploading...</span>
+                                    </div>
+                                    
+                                    {/* Upload Progress Bar */}
+                                    <div className="w-full max-w-xs mx-auto">
+                                        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                                            <span>Progress</span>
+                                            <span>{uploadProgress}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div 
+                                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${uploadProgress}%` }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -188,6 +222,13 @@ export const PublishModal: React.FC<PublishModalProps> = ({
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
+                                        // Validate file using image service
+                                        const validation = imageService.validateFile(file);
+                                        if (!validation.isValid) {
+                                            showError(validation.error || 'Invalid file format');
+                                            return;
+                                        }
+                                        
                                         uploadThumbnail(file);
                                     }
                                 }}

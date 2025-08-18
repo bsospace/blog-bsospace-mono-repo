@@ -12,6 +12,7 @@ type RepositoryInterface interface {
 	GetUsers() ([]models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
 	GetUserByUsername(username string) (bool, error)
+	GetUserProfileByUsername(username string) (*models.User, error)
 	UpdateUser(user *models.User) error
 }
 
@@ -77,6 +78,19 @@ func (r *Repository) GetUserByUsername(username string) (bool, error) {
 	return true, nil
 }
 
+// GetUserProfileByUsername ค้นหา User Profile โดย Username
+func (r *Repository) GetUserProfileByUsername(username string) (*models.User, error) {
+	var user models.User
+	err := r.DB.
+		Where("username = ?", username).
+		Where("deleted_at IS NULL").
+		First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // Update
 func (r *Repository) UpdateUser(user *models.User) error {
 	return r.DB.Model(&models.User{}).
@@ -86,6 +100,17 @@ func (r *Repository) UpdateUser(user *models.User) error {
 			"first_name": user.FirstName,
 			"last_name":  user.LastName,
 			"bio":        user.Bio,
+			"avatar":     user.Avatar,
+			"location":   user.Location,
+			"website":    user.Website,
+			"github":     user.GitHub,
+			"twitter":    user.Twitter,
+			"linkedin":   user.LinkedIn,
+			"instagram":  user.Instagram,
+			"facebook":   user.Facebook,
+			"youtube":    user.YouTube,
+			"discord":    user.Discord,
+			"telegram":   user.Telegram,
 			"new_user":   false,
 		}).Error
 }
