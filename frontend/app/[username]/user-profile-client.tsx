@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import Loading from '../components/Loading';
 import NotFoundPage from '../not-found';
 import { imageService } from '../services/imageService';
 import { useAlert } from '../components/CustomAlert';
+import { useAuth } from '../contexts/authContext';
 import { z } from 'zod';
 
 export interface UserProfile {
@@ -42,7 +43,6 @@ export interface UserProfile {
     discord?: string;
     telegram?: string;
   };
-  can_edit?: boolean;
 }
 
 export interface UserProfileResponse {
@@ -198,8 +198,9 @@ const validateSocialFrontend = (data: {
 
 export default function UserProfileClient({ initialProfileData }: { initialProfileData: UserProfileResponse }) {
   const { success, error: showError, warning } = useAlert();
+  const { user: currentUser } = useAuth();
   const [profileData, setProfileData] = useState<UserProfileResponse | null>(initialProfileData);
-  const [isOwnProfile, setIsOwnProfile] = useState<boolean>(initialProfileData?.data?.user?.can_edit || false);
+  const [isOwnProfile, setIsOwnProfile] = useState<boolean>(false);
   const [supportedRegions, setSupportedRegions] = useState<string[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -213,6 +214,15 @@ export default function UserProfileClient({ initialProfileData }: { initialProfi
   const user = profileData!.data.user;
   const posts = profileData!.data.posts;
   const displayName = user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username;
+
+  // Check if current user can edit this profile
+  useEffect(() => {
+    console.log("Current User", currentUser);
+    console.log("User", user);
+    if (currentUser && user) {
+      setIsOwnProfile(currentUser.username === user.username);
+    }
+  }, [currentUser, user]);
 
   const [editForm, setEditForm] = useState<EditProfileForm>({
     first_name: user.first_name || '',
