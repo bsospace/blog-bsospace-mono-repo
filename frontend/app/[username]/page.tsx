@@ -172,7 +172,7 @@ export default function UserProfilePage() {
         }
       } catch (err: any) {
         if (err.response?.status === 404) {
-          notFound();
+          setError('ไม่พบข้อมูลผู้ใช้งาน');
         } else {
           setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
         }
@@ -273,7 +273,7 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <Loading label="กำลังโหลดโปรไฟล์..." className="h-screen" />
+        <Loading label="Loading..." className="h-screen" />
       </div>
     );
   }
