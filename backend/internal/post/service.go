@@ -24,6 +24,7 @@ type PostServiceInterface interface {
 	GetPostBySlug(slug string) (*PostByIdResponse, error)
 	UpdatePost(post *models.Post) error
 	MyPosts(user *models.User) (*MyPostsResponseDTO, error)
+	GetPostsByAuthor(username string, page, limit int) (*PostListResponse, error)
 	RecordPostView(postID string, user *models.User, fingerprint string, ipAddress, userAgent string) (*PostViewResponse, error)
 }
 
@@ -587,5 +588,36 @@ func (s *PostService) RecordPostView(postID string, user *models.User, fingerpri
 		Success: true,
 		Message: "View recorded successfully",
 		Views:   views,
+	}, nil
+}
+
+// GetPostsByAuthor ดึงบทความที่เขียนโดยผู้เขียนคนหนึ่ง
+func (s *PostService) GetPostsByAuthor(username string, page, limit int) (*PostListResponse, error) {
+	// ดึงบทความที่ published โดย author คนนี้
+	posts, total, err := s.Repo.GetPublishedPostsByAuthor(username, page, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get posts by author: %w", err)
+	}
+
+	// แปลงเป็น DTO
+	var postDTOs []PostSummaryDTO
+	for _, post := range posts {
+		postDTO := MapPostToSummaryDTO(post)
+		postDTOs = append(postDTOs, postDTO)
+	}
+
+	// คำนวณ pagination
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+	hasNextPage := page < totalPages
+
+	return &PostListResponse{
+		Posts: postDTOs,
+		Meta: Meta{
+			Total:       total,
+			HasNextPage: hasNextPage,
+			Page:        page,
+			Limit:       limit,
+			TotalPage:   totalPages,
+		},
 	}, nil
 }

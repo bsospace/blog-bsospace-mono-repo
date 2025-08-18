@@ -8,9 +8,14 @@ import (
 	"net/http"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/location"
+	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
+	"rag-searchbot-backend/internal/social"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -21,17 +26,27 @@ type ServiceInterface interface {
 	GetUserByEmail(email string) (*models.User, error)
 	GetUserProfileOpenId(token string) (*OpenIDProfileData, error)
 	GetExistingUsername(username string) (bool, error)
+	GetUserProfileByUsername(username string, currentUserID *uuid.UUID) (*UserProfileResponse, error)
 	UpdateUser(user *models.User) error
 	RefreshTokenOpenId(token string) (string, error)
 }
 
 type Service struct {
-	Repo  RepositoryInterface
-	Cache cache.ServiceInterface
+	Repo            RepositoryInterface
+	Cache           cache.ServiceInterface
+	LocationService *location.LocationService
+	SocialService   *social.SocialMediaService
+	MediaService    media.MediaServiceInterface
 }
 
-func NewService(repo RepositoryInterface, cache cache.ServiceInterface) ServiceInterface {
-	return &Service{Repo: repo, Cache: cache}
+func NewService(repo RepositoryInterface, cache cache.ServiceInterface, mediaService media.MediaServiceInterface) ServiceInterface {
+	return &Service{
+		Repo:            repo,
+		Cache:           cache,
+		LocationService: location.NewLocationService(),
+		SocialService:   social.NewSocialMediaService(),
+		MediaService:    mediaService,
+	}
 }
 
 // RegisterUser เพิ่ม User ลงในฐานข้อมูล
@@ -144,6 +159,70 @@ func (s *Service) GetExistingUsername(username string) (bool, error) {
 }
 
 func (s *Service) UpdateUser(user *models.User) error {
+	// Validate location if provided
+	if user.Location != "" {
+		if validatedLocation, err := s.LocationService.ValidateLocation(user.Location); err != nil {
+			return fmt.Errorf("invalid location: %w", err)
+		} else {
+			user.Location = validatedLocation
+		}
+	}
+
+	// Validate social media links
+	socialData := map[string]string{
+		"github":    user.GitHub,
+		"twitter":   user.Twitter,
+		"linkedin":  user.LinkedIn,
+		"instagram": user.Instagram,
+		"facebook":  user.Facebook,
+		"youtube":   user.YouTube,
+		"discord":   user.Discord,
+		"telegram":  user.Telegram,
+		"website":   user.Website,
+	}
+
+	profiles, validationErrors := s.SocialService.ValidateAllSocialMedia(socialData)
+	if len(validationErrors) > 0 {
+		return fmt.Errorf("social media validation errors: %s", strings.Join(validationErrors, "; "))
+	}
+
+	// Update user with validated social media data
+	for platform, profile := range profiles {
+		switch platform {
+		case "github":
+			user.GitHub = profile.Username
+		case "twitter":
+			user.Twitter = profile.Username
+		case "linkedin":
+			user.LinkedIn = profile.Username
+		case "instagram":
+			user.Instagram = profile.Username
+		case "facebook":
+			user.Facebook = profile.Username
+		case "youtube":
+			user.YouTube = profile.Username
+		case "discord":
+			user.Discord = profile.Username
+		case "telegram":
+			user.Telegram = profile.Username
+		case "website":
+			user.Website = profile.URL
+		}
+	}
+
+	// Mark avatar image as used (is_used = true) with reason "avatar"
+	if user.Avatar != "" && s.MediaService != nil {
+		if img, err := s.MediaService.GetImageByURL(user.Avatar); err == nil && img != nil {
+			if !img.IsUsed || img.UsedReason != "avatar" {
+				img.IsUsed = true
+				img.UsedReason = "avatar"
+				now := time.Now()
+				img.UsedAt = &now
+				_ = s.MediaService.UpdateImageUsage(img)
+			}
+		}
+	}
+
 	err := s.Repo.UpdateUser(user)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
@@ -153,6 +232,7 @@ func (s *Service) UpdateUser(user *models.User) error {
 	return nil
 }
 
+// RefreshTokenOpenId refresh token จาก OpenID
 func (s *Service) RefreshTokenOpenId(token string) (string, error) {
 	cfg := config.LoadConfig()
 	url := fmt.Sprintf("%s/auth/refresh?service=blog", cfg.OpenIDURL)
@@ -171,7 +251,7 @@ func (s *Service) RefreshTokenOpenId(token string) (string, error) {
 
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -199,4 +279,49 @@ func (s *Service) RefreshTokenOpenId(token string) (string, error) {
 	}
 
 	return response.AccessToken, nil
+}
+
+// GetUserProfileByUsername ดึงข้อมูล User Profile โดย Username
+func (s *Service) GetUserProfileByUsername(username string, currentUserID *uuid.UUID) (*UserProfileResponse, error) {
+	user, err := s.Repo.GetUserProfileByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if current user can edit this profile
+	canEdit := false
+	if currentUserID != nil {
+		canEdit = user.ID == *currentUserID
+	}
+
+	// Get followers and following count (placeholder for now)
+	followers := int64(0)
+	following := int64(0)
+
+	profile := &UserProfileResponse{
+		Username:  user.UserName,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Avatar:    user.Avatar,
+		Bio:       user.Bio,
+		Role:      string(user.Role),
+		Location:  user.Location,
+		Website:   user.Website,
+		JoinedAt:  user.CreatedAt.Format("January 2006"),
+		Followers: followers,
+		Following: following,
+		CanEdit:   canEdit,
+		SocialMedia: SocialMediaLinks{
+			GitHub:    user.GitHub,
+			Twitter:   user.Twitter,
+			LinkedIn:  user.LinkedIn,
+			Instagram: user.Instagram,
+			Facebook:  user.Facebook,
+			YouTube:   user.YouTube,
+			Discord:   user.Discord,
+			Telegram:  user.Telegram,
+		},
+	}
+
+	return profile, nil
 }
