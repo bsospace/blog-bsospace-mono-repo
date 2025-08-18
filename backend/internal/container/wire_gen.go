@@ -7,11 +7,6 @@
 package container
 
 import (
-	"github.com/google/wire"
-	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/auth"
@@ -24,6 +19,12 @@ import (
 	"rag-searchbot-backend/internal/ws"
 	"rag-searchbot-backend/pkg/crypto"
 	"time"
+
+	"github.com/google/wire"
+	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
@@ -34,8 +35,8 @@ func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redis
 	notificationRepositoryInterface := notification.NewRepository(db)
 	mediaRepositoryInterface := media.NewMediaRepository(db)
 	serviceInterface := NewCacheService(redisClient, redisTTL)
-	userServiceInterface := user.NewService(repositoryInterface, serviceInterface)
 	mediaServiceInterface := media.NewMediaService(mediaRepositoryInterface, log)
+	userServiceInterface := user.NewService(repositoryInterface, serviceInterface, mediaServiceInterface)
 	queueRepositoryInterface := queue.NewRepository(db)
 	taskEnqueuer := post.NewTaskEnqueuer(asynqClient, queueRepositoryInterface)
 	postServiceInterface := post.NewPostService(postRepositoryInterface, mediaServiceInterface, taskEnqueuer)
