@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/cache"
-	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/location"
+	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/social"
 	"strings"
@@ -85,30 +85,31 @@ type OpenIDProfileData struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// GetUserProfileOpenId ดึงข้อมูล User Profile จาก OpenID
+// GetUserProfileOpenId ดึงข้อมูล profile จาก OpenID API
 func (s *Service) GetUserProfileOpenId(token string) (*OpenIDProfileData, error) {
 	cfg := config.LoadConfig()
-	url := fmt.Sprintf("%s/auth/profile?service=blog", cfg.OpenIDURL)
+
+	url := fmt.Sprintf("%s/auth/profile", cfg.OpenIDURL)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Set("Authorization", "Bearer "+token)
 
-	req.Header.Set("x-access-token", token)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request error: %w", err)
 	}
-
 	defer resp.Body.Close()
 
-	responseBody, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var profileResp OpenIDProfileResponse
-	if err := json.Unmarshal(responseBody, &profileResp); err != nil {
+	if err := json.Unmarshal(body, &profileResp); err != nil {
 		return nil, fmt.Errorf("failed to parse response JSON: %w", err)
 	}
 
