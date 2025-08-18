@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/location"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/social"
@@ -35,14 +36,16 @@ type Service struct {
 	Cache           cache.ServiceInterface
 	LocationService *location.LocationService
 	SocialService   *social.SocialMediaService
+	MediaService    media.MediaServiceInterface
 }
 
-func NewService(repo RepositoryInterface, cache cache.ServiceInterface) ServiceInterface {
+func NewService(repo RepositoryInterface, cache cache.ServiceInterface, mediaService media.MediaServiceInterface) ServiceInterface {
 	return &Service{
 		Repo:            repo,
 		Cache:           cache,
 		LocationService: location.NewLocationService(),
 		SocialService:   social.NewSocialMediaService(),
+		MediaService:    mediaService,
 	}
 }
 
@@ -203,6 +206,19 @@ func (s *Service) UpdateUser(user *models.User) error {
 			user.Telegram = profile.Username
 		case "website":
 			user.Website = profile.URL
+		}
+	}
+
+	// Mark avatar image as used (is_used = true) with reason "avatar"
+	if user.Avatar != "" && s.MediaService != nil {
+		if img, err := s.MediaService.GetImageByURL(user.Avatar); err == nil && img != nil {
+			if !img.IsUsed || img.UsedReason != "avatar" {
+				img.IsUsed = true
+				img.UsedReason = "avatar"
+				now := time.Now()
+				img.UsedAt = &now
+				_ = s.MediaService.UpdateImageUsage(img)
+			}
 		}
 	}
 
