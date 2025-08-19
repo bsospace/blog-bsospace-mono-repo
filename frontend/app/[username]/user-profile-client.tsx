@@ -835,7 +835,7 @@ export default function UserProfileClient({ initialProfileData }: { initialProfi
 
       <div className="mb-3 sm:mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-white">Latest Posts</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-black dark:text-white">Latest Posts</h2>
           <span className="text-xs sm:text-sm text-slate-400">
             {posts.meta.total} articles
           </span>

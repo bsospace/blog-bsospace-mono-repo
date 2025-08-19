@@ -60,7 +60,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
         </div>
 
         {/* Title */}
-        <h3 className="text-base sm:text-lg md:text-xl font-bold text-white mb-2 sm:mb-3 line-clamp-2 group-hover:text-orange-400 transition-colors leading-tight">
+        <h3 className="text-base text-black sm:text-lg md:text-xl font-bold dark:text-white mb-2 sm:mb-3 line-clamp-2 group-hover:text-orange-400 transition-colors leading-tight">
           <Link href={`/posts/@${post.author?.username}/${post.slug}`}>
             {post.title}
           </Link>
