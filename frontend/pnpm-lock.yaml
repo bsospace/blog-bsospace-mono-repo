@@ -167,6 +167,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.5.0
+      get-browser-fingerprint:
+        specifier: ^4.1.0
+        version: 4.1.0
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
@@ -2947,6 +2950,9 @@ packages:
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
+
+  get-browser-fingerprint@4.1.0:
+    resolution: {integrity: sha512-4SVkQQbL2FhKM1zAaEw0ONYkGwYJnodAihZ3wnVrNZ9dylo4qjqIJVi/bPewj0cjOS405lS1ZutP8WeJP3/XuA==}
 
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
@@ -8114,6 +8120,8 @@ snapshots:
   functions-have-names@1.2.3: {}
 
   gensync@1.0.0-beta.2: {}
+
+  get-browser-fingerprint@4.1.0: {}
 
   get-caller-file@2.0.5: {}
 
