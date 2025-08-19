@@ -14,6 +14,8 @@ import BlogAIChat from "@/app/components/ai-chat";
 import { generateStructuredData } from '@/app/utils/seo';
 import Image from "next/image";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { generateFingerprint } from '@/lib/fingerprint';
+import { axiosInstanceServer } from '@/app/utils/api-server';
 
 interface PostClientProps {
   post: Post;
@@ -128,6 +130,27 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
     }
   }, [post]);
 
+  // Record post view with fingerprint
+  useEffect(() => {
+    if (isClient && post?.id) {
+      const recordView = async () => {
+        try {
+          const fingerprint = await generateFingerprint();
+          console.log('Fingerprint:', fingerprint);
+          
+          const response = await axiosInstanceServer.post(`posts/${post.id}/view`, { fingerprint });
+          if (response.status === 200) {
+            console.log('View recorded successfully');
+          }
+        } catch (error) {
+          console.error('Failed to record view:', error);
+        }
+      };
+      
+      recordView();
+    }
+  }, [isClient, post?.id]);
+
   function generateTableOfContents(contentState: JSONContent): {
     level: number;
     text: string;
@@ -185,16 +208,18 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                 <span className="flex items-center gap-2">
-                  <FaCalendar className="text-orange-500" />
+                  <FaCalendar className="text-orange-500 text-sm" />
                   {metadata.publishDate}
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaClock className="text-orange-500" />
+                <span className="flex items-center gap-2 truncate">
+                  <FaClock className="text-orange-500 text-sm" />
                   {metadata.readTime}
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaUser className="text-orange-500" />
+                <span className="flex items-center gap-2 max-w-18 md:max-w-full">
+                  <FaUser className="text-orange-500 text-sm" />
+                  <span className="truncate max-w-16 md:max-w-full">
                   {metadata.author}
+                  </span>
                 </span>
               </div>
             </div>
@@ -296,9 +321,9 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
                     {metadata.authorBio}
                   </p>
                   <div className="mt-3">
-                    <button className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium">
-                      Follow {metadata.author} →
-                    </button>
+                    <Link href={`/@${metadata.author}`} className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium">
+                      View {metadata.author} →
+                    </Link>
                   </div>
                 </div>
               </div>

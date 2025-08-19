@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Github, Info, CheckCircle, PencilLine, BookOpen, X } from 'lucide-react'
 import Image from 'next/image'
 import { useAuth } from '@/app/contexts/authContext'
@@ -20,6 +20,17 @@ export default function LoginPage() {
     oauthLogin(provider)
   }
 
+  const [redirect, setRedirect] = useState('/');
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectParam = urlParams.get('redirect') || '/';
+    setRedirect(redirectParam);
+    localStorage.setItem('redirect', redirectParam);
+  }, []);
+
+
+  // Render the login page
   return (
     <div className="flex items-center h-full justify-center bg-gradient-to-b from-slate-950 via-gray-900 to-black relative">
 

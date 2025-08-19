@@ -17,6 +17,7 @@ const Callback = () => {
                 localStorage.setItem("logged_in", "true");
                 if (redirectParam) {
                     window.location.href = redirectParam
+                    localStorage.removeItem('redirect')
                 } else {
                     localStorage.removeItem('redirect');
                     window.location.href = '/home'

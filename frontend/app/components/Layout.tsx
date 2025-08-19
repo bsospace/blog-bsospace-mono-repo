@@ -212,14 +212,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                             </Link>
                             <Link
                               href={`${"/@"}${user.username}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                               onClick={(e) => {
                                 e.preventDefault();
                                 setIsOpen(false);
                               }}
                             >
                               <UserCircle className="w-5 h-5" />
-                              <span>Profile (Comming soon)</span>
+                              <span>Profile</span>
                             </Link>
                             <Link
                               href="/settings"
@@ -241,55 +241,55 @@ export default function Layout({ children }: { children: ReactNode }) {
                             </button>
                           </div>
                         </>
-            ) : (
-              <div className="py-3 text-center text-gray-700 dark:text-gray-300 mb-4">
-                            <h3 className="font-semibold text-xl mb-1 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">Welcome</h3>
-                            <div className="mt-4 space-y-1">
-                              <Link
-                                href={`/w/${getnerateId()}`}
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                                onClick={() => setIsOpen(false)}
-                              >
-                                <SquarePen className="w-5 h-5" />
-                                <span>Write story</span>
-                              </Link>
-                              <Link
-                                href={`/w`}
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                                onClick={() => setIsOpen(false)}
-                              >
-                                <Notebook className="w-5 h-5" />
-                                <span>My stories</span>
-                              </Link>
-                              <Link
-                                href={``}
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setIsOpen(false);
-                                }}
-                              >
-                                <UserCircle className="w-5 h-5" />
-                                <span>Profile (Comming soon)</span>
-                              </Link>
-                              <Link
-                                href="/settings"
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setIsOpen(false);
-                                }}
-                              >
-                                <Settings className="w-5 h-5" />
-                                <span>Setting (Comming soon)</span>
-                              </Link>
-                            </div>
-                            <div className="space-y-3 mt-4">
-                              <Button variant="default" className="w-full" onClick={navigateToLogin}>
-                                Login
-                              </Button>
-                            </div>
-              </div>
+                      ) : (
+                        <div className="py-3 text-center text-gray-700 dark:text-gray-300 mb-4">
+                          <h3 className="font-semibold text-xl mb-1 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">Welcome</h3>
+                          <div className="mt-4 space-y-1">
+                            <Link
+                              href={`/w/${getnerateId()}`}
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <SquarePen className="w-5 h-5" />
+                              <span>Write story</span>
+                            </Link>
+                            <Link
+                              href={``}
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <Notebook className="w-5 h-5" />
+                              <span>My stories</span>
+                            </Link>
+                            <Link
+                              href={``}
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setIsOpen(false);
+                              }}
+                            >
+                              <UserCircle className="w-5 h-5" />
+                              <span>Profile</span>
+                            </Link>
+                            <Link
+                              href="/settings"
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setIsOpen(false);
+                              }}
+                            >
+                              <Settings className="w-5 h-5" />
+                              <span>Setting (Comming soon)</span>
+                            </Link>
+                          </div>
+                          <div className="space-y-3 mt-4">
+                            <Button variant="default" className="w-full" onClick={navigateToLogin}>
+                              Login
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -387,55 +387,55 @@ export default function Layout({ children }: { children: ReactNode }) {
                             </button>
                           </div>
                         </>
-            ) : (
-              <div className="py-3 text-center text-gray-700 dark:text-gray-300 mb-4">
-                            <h3 className="font-semibold text-xl mb-1 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">Welcome</h3>
-                            <div className="mt-4 space-y-1">
-                              <Link
-                                href={`/w/${getnerateId()}`}
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                                onClick={() => setIsOpen(false)}
-                              >
-                                <SquarePen className="w-5 h-5" />
-                                <span>Write story</span>
-                              </Link>
-                              <Link
-                                href={`/w`}
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                                onClick={() => setIsOpen(false)}
-                              >
-                                <Notebook className="w-5 h-5" />
-                                <span>My stories</span>
-                              </Link>
-                              <Link
-                                href={``}
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setIsOpen(false);
-                                }}
-                              >
-                                <UserCircle className="w-5 h-5" />
-                                <span>Profile (Coming soon)</span>
-                              </Link>
-                              <Link
-                                href="/settings"
-                                className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setIsOpen(false);
-                                }}
-                              >
-                                <Settings className="w-5 h-5" />
-                                <span>Setting (Coming soon)</span>
-                              </Link>
-                            </div>
-                            <div className="space-y-3 mt-4">
-                              <Button variant="default" className="w-full" onClick={navigateToLogin}>
-                                Login
-                              </Button>
-                            </div>
-              </div>
+                      ) : (
+                        <div className="py-3 text-center text-gray-700 dark:text-gray-300 mb-4">
+                          <h3 className="font-semibold text-xl mb-1 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">Welcome</h3>
+                          <div className="mt-4 space-y-1">
+                            <Link
+                              href={`/w/${getnerateId()}`}
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <SquarePen className="w-5 h-5" />
+                              <span>Write story</span>
+                            </Link>
+                            <Link
+                              href={`/w`}
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <Notebook className="w-5 h-5" />
+                              <span>My stories</span>
+                            </Link>
+                            <Link
+                              href={``}
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setIsOpen(false);
+                              }}
+                            >
+                              <UserCircle className="w-5 h-5" />
+                              <span>Profile (Coming soon)</span>
+                            </Link>
+                            <Link
+                              href="/settings"
+                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setIsOpen(false);
+                              }}
+                            >
+                              <Settings className="w-5 h-5" />
+                              <span>Setting (Coming soon)</span>
+                            </Link>
+                          </div>
+                          <div className="space-y-3 mt-4">
+                            <Button variant="default" className="w-full" onClick={navigateToLogin}>
+                              Login
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -447,7 +447,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Content */}
-  <main className="flex-grow w-full mx-auto md:p-6 p-4 pt-20 md:pt-24">
+      <main className="flex-grow w-full mx-auto md:p-6 p-4 pt-20 md:pt-24">
 
         {/* Background tech elements */}
         {children}
@@ -457,7 +457,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <footer className="text-center py-3 border-t border-slate-800">
         <div className="flex justify-center items-center space-x-4 text-slate-400">
           <FiCode className="w-5 h-5 text-orange-400" />
-          <span className="text-sm">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">BSO Space</Link></span>
+          <span className="md:text-sm text-[10px]">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">BSO Space</Link></span>
           <FiCpu className="w-5 h-5 text-red-400" />
         </div>
       </footer>
