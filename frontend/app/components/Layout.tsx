@@ -457,7 +457,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <footer className="text-center py-3 border-t border-slate-800">
         <div className="flex justify-center items-center space-x-4 text-slate-400">
           <FiCode className="w-5 h-5 text-orange-400" />
-          <span className="text-sm">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">BSO Space</Link></span>
+          <span className="md:text-sm text-[10px]">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">BSO Space</Link></span>
           <FiCpu className="w-5 h-5 text-red-400" />
         </div>
       </footer>
