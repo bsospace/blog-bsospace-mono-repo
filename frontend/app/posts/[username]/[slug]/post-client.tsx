@@ -14,6 +14,8 @@ import BlogAIChat from "@/app/components/ai-chat";
 import { generateStructuredData } from '@/app/utils/seo';
 import Image from "next/image";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { generateFingerprint } from '@/lib/fingerprint';
+import { axiosInstanceServer } from '@/app/utils/api-server';
 
 interface PostClientProps {
   post: Post;
@@ -127,6 +129,27 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
       setNotFound(false); // ไม่ setNotFound เพื่อให้แสดง fallback content
     }
   }, [post]);
+
+  // Record post view with fingerprint
+  useEffect(() => {
+    if (isClient && post?.id) {
+      const recordView = async () => {
+        try {
+          const fingerprint = await generateFingerprint();
+          console.log('Fingerprint:', fingerprint);
+          
+          const response = await axiosInstanceServer.post(`posts/${post.id}/view`, { fingerprint });
+          if (response.status === 200) {
+            console.log('View recorded successfully');
+          }
+        } catch (error) {
+          console.error('Failed to record view:', error);
+        }
+      };
+      
+      recordView();
+    }
+  }, [isClient, post?.id]);
 
   function generateTableOfContents(contentState: JSONContent): {
     level: number;
