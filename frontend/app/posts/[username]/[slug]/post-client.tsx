@@ -296,9 +296,9 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
                     {metadata.authorBio}
                   </p>
                   <div className="mt-3">
-                    <button className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium">
-                      Follow {metadata.author} →
-                    </button>
+                    <Link href={`/@${metadata.author}`} className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium">
+                      View {metadata.author} →
+                    </Link>
                   </div>
                 </div>
               </div>
