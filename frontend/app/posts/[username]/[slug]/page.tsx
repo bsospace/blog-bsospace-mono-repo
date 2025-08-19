@@ -95,19 +95,10 @@ export default async function PostPage({
   const slug = sanitizeParam(rawSlug);
   const apiUrl = `/posts/public/${username}/${slug}`;
 
-
   try {
     const res = await axiosInstanceServer.get(apiUrl);
     const post = res.data.data as Post;
-    const recordViewAsync = async () => {
-      try {
-        const fingerprint = await generateFingerprint();
-        recordView(post.id, fingerprint);
-      } catch (error) {
-        console.error('Failed to generate fingerprint:', error);
-      }
-    };
-    recordViewAsync();
+    
     return <PostClient post={post} isLoadingPost={false} />;
   } catch (e: any) {
     console.error('[PostPage] API Error:', e.response?.status, e.response?.data);
