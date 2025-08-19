@@ -185,16 +185,18 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                 <span className="flex items-center gap-2">
-                  <FaCalendar className="text-orange-500" />
+                  <FaCalendar className="text-orange-500 text-sm" />
                   {metadata.publishDate}
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaClock className="text-orange-500" />
+                <span className="flex items-center gap-2 truncate">
+                  <FaClock className="text-orange-500 text-sm" />
                   {metadata.readTime}
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaUser className="text-orange-500" />
+                <span className="flex items-center gap-2 max-w-18 md:max-w-full">
+                  <FaUser className="text-orange-500 text-sm" />
+                  <span className="truncate max-w-16 md:max-w-full">
                   {metadata.author}
+                  </span>
                 </span>
               </div>
             </div>
