@@ -29,6 +29,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const LIMIT = 5;
 
@@ -81,19 +83,35 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
 
   // Load more notifications
   const loadMoreNotifications = useCallback(() => {
-    if (meta && meta.hasNextPage && !loadingMore) {
+    if (meta && meta.hasNextPage && !loadingMore && !isScrollingRef.current) {
       fetchNotifications(currentPage + 1, true);
     }
   }, [meta, currentPage, loadingMore]);
 
   // Handle scroll to detect when to load more
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingRef.current) return;
+    
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const threshold = 50; // Load more when 50px from bottom
+    const threshold = 100; // Increased threshold for better UX
 
-    if (scrollHeight - scrollTop <= clientHeight + threshold) {
-      loadMoreNotifications();
+    // Clear existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
     }
+
+    // Set scrolling flag
+    isScrollingRef.current = true;
+
+    // Debounce scroll events
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+      
+      // Check if we're near the bottom
+      if (scrollHeight - scrollTop <= clientHeight + threshold) {
+        loadMoreNotifications();
+      }
+    }, 150); // Increased debounce time
   }, [loadMoreNotifications]);
 
   // Mark notification as read or unread
@@ -205,6 +223,15 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     }
   }, []);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
@@ -239,7 +266,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
 
             <div
               ref={scrollRef}
-              className="mt-3 max-h-96 overflow-y-auto space-y-2"
+              className="mt-3 max-h-96 overflow-y-auto space-y-2 scroll-smooth"
               onScroll={handleScroll}
             >
               {loading ? (
