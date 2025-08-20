@@ -14,8 +14,11 @@ export function getnerarteIdFromUrl(url: string) {
 }
 
 export function getnerateId() {
-  const first = nanoid(8)
-  return first
+  let id = nanoid(8)
+  while (id.includes('-')) {
+    id = nanoid(8)
+  }
+  return id
 }
 
 
