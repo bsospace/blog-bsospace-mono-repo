@@ -27,7 +27,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type PublishStatus = 'idle' | 'publishing' | 'published' | 'error';
 
 interface Metadata {
-    id?: string;
+    id: string;
     title: string;
     description: string;
     tags: string[];

@@ -25,6 +25,7 @@ import { useAlert } from "@/app/components/CustomAlert";
 type PublishStatus = 'idle' | 'publishing' | 'published' | 'error';
 
 interface Metadata {
+    id: string;
     title: string;
     description: string;
     tags: string[];
@@ -69,6 +70,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
 
             const formData = new FormData();
             formData.append('file', file); // Use 'file' field name for media service
+            formData.append('post_id', metadata.id);
 
             const response = await axiosInstance.post('/media/upload', formData, {
                 headers: {
