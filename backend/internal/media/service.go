@@ -2,6 +2,7 @@ package media
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -74,21 +75,41 @@ type ChibisafeResponse struct {
 	PublicURL  string `json:"public_url"`
 }
 
+func addRandomSuffixToFile(file multipart.File) ([]byte, error) {
+	// อ่านไฟล์ทั้งหมดเข้าหน่วยความจำ
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// สร้าง random byte (8 bytes)
+	randomBytes := make([]byte, 8)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return nil, err
+	}
+
+	// ต่อท้ายไฟล์ด้วย randomBytes
+	data = append(data, randomBytes...)
+	return data, nil
+}
+
 func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (ChibisafeResponse, error) {
-
-	// log config
-
 	cfg := config.LoadConfig()
 	chibisafeURL := cfg.ChibisafeURL
 	chibisafeToken := cfg.ChibisafeKey
 	albmnId := cfg.ChibisafeAlbumId
 
-	// Open file
 	file, err := fileHeader.Open()
 	if err != nil {
 		return ChibisafeResponse{}, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
+
+	// เปลี่ยนไฟล์ให้ checksum เปลี่ยน
+	modifiedData, err := addRandomSuffixToFile(file)
+	if err != nil {
+		return ChibisafeResponse{}, fmt.Errorf("failed to modify file: %w", err)
+	}
 
 	// Prepare multipart/form-data body
 	body := &bytes.Buffer{}
@@ -99,7 +120,7 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (Chib
 		return ChibisafeResponse{}, fmt.Errorf("failed to create form file: %w", err)
 	}
 
-	if _, err := io.Copy(part, file); err != nil {
+	if _, err := part.Write(modifiedData); err != nil {
 		return ChibisafeResponse{}, fmt.Errorf("failed to copy file: %w", err)
 	}
 
@@ -127,8 +148,6 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (Chib
 		return ChibisafeResponse{}, fmt.Errorf("upload failed: %s", respBody)
 	}
 
-	// Parse response
-
 	var chibiResp ChibisafeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chibiResp); err != nil {
 		return ChibisafeResponse{}, fmt.Errorf("failed to parse chibisafe response: %w", err)
@@ -138,7 +157,6 @@ func (s *MediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (Chib
 		return ChibisafeResponse{}, fmt.Errorf("chibisafe response does not contain UUID")
 	}
 
-	// Return full URL
 	return ChibisafeResponse{
 		Name:       chibiResp.Name,
 		UUID:       chibiResp.UUID,
