@@ -116,6 +116,17 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (str
 		return "", err
 	}
 
+	// 5. Get the created post and update image usage status
+	createdPost, err := s.Repo.GetByID(postID)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.UpdateImageUsageStatus(createdPost, post.Content, "")
+	if err != nil {
+		return "", err
+	}
+
 	return postID, nil
 }
 

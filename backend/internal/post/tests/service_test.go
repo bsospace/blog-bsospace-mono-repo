@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 // Mock Repository
@@ -119,10 +120,12 @@ func (m *MockMediaService) DeleteFromChibisafe(image *models.ImageUpload) error 
 	return nil
 }
 func (m *MockMediaService) GetImagesByPostID(postID uuid.UUID) ([]models.ImageUpload, error) {
-	return nil, nil
+	args := m.Called(postID)
+	return args.Get(0).([]models.ImageUpload), args.Error(1)
 }
 func (m *MockMediaService) UpdateImageUsage(image *models.ImageUpload) error {
-	return nil
+	args := m.Called(image)
+	return args.Error(0)
 }
 func (m *MockMediaService) DeleteUnusedImages() error {
 	return nil
@@ -159,6 +162,9 @@ func TestCreatePost_UpdateExisting(t *testing.T) {
 	repo.On("Update", mock.AnythingOfType("*models.Post")).Return(nil)
 	// เพิ่ม expectation สำหรับ GetByID (service อาจเรียกใน UpdateImageUsageStatus)
 	repo.On("GetByID", mock.Anything).Return(existing, nil)
+	
+	// Mock media service calls for UpdateImageUsageStatus
+	media.On("GetImagesByPostID", existing.ID).Return([]models.ImageUpload{}, nil)
 
 	id, err := service.CreatePost(postReq, user)
 	assert.NoError(t, err)
@@ -254,4 +260,80 @@ func TestRecordPostView_PostNotFound(t *testing.T) {
 	assert.Nil(t, result)
 
 	repo.AssertExpectations(t)
+}
+
+// Test case to verify that UpdateImageUsageStatus is called when creating a new post
+func TestCreatePost_NewPost_UpdatesImageUsageStatus(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	user := &models.User{ID: uuid.New()}
+	imageURL := "https://example.com/image.png"
+	
+	// Create content with an image
+	content := post.PostContentStructure{
+		Type: "doc",
+		Content: []post.PostContentStructure{
+			{
+				Type: "paragraph",
+				Content: []post.PostContentStructure{
+					{
+						Type: "image",
+						Attrs: map[string]interface{}{
+							"src": imageURL,
+						},
+					},
+				},
+			},
+		},
+	}
+	
+	postReq := post.CreatePostRequest{
+		ShortSlug: "newpost",
+		Title:     "New Post with Image",
+		Content:   content,
+	}
+
+	slug := postReq.ShortSlug + "-" + user.ID.String()
+	postID := uuid.New().String()
+	createdPost := &models.Post{
+		ID:        uuid.MustParse(postID),
+		Slug:      slug,
+		ShortSlug: slug,
+		Title:     postReq.Title,
+		AuthorID:  user.ID,
+	}
+
+	// Mock image that should be marked as used
+	imageUpload := models.ImageUpload{
+		ID:       uuid.New(),
+		ImageURL: imageURL,
+		IsUsed:   false, // Initially not used
+		PostID:   &createdPost.ID,
+	}
+
+	// Mock expectations
+	repo.On("GetByShortSlug", slug).Return((*models.Post)(nil), gorm.ErrRecordNotFound) // No existing post
+	repo.On("Create", mock.AnythingOfType("*models.Post")).Return(postID, nil)
+	repo.On("GetByID", postID).Return(createdPost, nil)
+	
+	// Mock media service calls for UpdateImageUsageStatus
+	media.On("GetImagesByPostID", createdPost.ID).Return([]models.ImageUpload{imageUpload}, nil)
+	media.On("UpdateImageUsage", mock.MatchedBy(func(img *models.ImageUpload) bool {
+		// Verify that the image is marked as used
+		return img.ImageURL == imageURL && img.IsUsed == true
+	})).Return(nil)
+
+	// Test
+	id, err := service.CreatePost(postReq, user)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, postID, id)
+
+	repo.AssertExpectations(t)
+	media.AssertExpectations(t)
 }
