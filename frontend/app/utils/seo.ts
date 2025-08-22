@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import envConfig from '../configs/envConfig';
 
 export interface SEOData {
   title: string;
@@ -21,7 +22,7 @@ export function generateMetadata(data: SEOData): Metadata {
     title,
     description,
     keywords = [],
-    image = 'https://blog.bsospace.com/blog-image.webp',
+    image = `${envConfig.domain}/blog-image.webp`,
     url,
     type = 'website',
     author,
@@ -33,7 +34,7 @@ export function generateMetadata(data: SEOData): Metadata {
     nofollow = false,
   } = data;
 
-  const fullTitle = title ? `${title} | BSO Space Blog` : 'BSO Space Blog - Software Engineering Knowledge Hub';
+  const fullTitle = title ? `${title} | ${envConfig.organizationName} Blog` : `${envConfig.organizationName} Blog - Software Engineering Knowledge Hub`;
   const fullDescription = description || 'BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences.';
 
   const defaultKeywords = [
@@ -43,7 +44,7 @@ export function generateMetadata(data: SEOData): Metadata {
     'blog',
     'coding',
     'development',
-    'BSO Space',
+    envConfig.organizationName,
     'student projects',
     'tech knowledge'
   ];
@@ -54,9 +55,9 @@ export function generateMetadata(data: SEOData): Metadata {
     title: fullTitle,
     description: fullDescription,
     keywords: allKeywords,
-    authors: [{ name: author || 'BSO Space Team' }],
-    creator: 'BSO Space',
-    publisher: 'BSO Space',
+    authors: [{ name: author || `${envConfig.organizationName} Team` }],
+    creator: envConfig.organizationName,
+    publisher: envConfig.organizationName,
     robots: {
       index: !noindex,
       follow: !nofollow,
@@ -69,13 +70,13 @@ export function generateMetadata(data: SEOData): Metadata {
       },
     },
     alternates: {
-      canonical: url || 'https://blog.bsospace.com',
+      canonical: url || envConfig.domain,
     },
     openGraph: {
       title: fullTitle,
       description: fullDescription,
-      url: url || 'https://blog.bsospace.com',
-      siteName: 'BSO Space Blog',
+      url: url || envConfig.domain,
+      siteName: `${envConfig.organizationName} Blog`,
       images: [
         {
           url: image,
@@ -144,11 +145,11 @@ export function generateMetadata(data: SEOData): Metadata {
   return metadata;
 }
 
-export function generateStructuredData(data: SEOData) {
+export function generateArticleStructuredData(data: SEOData) {
   const {
     title,
     description,
-    image = 'https://blog.bsospace.com/blog-image.webp',
+    image = `${envConfig.domain}/blog-image.webp`,
     url,
     type = 'website',
     author,
@@ -156,9 +157,9 @@ export function generateStructuredData(data: SEOData) {
     modifiedTime,
   } = data;
 
-  const fullTitle = title ? `${title} | BSO Space Blog` : 'BSO Space Blog - Software Engineering Knowledge Hub';
+  const fullTitle = title ? `${title} | ${envConfig.organizationName} Blog` : `${envConfig.organizationName} Blog - Software Engineering Knowledge Hub`;
   const fullDescription = description || 'BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences.';
-  const currentUrl = url || 'https://blog.bsospace.com';
+  const currentUrl = url || envConfig.domain;
 
   if (type === 'article') {
     return {
@@ -169,14 +170,14 @@ export function generateStructuredData(data: SEOData) {
       "image": image,
       "author": {
         "@type": "Person",
-        "name": author || "BSO Space Team"
+        "name": author || `${envConfig.organizationName} Team`
       },
       "publisher": {
         "@type": "Organization",
-        "name": "BSO Space",
+        "name": envConfig.organizationName,
         "logo": {
           "@type": "ImageObject",
-          "url": "https://blog.bsospace.com/logo.png"
+          "url": `${envConfig.domain}/logo.png`
         }
       },
       "datePublished": publishedTime,
@@ -196,10 +197,10 @@ export function generateStructuredData(data: SEOData) {
     "url": currentUrl,
     "publisher": {
       "@type": "Organization",
-      "name": "BSO Space",
+      "name": envConfig.organizationName,
       "logo": {
         "@type": "ImageObject",
-        "url": "https://blog.bsospace.com/logo.png"
+        "url": `${envConfig.domain}/logo.png`
       }
     }
   };
@@ -214,13 +215,13 @@ export function generateBreadcrumbStructuredData(breadcrumbs: Array<{ label: str
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://blog.bsospace.com/home"
+        "item": `${envConfig.domain}/home`
       },
       ...breadcrumbs.map((item, index) => ({
         "@type": "ListItem",
         "position": index + 2,
         "name": item.label,
-        "item": item.href ? `https://blog.bsospace.com${item.href}` : undefined
+        "item": item.href ? `${envConfig.domain}${item.href}` : undefined
       }))
     ]
   };
@@ -230,9 +231,9 @@ export function generateOrganizationStructuredData() {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "BSO Space",
-    "url": "https://blog.bsospace.com",
-    "logo": "https://blog.bsospace.com/logo.png",
+    "name": envConfig.organizationName,
+    "url": envConfig.domain,
+    "logo": `${envConfig.domain}/logo.png`,
     "description": "Software Engineering Knowledge Hub - Collaborative blogging platform for students",
     "sameAs": [
       "https://twitter.com/bsospace",
@@ -241,7 +242,7 @@ export function generateOrganizationStructuredData() {
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "customer service",
-      "email": "contact@bsospace.com"
+      "email": envConfig.email
     }
   };
 }
@@ -250,12 +251,12 @@ export function generateWebsiteStructuredData() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "BSO Space Blog",
+    "name": `${envConfig.organizationName} Blog`,
     "description": "Software Engineering Knowledge Hub - Collaborative blogging platform for students",
-    "url": "https://blog.bsospace.com",
+    "url": envConfig.domain,
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://blog.bsospace.com/search?q={search_term_string}",
+      "target": `${envConfig.domain}/search?q={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
   };
