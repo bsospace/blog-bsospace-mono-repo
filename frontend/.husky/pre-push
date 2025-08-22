@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔨 Running pre-push build check..."
+echo "📦 Building project..."
+
+# Run build command
+pnpm build
+
+# Check if build was successful
+if [ $? -eq 0 ]; then
+    echo "✅ Build successful! Proceeding with push..."
+    exit 0
+else
+    echo "❌ Build failed! Please fix the errors before pushing."
+    echo "💡 Run 'pnpm build' locally to see the exact errors."
+    exit 1
+fi
