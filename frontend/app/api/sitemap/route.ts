@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import envConfig from '../../configs/envConfig';
 
 export async function GET(request: NextRequest) {
-  const baseUrl = 'https://blog.bsospace.com';
+  const baseUrl = envConfig.domain;
   
   // Get current date
   const currentDate = new Date().toISOString();
