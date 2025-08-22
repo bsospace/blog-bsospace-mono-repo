@@ -11,7 +11,7 @@ import NotFound from "@/app/components/NotFound";
 import { SEOProvider } from "@/app/contexts/seoContext";
 import Loading from "@/app/components/Loading";
 import BlogAIChat from "@/app/components/ai-chat";
-import { generateStructuredData } from '@/app/utils/seo';
+import { generateArticleStructuredData } from '@/app/utils/seo';
 import Image from "next/image";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateFingerprint } from '@/lib/fingerprint';
@@ -82,7 +82,7 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
 
   useEffect(() => {
     if (metadata.title && metadata.description && currentURL) {
-      const data = generateStructuredData({
+      const data = generateArticleStructuredData({
         title: metadata.title,
         description: metadata.description,
         image: metadata.image,
