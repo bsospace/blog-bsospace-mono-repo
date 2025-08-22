@@ -7,8 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "migrate": "npx prisma migrate deploy",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "prepare": "husky",
+    "pre-push": "pnpm build",
+    "test-hooks": "echo 'Testing husky hooks...' && pnpm lint && pnpm type-check && pnpm build",
     "prisma": "prisma --schema ./prisma/schema.prisma"
   },
   "dependencies": {
@@ -104,6 +109,7 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^8",
     "eslint-config-next": "^15.3.1",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8",
