@@ -314,7 +314,7 @@ export const CookiesPolicyDialog: React.FC<CookiesPolicyDialogProps> = ({ childr
                 กรุณาติดต่อเราได้ที่:
               </p>
               <div className="mt-3 p-4 bg-muted/50 rounded-lg">
-                <p className="font-medium text-foreground">ปิยะวัฒน์ วงค์ญาติ</p>
+                <p className="font-medium text-foreground">{envConfig.contactPersonName}</p>
                 <p className="text-sm text-muted-foreground">
                   อีเมล: {envConfig.email}<br />
                   ที่อยู่: กรุงเทพมหานคร, ประเทศไทย
