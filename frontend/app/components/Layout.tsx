@@ -14,6 +14,7 @@ import { FiCode, FiCpu } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import NotificationDropdown from "./NotificationDropdown";
 import { axiosInstance } from "../utils/api";
+import envConfig from '../configs/envConfig';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [version, setVersion] = useState<string>("unknown");
@@ -457,7 +458,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <footer className="text-center py-3 border-t border-slate-800">
         <div className="flex justify-center items-center space-x-4 text-slate-400">
           <FiCode className="w-5 h-5 text-orange-400" />
-          <span className="md:text-sm text-[10px]">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">BSO Space</Link></span>
+          <span className="md:text-sm text-[10px]">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">{envConfig.organizationName}</Link></span>
           <FiCpu className="w-5 h-5 text-red-400" />
         </div>
       </footer>
