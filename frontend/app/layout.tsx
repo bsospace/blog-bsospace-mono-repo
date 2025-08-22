@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { SEOProvider } from "./contexts/seoContext";
 import HelmetContextProvider from "./contexts/HelmetProvider";
 import PerformanceMonitor from "./components/PerformanceMonitor";
+import CookiesConsentProvider from "./contexts/cookies-consent-context";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -125,6 +126,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <HelmetContextProvider>
           <SEOProvider>
+            <CookiesConsentProvider>
             <AuthProvider>
               <Providers>
                 <PerformanceMonitor />
@@ -132,6 +134,7 @@ export default function RootLayout({
                 <Layout>{children}</Layout>
               </Providers>
             </AuthProvider>
+            </CookiesConsentProvider>
           </SEOProvider>
         </HelmetContextProvider>
       </body>
