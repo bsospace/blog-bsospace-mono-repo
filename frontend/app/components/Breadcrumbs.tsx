@@ -1,6 +1,8 @@
+import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ChevronRight, Home } from 'lucide-react';
+import envConfig from '../configs/envConfig';
 
 interface BreadcrumbItem {
   label: string;
@@ -84,26 +86,30 @@ export default function Breadcrumbs({ items = [], className = '' }: BreadcrumbsP
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://blog.bsospace.com/home"
-              },
-              ...breadcrumbItems.map((item, index) => ({
-                "@type": "ListItem",
-                "position": index + 2,
-                "name": item.label,
-                "item": item.href ? `https://blog.bsospace.com${item.href}` : undefined
-              }))
-            ]
-          })
+          __html: JSON.stringify(generateBreadcrumbStructuredData(breadcrumbItems))
         }}
       />
     </nav>
   );
+} 
+
+export function generateBreadcrumbStructuredData(breadcrumbs: Array<{ label: string; href?: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": `${envConfig.domain}/home`
+      },
+      ...breadcrumbs.map((item, index) => ({
+        "@type": "ListItem",
+        "position": index + 2,
+        "name": item.label,
+        "item": item.href ? `${envConfig.domain}${item.href}` : undefined
+      }))
+    ]
+  };
 } 
