@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "pre-commit": "pnpm lint && pnpm type-check",
+    "pre-push": "pnpm build"
+  }
+}

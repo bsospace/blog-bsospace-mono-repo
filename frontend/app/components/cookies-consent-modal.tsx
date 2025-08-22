@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCookiesConsent } from '@/hooks/use-cookies-consent';
 import { CookiesPolicyDialog } from './cookies-policy-dialog';
+import Link from 'next/link';
 
 export const CookiesConsentModal: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -264,9 +265,9 @@ export const CookiesConsentModal: React.FC = () => {
                 <p className="text-xs text-muted-foreground text-center sm:text-left leading-relaxed">
                   By continuing to use this site, you consent to our use of cookies. 
                   Learn more in our{' '}
-                  <a href="/privacy" className="text-primary hover:underline font-medium">
+                  <Link href="/privacy/" className="text-primary hover:underline font-medium">
                     Privacy Policy
-                  </a>
+                  </Link>
                   {' '}and{' '}
                   <CookiesPolicyDialog>
                     <button className="text-primary hover:underline font-medium cursor-pointer">

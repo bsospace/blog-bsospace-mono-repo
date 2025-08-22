@@ -49,7 +49,7 @@ export const CookiesPreferences: React.FC = () => {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            You haven't set your cookie preferences yet. Please accept or reject cookies to continue.
+            You haven&apos;t set your cookie preferences yet. Please accept or reject cookies to continue.
           </p>
         </CardContent>
       </Card>

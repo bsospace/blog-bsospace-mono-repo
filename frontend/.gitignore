@@ -38,3 +38,6 @@ next-env.d.ts
 .env.develop
 .env.pre
 .env.prod
+
+# Husky
+.husky/_/
