@@ -5,6 +5,11 @@ interface IEvnConfig {
     openIdApiUrl: string;
     callBackUrl: string;
     ws: string;
+    domain: string;
+    email: string;
+    organizationName: string;
+    imageServiceUrl: string;
+    proxyUrl: string;
 }
 
 const envConfig: IEvnConfig = {
@@ -12,7 +17,12 @@ const envConfig: IEvnConfig = {
     apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || '',
     openIdApiUrl: process.env.NEXT_PUBLIC_OPENID_API_URL || '',
     callBackUrl: process.env.NEXT_PUBLIC_CALLBACK_URL || '',
-    ws: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088/api/v1/ws'
+    ws: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088/api/v1/ws',
+    domain: process.env.NEXT_PUBLIC_DOMAIN || 'https://blog.bsospace.com',
+    email: process.env.NEXT_PUBLIC_EMAIL || 'contact@bsospace.com',
+    organizationName: process.env.NEXT_PUBLIC_ORGANIZATION_NAME || 'BSO Space',
+    imageServiceUrl: process.env.NEXT_PUBLIC_IMAGE_SERVICE_URL || 'https://image-service.bsospace.com',
+    proxyUrl: process.env.NEXT_PUBLIC_PROXY_URL || 'https://image.posyayee.shop'
 };
 
 
@@ -23,7 +33,12 @@ export const checkEnvConfig = () => {
         'apiBaseUrl',
         'openIdApiUrl',
         'callBackUrl',
-        'ws'
+        'ws',
+        'domain',
+        'email',
+        'organizationName',
+        'imageServiceUrl',
+        'proxyUrl'
     ];
 
     for (const field of requiredFields) {
