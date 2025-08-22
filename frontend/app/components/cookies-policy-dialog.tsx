@@ -76,10 +76,10 @@ export const CookiesPolicyDialog: React.FC<CookiesPolicyDialogProps> = ({ childr
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-foreground leading-relaxed">
-                นโยบายการใช้งานคุกกี้นี้ ("นโยบาย") อธิบายถึงวิธีการที่{envConfig.contactPersonName}
-                ("เรา", "ของเรา", "เรา") ใช้คุกกี้และเทคโนโลยีที่คล้ายคลึงกันบนเว็บไซต์ของ{envConfig.organizationName}
-                เพื่อให้คุณเข้าใจถึงการใช้งานและสามารถควบคุมการตั้งค่าคุกกี้ได้
-              </p>
+                  นโยบายการใช้งานคุกกี้นี้ (&quot;นโยบาย&quot;) อธิบายถึงวิธีการที่{envConfig.contactPersonName}
+                  (&quot;เรา&quot;, &quot;ของเรา&quot;, &quot;เรา&quot;) ใช้คุกกี้และเทคโนโลยีที่คล้ายคลึงกันบนเว็บไซต์ของ{envConfig.organizationName}
+                  เพื่อให้คุณเข้าใจถึงการใช้งานและสามารถควบคุมการตั้งค่าคุกกี้ได้
+                </p>
               <p className="text-foreground leading-relaxed">
                 การใช้เว็บไซต์ของเราแสดงว่าคุณยอมรับการใช้งานคุกกี้ตามที่อธิบายไว้ในนโยบายนี้
               </p>
