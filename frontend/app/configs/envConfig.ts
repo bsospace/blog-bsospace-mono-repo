@@ -10,6 +10,7 @@ interface IEvnConfig {
     organizationName: string;
     imageServiceUrl: string;
     proxyUrl: string;
+    contactPersonName: string;
 }
 
 const envConfig: IEvnConfig = {
@@ -22,7 +23,8 @@ const envConfig: IEvnConfig = {
     email: process.env.NEXT_PUBLIC_EMAIL || 'contact@bsospace.com',
     organizationName: process.env.NEXT_PUBLIC_ORGANIZATION_NAME || 'BSO Space',
     imageServiceUrl: process.env.NEXT_PUBLIC_IMAGE_SERVICE_URL || 'https://image-service.bsospace.com',
-    proxyUrl: process.env.NEXT_PUBLIC_PROXY_URL || 'https://image.posyayee.shop'
+    proxyUrl: process.env.NEXT_PUBLIC_PROXY_URL || 'https://image.posyayee.shop',
+    contactPersonName: process.env.NEXT_PUBLIC_CONTACT_PERSON_NAME || 'ปิยะวัฒน์ วงค์ญาติ'
 };
 
 
@@ -38,7 +40,8 @@ export const checkEnvConfig = () => {
         'email',
         'organizationName',
         'imageServiceUrl',
-        'proxyUrl'
+        'proxyUrl',
+        'contactPersonName'
     ];
 
     for (const field of requiredFields) {
