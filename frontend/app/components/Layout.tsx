@@ -12,34 +12,62 @@ import { ChevronDown, LogOut, Notebook, Settings, SquarePen, User, UserCircle } 
 import { getnerateId } from "@/lib/utils";
 import { FiCode, FiCpu } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import NotificationDropdown from "./NotificationDropdown";
 import { axiosInstance } from "../utils/api";
+import envConfig from '../configs/envConfig';
+
+// Profile Button Component
+const ProfileButton = ({ 
+  isLoggedIn, 
+  user, 
+  isOpen 
+}: {
+  isLoggedIn: boolean;
+  user: any;
+  isOpen: boolean;
+}) => (
+  <div className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group">
+    {isLoggedIn && user ? (
+      <>
+        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm ring-2 ring-orange-100 dark:ring-orange-900/20 group-hover:ring-orange-200 dark:group-hover:ring-orange-800 transition-all duration-200">
+          <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </>
+    ) : (
+      <>
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 group-hover:from-orange-200 group-hover:to-orange-300 dark:group-hover:from-orange-800/50 dark:group-hover:to-orange-700/50 transition-all duration-200">
+          <User className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </>
+    )}
+  </div>
+);
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [version, setVersion] = useState<string>("unknown");
-  const [isOpen, setIsOpen] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const { isLoggedIn, user, setIsLoggedIn, setUser } = useContext(AuthContext);
-  const desktopDropdownRef = useRef<HTMLDivElement>(null);
-  const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-  };
 
   const handleLogout = async () => {
     setIsLoggedIn(false);
     setUser(null);
-    setIsOpen(false);
     try {
       const response = await axiosInstance.delete("/auth/logout");
       if (response.data.success) {
-        // Clear local storage or any other state management
         localStorage.removeItem("warp");
         localStorage.removeItem("logged_in");
         localStorage.removeItem("pid");
-        // Redirect to login page
         window.location.href = "/home"
       }
     }
@@ -47,41 +75,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       console.error("Error during logout:", error);
     }
   };
-
-  const navigateToLogin = () => {
-    window.location.href = "/auth/login";
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const desktopContains = desktopDropdownRef.current?.contains(target);
-      const mobileContains = mobileDropdownRef.current?.contains(target);
-      if (!desktopContains && !mobileContains) setIsOpen(false);
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchLatestVersion = async () => {
-      try {
-        const response = await axios.get(
-          "https://api.github.com/repos/bsospace/blog-bsospace-mono-repo/releases/latest"
-        );
-        setVersion(response.data.tag_name || "unknown");
-      } catch (error) {
-        console.error("Error fetching latest version from GitHub:", error);
-        setVersion("unknown");
-      }
-    };
-
-    fetchLatestVersion();
-  }, []);
 
   // Handle show/hide navbar on scroll (mobile only; always shown on md+)
   useEffect(() => {
@@ -99,6 +92,23 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Add missing useEffect for version fetching
+  useEffect(() => {
+    const fetchLatestVersion = async () => {
+      try {
+        const response = await axios.get(
+          "https://api.github.com/repos/bsospace/blog-bsospace-mono-repo/releases/latest"
+        );
+        setVersion(response.data.tag_name || "unknown");
+      } catch (error) {
+        console.error("Error fetching latest version from GitHub:", error);
+        setVersion("unknown");
+      }
+    };
+
+    fetchLatestVersion();
   }, []);
 
   return (
@@ -135,7 +145,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   href="https://github.com/bsospace"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-orange-500 no-underline"
+                  className="hover:text-orange-500 no-underline transition-colors duration-200"
                 >
                   GitHub
                 </a>
@@ -143,7 +153,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   href="https://www.youtube.com/@bsospace"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-orange-500 no-underline"
+                  className="hover:text-orange-500 no-underline transition-colors duration-200"
                 >
                   YouTube
                 </a>
@@ -154,293 +164,341 @@ export default function Layout({ children }: { children: ReactNode }) {
               {/* Theme Switcher */}
               <ThemeSwitcher />
               {/* Profile Dropdown */}
-              <div className="relative" ref={desktopDropdownRef}>
-                <button
-                  onClick={toggleDropdown}
-                  className="flex items-center gap-2 md:p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fb923c] focus:ring-opacity-50"
-                  aria-expanded={isOpen}
-                  aria-haspopup="true"
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 group">
+                    {isLoggedIn && user ? (
+                      <>
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm ring-2 ring-orange-100 dark:ring-orange-900/20 group-hover:ring-orange-200 dark:group-hover:ring-orange-800 transition-all duration-200">
+                          <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200" />
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 group-hover:from-orange-200 group-hover:to-orange-300 dark:group-hover:from-orange-800/50 dark:group-hover:to-orange-700/50 transition-all duration-200">
+                          <User className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200" />
+                      </>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                
+                <DropdownMenuContent 
+                  className="w-72 p-0" 
+                  align="end" 
+                  sideOffset={8}
+                  alignOffset={0}
                 >
                   {isLoggedIn && user ? (
                     <>
-                      <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800">
-                        <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </>
-                  )}
-                </button>
-                {isOpen && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-900 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 origin-top-right transition-all duration-200 ease-out">
-                    <div className="p-4">
-                      {isLoggedIn && user ? (
-                        <>
-                          <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow">
-                              <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-lg text-gray-900 dark:text-white truncate leading-tight">
-                                {user.username || user.email.split("@")[0]}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400 truncate leading-tight">{user.email}</p>
-                            </div>
+                      {/* User Info Header */}
+                      <div className="p-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg ring-2 ring-orange-100 dark:ring-orange-900/20">
+                            <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                           </div>
-                          <div className="mt-4 space-y-1">
-                            <Link
-                              href={`/w/${getnerateId()}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <SquarePen className="w-5 h-5" />
-                              <span>Write story</span>
-                            </Link>
-                            <Link
-                              href={`/w`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <Notebook className="w-5 h-5" />
-                              <span>My stories</span>
-                            </Link>
-                            <Link
-                              href={`${"/@"}${user.username}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <UserCircle className="w-5 h-5" />
-                              <span>Profile</span>
-                            </Link>
-                            <Link
-                              href="/settings"
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <Settings className="w-5 h-5" />
-                              <span>Setting (Comming soon)</span>
-                            </Link>
-                            <button
-                              onClick={handleLogout}
-                              className="w-full no-underline flex items-center gap-3 px-3 py-2.5 mt-2 text-sm text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              <LogOut className="w-5 h-5" />
-                              <span>Sign out</span>
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="py-3 text-center text-gray-700 dark:text-gray-300 mb-4">
-                          <h3 className="font-semibold text-xl mb-1 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">Welcome</h3>
-                          <div className="mt-4 space-y-1">
-                            <Link
-                              href={`/w/${getnerateId()}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <SquarePen className="w-5 h-5" />
-                              <span>Write story</span>
-                            </Link>
-                            <Link
-                              href={``}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <Notebook className="w-5 h-5" />
-                              <span>My stories</span>
-                            </Link>
-                            <Link
-                              href={``}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <UserCircle className="w-5 h-5" />
-                              <span>Profile</span>
-                            </Link>
-                            <Link
-                              href="/settings"
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <Settings className="w-5 h-5" />
-                              <span>Setting (Comming soon)</span>
-                            </Link>
-                          </div>
-                          <div className="space-y-3 mt-4">
-                            <Button variant="default" className="w-full" onClick={navigateToLogin}>
-                              Login
-                            </Button>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-lg text-gray-900 dark:text-white truncate leading-tight">
+                              {user.username || user.email.split("@")[0]}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate leading-tight">{user.email}</p>
                           </div>
                         </div>
-                      )}
+                      </div>
+
+                      {/* Action Menu */}
+                      <div className="p-2">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/w/${getnerateId()}`}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                          >
+                            <SquarePen className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Write story</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/w"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                          >
+                            <Notebook className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">My stories</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/@${user.username}`}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                          >
+                            <UserCircle className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Profile</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/settings"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                            onClick={(e) => e.preventDefault()}
+                          >
+                            <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Settings (Coming soon)</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuSeparator />
+                        
+                        <DropdownMenuItem 
+                          onClick={handleLogout}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group cursor-pointer"
+                        >
+                          <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">Sign out</span>
+                        </DropdownMenuItem>
+                      </div>
+                    </>
+                  ) : (
+                    /* Guest User Menu */
+                    <div className="p-4">
+                      <div className="text-center text-gray-700 dark:text-gray-300 mb-4">
+                        <h3 className="font-bold text-xl mb-4 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">
+                          Welcome
+                        </h3>
+                        
+                        <div className="space-y-2 mb-4">
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/w/${getnerateId()}`}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-blue-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                            >
+                              <SquarePen className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">Write story</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href="/w"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <Notebook className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">My stories</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href=""
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <UserCircle className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">Profile (Coming soon)</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href="/settings"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">Settings (Coming soon)</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        </div>
+                        
+                        <Button 
+                          variant="default" 
+                          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105" 
+                          onClick={() => {
+                            window.location.href = "/auth/login";
+                          }}
+                        >
+                          Login
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Mobile controls (Theme + Profile) */}
             <div className="md:hidden ml-auto flex items-center gap-2">
               <ThemeSwitcher />
-              <div className="relative" ref={mobileDropdownRef}>
-                <button
-                  onClick={toggleDropdown}
-                  className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#fb923c] focus:ring-opacity-50"
-                  aria-expanded={isOpen}
-                  aria-haspopup="true"
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 group">
+                    {isLoggedIn && user ? (
+                      <>
+                        <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm ring-2 ring-orange-100 dark:ring-orange-900/20 group-hover:ring-orange-200 dark:group-hover:ring-orange-800 transition-all duration-200">
+                          <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200" />
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 group-hover:from-orange-200 group-hover:to-orange-300 dark:group-hover:from-orange-800/50 dark:group-hover:to-orange-700/50 transition-all duration-200">
+                          <User className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200" />
+                      </>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                
+                <DropdownMenuContent 
+                  className="w-72 p-0" 
+                  align="end" 
+                  sideOffset={8}
+                  alignOffset={0}
                 >
                   {isLoggedIn && user ? (
                     <>
-                      <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800">
-                        <User className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    </>
-                  )}
-                </button>
-                {isOpen && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-900 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 origin-top-right transition-all duration-200 ease-out">
-                    <div className="p-4">
-                      {isLoggedIn && user ? (
-                        <>
-                          <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow">
-                              <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-lg text-gray-900 dark:text-white truncate leading-tight">
-                                {user.username || user.email.split("@")[0]}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400 truncate leading-tight">{user.email}</p>
-                            </div>
+                      {/* User Info Header */}
+                      <div className="p-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-lg ring-2 ring-orange-100 dark:ring-orange-900/20">
+                            <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                           </div>
-                          <div className="mt-4 space-y-1">
-                            <Link
-                              href={`/w/${getnerateId()}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <SquarePen className="w-5 h-5" />
-                              <span>Write story</span>
-                            </Link>
-                            <Link
-                              href={`/w`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <Notebook className="w-5 h-5" />
-                              <span>My stories</span>
-                            </Link>
-                            <Link
-                              href={`${"/@"}${user.username}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <UserCircle className="w-5 h-5" />
-                              <span>Profile (Coming soon)</span>
-                            </Link>
-                            <Link
-                              href="/settings"
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <Settings className="w-5 h-5" />
-                              <span>Setting (Coming soon)</span>
-                            </Link>
-                            <button
-                              onClick={handleLogout}
-                              className="w-full no-underline flex items-center gap-3 px-3 py-2.5 mt-2 text-sm text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              <LogOut className="w-5 h-5" />
-                              <span>Sign out</span>
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="py-3 text-center text-gray-700 dark:text-gray-300 mb-4">
-                          <h3 className="font-semibold text-xl mb-1 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">Welcome</h3>
-                          <div className="mt-4 space-y-1">
-                            <Link
-                              href={`/w/${getnerateId()}`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <SquarePen className="w-5 h-5" />
-                              <span>Write story</span>
-                            </Link>
-                            <Link
-                              href={`/w`}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <Notebook className="w-5 h-5" />
-                              <span>My stories</span>
-                            </Link>
-                            <Link
-                              href={``}
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <UserCircle className="w-5 h-5" />
-                              <span>Profile (Coming soon)</span>
-                            </Link>
-                            <Link
-                              href="/settings"
-                              className="flex no-underline items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsOpen(false);
-                              }}
-                            >
-                              <Settings className="w-5 h-5" />
-                              <span>Setting (Coming soon)</span>
-                            </Link>
-                          </div>
-                          <div className="space-y-3 mt-4">
-                            <Button variant="default" className="w-full" onClick={navigateToLogin}>
-                              Login
-                            </Button>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-lg text-gray-900 dark:text-white truncate leading-tight">
+                              {user.username || user.email.split("@")[0]}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate leading-tight">{user.email}</p>
                           </div>
                         </div>
-                      )}
+                      </div>
+
+                      {/* Action Menu */}
+                      <div className="p-2">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/w/${getnerateId()}`}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                          >
+                            <SquarePen className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Write story</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/w"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                          >
+                            <Notebook className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">My stories</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/@${user.username}`}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                          >
+                            <UserCircle className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Profile</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/settings"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                            onClick={(e) => e.preventDefault()}
+                          >
+                            <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Settings (Coming soon)</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuSeparator />
+                        
+                        <DropdownMenuItem 
+                          onClick={handleLogout}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group cursor-pointer"
+                        >
+                          <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">Sign out</span>
+                        </DropdownMenuItem>
+                      </div>
+                    </>
+                  ) : (
+                    /* Guest User Menu */
+                    <div className="p-4">
+                      <div className="text-center text-gray-700 dark:text-gray-300 mb-4">
+                        <h3 className="font-bold text-xl mb-4 bg-gradient-to-r from-orange-400 to-orange-600 text-transparent bg-clip-text">
+                          Welcome
+                        </h3>
+                        
+                        <div className="space-y-2 mb-4">
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/w/${getnerateId()}`}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-blue-900/20 transition-all duration-200 text-gray-700 dark:text-gray-300 group cursor-pointer"
+                            >
+                              <SquarePen className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">Write story</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href="/w"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <Notebook className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">My stories</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href=""
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <UserCircle className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">Profile (Coming soon)</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href="/settings"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                              <span className="font-medium">Settings (Coming soon)</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        </div>
+                        
+                        <Button 
+                          variant="default" 
+                          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105" 
+                          onClick={() => {
+                            window.location.href = "/auth/login";
+                          }}
+                        >
+                          Login
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -457,7 +515,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <footer className="text-center py-3 border-t border-slate-800">
         <div className="flex justify-center items-center space-x-4 text-slate-400">
           <FiCode className="w-5 h-5 text-orange-400" />
-          <span className="md:text-sm text-[10px]">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">BSO Space</Link></span>
+          <span className="md:text-sm text-[10px]">Be Simple but Outstanding | Version: {version} | &copy; {new Date().getFullYear()} <Link href="https://www.bsospace.com" target="_blank" className="hover:text-orange-400 transition-colors">{envConfig.organizationName}</Link></span>
           <FiCpu className="w-5 h-5 text-red-400" />
         </div>
       </footer>

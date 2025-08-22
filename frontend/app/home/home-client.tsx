@@ -7,6 +7,7 @@ import BlogCard from "../components/Blog";
 import { Post } from "../interfaces";
 import { FiCode, FiCpu, FiSearch, FiTrendingUp, FiZap } from "react-icons/fi";
 import Loading from "../components/Loading";
+import { CookiesConsentModal } from "../components/cookies-consent-modal";
 
 export default function HomePageClient({ fetchPosts }: { fetchPosts: (page: number, limit: number, search: string) => Promise<{ data: Post[]; meta: Meta }> }) {
   // Constants
@@ -242,6 +243,9 @@ export default function HomePageClient({ fetchPosts }: { fetchPosts: (page: numb
             )}
           </div>
         </section>
+
+        {/* Cookies Consent Modal */}
+        <CookiesConsentModal />
       </div>
     </div>
   );

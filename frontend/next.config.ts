@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+import envConfig from './app/configs/envConfig';
+
 const nextConfig = {
   // SEO and Performance optimizations
   compress: true,
@@ -8,7 +10,7 @@ const nextConfig = {
   // Image optimization
   images: {
     domains: [
-      'image-service.bsospace.com',
+      envConfig.imageServiceUrl.replace('https://', '').replace('http://', ''),
       'lh3.googleusercontent.com',
       'cdn.discordapp.com',
       'avatars.githubusercontent.com',
@@ -69,10 +71,10 @@ const nextConfig = {
         has: [
           {
             type: 'host',
-            value: 'www.blog.bsospace.com',
+            value: `www.${envConfig.domain.replace('https://', '').replace('http://', '')}`,
           },
         ],
-        destination: 'https://blog.bsospace.com/:path*',
+        destination: `${envConfig.domain}/:path*`,
         permanent: true,
       },
     ];

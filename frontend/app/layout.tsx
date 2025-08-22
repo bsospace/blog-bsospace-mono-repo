@@ -5,12 +5,14 @@ import "./globals.css";
 import Layout from "./components/Layout";
 import { AuthProvider } from "./contexts/authContext";
 import Providers from "./components/providers";
+import envConfig from "./configs/envConfig";
 
 const inter = Inter({ subsets: ["latin"] });
 import { Toaster } from "@/components/ui/toaster"
 import { SEOProvider } from "./contexts/seoContext";
 import HelmetContextProvider from "./contexts/HelmetProvider";
 import PerformanceMonitor from "./components/PerformanceMonitor";
+import CookiesConsentProvider from "./contexts/cookies-consent-context";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -24,10 +26,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://blog.bsospace.com'),
+  metadataBase: new URL(envConfig.domain),
   title: {
     default: "BSO Blog - Software Engineering Knowledge Hub",
-    template: "%s | BSO Space Blog"
+    template: `%s | ${envConfig.organizationName} Blog`
   },
   description:
     "BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences in software development, programming, and technology.",
@@ -38,13 +40,13 @@ export const metadata: Metadata = {
     "blog",
     "coding",
     "development",
-    "BSO Space",
+    envConfig.organizationName,
     "student projects",
     "tech knowledge"
   ],
-  authors: [{ name: "BSO Space Team" }],
-  creator: "BSO Space",
-  publisher: "BSO Space",
+  authors: [{ name: `${envConfig.organizationName} Team` }],
+  creator: envConfig.organizationName,
+  publisher: envConfig.organizationName,
   formatDetection: {
     email: false,
     address: false,
@@ -65,19 +67,19 @@ export const metadata: Metadata = {
     google: 'your-google-verification-code', // Add your Google Search Console verification code
   },
   alternates: {
-    canonical: 'https://blog.bsospace.com',
+    canonical: envConfig.domain,
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://blog.bsospace.com",
+    url: envConfig.domain,
     title: "BSO Blog - Software Engineering Knowledge Hub",
     description:
       "BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences.",
-    siteName: "BSO Blog",
+    siteName: `${envConfig.organizationName} Blog`,
     images: [
       {
-        url: "https://blog.bsospace.com/logo.webp",
+        url: `${envConfig.domain}/logo.webp`,
         width: 1200,
         height: 630,
         alt: "BSO Blog - Software Engineering Knowledge Hub",
@@ -90,7 +92,7 @@ export const metadata: Metadata = {
     title: "BSO Blog - Software Engineering Knowledge Hub",
     description:
       "BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences.",
-    images: ["https://blog.bsospace.com/logo.webp"],
+    images: [`${envConfig.domain}/logo.webp`],
     creator: "@bsospace", // Add your Twitter handle
     site: "@bsospace", // Add your Twitter handle
   },
@@ -125,6 +127,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <HelmetContextProvider>
           <SEOProvider>
+            <CookiesConsentProvider>
             <AuthProvider>
               <Providers>
                 <PerformanceMonitor />
@@ -132,6 +135,7 @@ export default function RootLayout({
                 <Layout>{children}</Layout>
               </Providers>
             </AuthProvider>
+            </CookiesConsentProvider>
           </SEOProvider>
         </HelmetContextProvider>
       </body>
