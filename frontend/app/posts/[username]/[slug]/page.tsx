@@ -4,6 +4,7 @@ import { axiosInstanceServer } from '@/app/utils/api-server';
 import PostClient from './post-client';
 import { notFound } from 'next/navigation';
 import { generateFingerprint } from '@/lib/fingerprint';
+import envConfig from '../../../configs/envConfig';
 
 function sanitizeParam(value: string): string {
   return decodeURIComponent(value).replace(/^@/, '').split(/[?#]/)[0].trim();
@@ -20,12 +21,12 @@ export async function generateMetadata({
   const slug = sanitizeParam(rawSlug);
 
   const apiUrl = `/posts/public/${username}/${slug}`;
+  const baseUrl = envConfig.domain;
+  const postUrl = `${baseUrl}/posts/${username}/${slug}`;
 
   try {
     const res = await axiosInstanceServer.get(apiUrl);
     const post = res.data.data as Post;
-    const baseUrl = 'https://blog.bsospace.com';
-    const postUrl = `${baseUrl}/posts/${username}/${slug}`;
 
     return {
       title: post.title,
