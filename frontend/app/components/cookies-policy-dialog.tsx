@@ -23,8 +23,12 @@ import {
   FileText,
   ExternalLink,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Info,
+  Mail,
+  MapPin
 } from 'lucide-react';
+import envConfig from '../configs/envConfig';
 
 interface CookiesPolicyDialogProps {
   children: React.ReactNode;
@@ -312,7 +316,7 @@ export const CookiesPolicyDialog: React.FC<CookiesPolicyDialogProps> = ({ childr
               <div className="mt-3 p-4 bg-muted/50 rounded-lg">
                 <p className="font-medium text-foreground">ปิยะวัฒน์ วงค์ญาติ</p>
                 <p className="text-sm text-muted-foreground">
-                  อีเมล: w.piyawat@bsospace.com<br />
+                  อีเมล: {envConfig.email}<br />
                   ที่อยู่: กรุงเทพมหานคร, ประเทศไทย
                 </p>
               </div>
