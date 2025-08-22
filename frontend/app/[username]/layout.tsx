@@ -1,12 +1,13 @@
 import { Metadata } from "next";
 import { ReactNode } from "react";
 import { axiosInstanceServer } from "../utils/api-server";
+import envConfig from '../configs/envConfig';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const SITE_NAME = 'Blog Space Blog';
-const SITE_URL = 'https://blog.bsospace.com';
+const SITE_URL = envConfig.domain;
 
 export default function UserProfileLayout({ children }: { children: ReactNode }) {
   return (
