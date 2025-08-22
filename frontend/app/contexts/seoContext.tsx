@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, ReactNode } from 'react';
 import { Helmet } from 'react-helmet-async';
+import envConfig from '../configs/envConfig';
 
 interface SEOProps {
     title?: string;
@@ -18,12 +19,12 @@ const defaultSEO: SEOProps = {
     title: 'BSO Blog',
     description: 'BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences in software development, programming, and technology.',
     image: '/favicon.ico',
-    url: 'https://blog.bsospace.com',
+    url: envConfig.domain,
     keywords: 'BSO, Blog, Software Engineering, Dev, บทความเทคโนโลยี',
-    author: 'BSO Space Team',
+    author: `${envConfig.organizationName} Team`,
     robots: 'index, follow',
     twitterCardType: 'summary_large_image',
-    canonical: 'https://blog.bsospace.com',
+    canonical: envConfig.domain,
 };
 
 const SEOContext = createContext<SEOProps>(defaultSEO);
