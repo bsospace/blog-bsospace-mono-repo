@@ -64,7 +64,7 @@ export const CookiesPolicyDialog: React.FC<CookiesPolicyDialogProps> = ({ childr
             นโยบายการใช้คุกกี้ (Cookies Policy)
           </DialogTitle>
           <DialogDescription className="text-base">
-            นโยบายการใช้งานคุกกี้ของปิยะวัฒน์ วงค์ญาติ เพื่อคุ้มครองข้อมูลส่วนบุคคลของคุณ
+            นโยบายการใช้งานคุกกี้ของ{envConfig.contactPersonName}เพื่อคุ้มครองข้อมูลส่วนบุคคลของคุณ
           </DialogDescription>
         </DialogHeader>
 
@@ -76,8 +76,8 @@ export const CookiesPolicyDialog: React.FC<CookiesPolicyDialogProps> = ({ childr
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-foreground leading-relaxed">
-                นโยบายการใช้งานคุกกี้นี้ ("นโยบาย") อธิบายถึงวิธีการที่ปิยะวัฒน์ วงค์ญาติ 
-                ("เรา", "ของเรา", "เรา") ใช้คุกกี้และเทคโนโลยีที่คล้ายคลึงกันบนเว็บไซต์ของเรา 
+                นโยบายการใช้งานคุกกี้นี้ ("นโยบาย") อธิบายถึงวิธีการที่{envConfig.contactPersonName}
+                ("เรา", "ของเรา", "เรา") ใช้คุกกี้และเทคโนโลยีที่คล้ายคลึงกันบนเว็บไซต์ของ{envConfig.organizationName}
                 เพื่อให้คุณเข้าใจถึงการใช้งานและสามารถควบคุมการตั้งค่าคุกกี้ได้
               </p>
               <p className="text-foreground leading-relaxed">
