@@ -1,5 +1,7 @@
+import React from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import envConfig from '../configs/envConfig';
 
 interface SEOHeadProps {
   title?: string;
@@ -21,7 +23,7 @@ export default function SEOHead({
   title,
   description,
   keywords = [],
-  image = 'https://blog.bsospace.com/blog-image.webp',
+  image = `${envConfig.domain}/blog-image.webp`,
   url,
   type = 'website',
   author,
@@ -33,8 +35,8 @@ export default function SEOHead({
   nofollow = false,
 }: SEOHeadProps) {
   const router = useRouter();
-  const currentUrl = url || `https://blog.bsospace.com${router.asPath}`;
-  const fullTitle = title ? `${title} | BSO Space Blog` : 'BSO Space Blog - Software Engineering Knowledge Hub';
+  const currentUrl = url || `${envConfig.domain}${router.asPath}`;
+  const fullTitle = title ? `${title} | ${envConfig.organizationName} Blog` : `${envConfig.organizationName} Blog - Software Engineering Knowledge Hub`;
   const fullDescription = description || 'BSO Blog is a collaborative blogging platform created by Software Engineering students, aimed at sharing knowledge, cutting-edge techniques, and real-world experiences.';
 
   const defaultKeywords = [
@@ -74,7 +76,7 @@ export default function SEOHead({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content={fullTitle} />
-      <meta property="og:site_name" content="BSO Space Blog" />
+      <meta property="og:site_name" content={`${envConfig.organizationName} Blog`} />
       <meta property="og:locale" content="en_US" />
       
       {/* Twitter Card */}
@@ -117,14 +119,14 @@ export default function SEOHead({
               "image": image,
               "author": {
                 "@type": "Person",
-                "name": author || "BSO Space Team"
+                "name": author || `${envConfig.organizationName} Team`
               },
               "publisher": {
                 "@type": "Organization",
-                "name": "BSO Space",
+                "name": envConfig.organizationName,
                 "logo": {
                   "@type": "ImageObject",
-                  "url": "https://blog.bsospace.com/logo.png"
+                  "url": `${envConfig.domain}/logo.png`
                 }
               },
               "datePublished": publishedTime,
@@ -141,21 +143,21 @@ export default function SEOHead({
       {/* Website structured data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "BSO Space Blog",
-            "description": fullDescription,
-            "url": "https://blog.bsospace.com",
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "https://blog.bsospace.com/search?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          })
-        }}
-      />
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": `${envConfig.organizationName} Blog`,
+              "description": fullDescription,
+              "url": envConfig.domain,
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": `${envConfig.domain}/search?q={search_term_string}`,
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
     </Head>
   );
 } 
