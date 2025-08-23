@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"testing"
 
 	"mime/multipart"
@@ -102,6 +103,12 @@ func (m *MockPostRepository) GetPostViews(postID string) (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
+// Add missing method GetPopularPosts
+func (m *MockPostRepository) GetPopularPosts(limit int) ([]models.Post, error) {
+	args := m.Called(limit)
+	return args.Get(0).([]models.Post), args.Error(1)
+}
+
 // Add missing method GetPublishedPostsByAuthor
 func (m *MockPostRepository) GetPublishedPostsByAuthor(username string, page, limit int) ([]models.Post, int64, error) {
 	args := m.Called(username, page, limit)
@@ -162,7 +169,7 @@ func TestCreatePost_UpdateExisting(t *testing.T) {
 	repo.On("Update", mock.AnythingOfType("*models.Post")).Return(nil)
 	// เพิ่ม expectation สำหรับ GetByID (service อาจเรียกใน UpdateImageUsageStatus)
 	repo.On("GetByID", mock.Anything).Return(existing, nil)
-	
+
 	// Mock media service calls for UpdateImageUsageStatus
 	media.On("GetImagesByPostID", existing.ID).Return([]models.ImageUpload{}, nil)
 
@@ -272,7 +279,7 @@ func TestCreatePost_NewPost_UpdatesImageUsageStatus(t *testing.T) {
 
 	user := &models.User{ID: uuid.New()}
 	imageURL := "https://example.com/image.png"
-	
+
 	// Create content with an image
 	content := post.PostContentStructure{
 		Type: "doc",
@@ -290,7 +297,7 @@ func TestCreatePost_NewPost_UpdatesImageUsageStatus(t *testing.T) {
 			},
 		},
 	}
-	
+
 	postReq := post.CreatePostRequest{
 		ShortSlug: "newpost",
 		Title:     "New Post with Image",
@@ -319,7 +326,7 @@ func TestCreatePost_NewPost_UpdatesImageUsageStatus(t *testing.T) {
 	repo.On("GetByShortSlug", slug).Return((*models.Post)(nil), gorm.ErrRecordNotFound) // No existing post
 	repo.On("Create", mock.AnythingOfType("*models.Post")).Return(postID, nil)
 	repo.On("GetByID", postID).Return(createdPost, nil)
-	
+
 	// Mock media service calls for UpdateImageUsageStatus
 	media.On("GetImagesByPostID", createdPost.ID).Return([]models.ImageUpload{imageUpload}, nil)
 	media.On("UpdateImageUsage", mock.MatchedBy(func(img *models.ImageUpload) bool {
@@ -336,4 +343,211 @@ func TestCreatePost_NewPost_UpdatesImageUsageStatus(t *testing.T) {
 
 	repo.AssertExpectations(t)
 	media.AssertExpectations(t)
+}
+
+// Test cases for GetPopularPosts functionality
+
+// Test case สำหรับ GetPopularPosts สำเร็จ
+func TestGetPopularPosts_Success(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	limit := 4
+	expectedPosts := []models.Post{
+		{
+			ID:          uuid.New(),
+			Title:       "Most Popular Post",
+			Slug:        "most-popular-post",
+			Description: "This is the most popular post",
+			Views:       1000,
+			Likes:       150,
+			Author: models.User{
+				ID:       uuid.New(),
+				UserName: "author1",
+			},
+		},
+		{
+			ID:          uuid.New(),
+			Title:       "Second Popular Post",
+			Slug:        "second-popular-post",
+			Description: "This is the second most popular post",
+			Views:       800,
+			Likes:       120,
+			Author: models.User{
+				ID:       uuid.New(),
+				UserName: "author2",
+			},
+		},
+		{
+			ID:          uuid.New(),
+			Title:       "Third Popular Post",
+			Slug:        "third-popular-post",
+			Description: "This is the third most popular post",
+			Views:       600,
+			Likes:       90,
+			Author: models.User{
+				ID:       uuid.New(),
+				UserName: "author3",
+			},
+		},
+		{
+			ID:          uuid.New(),
+			Title:       "Fourth Popular Post",
+			Slug:        "fourth-popular-post",
+			Description: "This is the fourth most popular post",
+			Views:       400,
+			Likes:       60,
+			Author: models.User{
+				ID:       uuid.New(),
+				UserName: "author4",
+			},
+		},
+	}
+
+	// Mock expectations
+	repo.On("GetPopularPosts", limit).Return(expectedPosts, nil)
+
+	// Test
+	result, err := service.GetPopularPosts(limit)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 4, len(result.Posts))
+	assert.Equal(t, int64(4), result.Meta.Total)
+	assert.Equal(t, 1, result.Meta.Page)
+	assert.Equal(t, limit, result.Meta.Limit)
+
+	// Verify first post (most popular)
+	firstPost := result.Posts[0]
+	assert.Equal(t, "Most Popular Post", firstPost.Title)
+	assert.Equal(t, 1000, firstPost.Views)
+	assert.Equal(t, 150, firstPost.Likes)
+	assert.Equal(t, "author1", firstPost.Author.UserName)
+
+	// Verify last post (least popular)
+	lastPost := result.Posts[3]
+	assert.Equal(t, "Fourth Popular Post", lastPost.Title)
+	assert.Equal(t, 400, lastPost.Views)
+	assert.Equal(t, 60, lastPost.Likes)
+	assert.Equal(t, "author4", lastPost.Author.UserName)
+
+	repo.AssertExpectations(t)
+}
+
+// Test case สำหรับ GetPopularPosts เมื่อไม่มีโพสต์
+func TestGetPopularPosts_EmptyResult(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	limit := 4
+	emptyPosts := []models.Post{}
+
+	// Mock expectations
+	repo.On("GetPopularPosts", limit).Return(emptyPosts, nil)
+
+	// Test
+	result, err := service.GetPopularPosts(limit)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 0, len(result.Posts))
+	assert.Equal(t, int64(0), result.Meta.Total)
+	assert.Equal(t, 1, result.Meta.Page)
+	assert.Equal(t, limit, result.Meta.Limit)
+
+	repo.AssertExpectations(t)
+}
+
+// Test case สำหรับ GetPopularPosts เมื่อ repository error
+func TestGetPopularPosts_RepositoryError(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	limit := 4
+
+	// Mock expectations - repository error
+	repo.On("GetPopularPosts", limit).Return(([]models.Post)(nil), assert.AnError)
+
+	// Test
+	result, err := service.GetPopularPosts(limit)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, assert.AnError, err)
+
+	repo.AssertExpectations(t)
+}
+
+// Test case สำหรับ GetPopularPosts ด้วย limit ที่แตกต่างกัน
+func TestGetPopularPosts_DifferentLimits(t *testing.T) {
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	enqueuer := &post.TaskEnqueuer{}
+
+	service := post.NewPostService(repo, media, enqueuer)
+
+	testCases := []struct {
+		name     string
+		limit    int
+		expected int
+	}{
+		{"Limit 1", 1, 1},
+		{"Limit 2", 2, 2},
+		{"Limit 3", 3, 3},
+		{"Limit 4", 4, 4},
+		{"Limit 10", 10, 10},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create mock posts for this limit
+			mockPosts := make([]models.Post, tc.expected)
+			for i := 0; i < tc.expected; i++ {
+				mockPosts[i] = models.Post{
+					ID:    uuid.New(),
+					Title: fmt.Sprintf("Post %d", i+1),
+					Slug:  fmt.Sprintf("post-%d", i+1),
+					Views: 1000 - (i * 100),
+					Likes: 100 - (i * 10),
+					Author: models.User{
+						ID:       uuid.New(),
+						UserName: fmt.Sprintf("author%d", i+1),
+					},
+				}
+			}
+
+			// Mock expectations
+			repo.On("GetPopularPosts", tc.limit).Return(mockPosts, nil)
+
+			// Test
+			result, err := service.GetPopularPosts(tc.limit)
+
+			// Assertions
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, tc.expected, len(result.Posts))
+			assert.Equal(t, int64(tc.expected), result.Meta.Total)
+			assert.Equal(t, 1, result.Meta.Page)
+			assert.Equal(t, tc.limit, result.Meta.Limit)
+
+			// Verify posts are ordered by views (descending)
+			for i := 0; i < len(result.Posts)-1; i++ {
+				assert.GreaterOrEqual(t, result.Posts[i].Views, result.Posts[i+1].Views)
+			}
+		})
+	}
+
+	repo.AssertExpectations(t)
 }
