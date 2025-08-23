@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -29,6 +30,7 @@ type ServiceInterface interface {
 	GetUserProfileByUsername(username string, currentUserID *uuid.UUID) (*UserProfileResponse, error)
 	UpdateUser(user *models.User) error
 	RefreshTokenOpenId(token string) (string, error)
+	RefreshTokenAndSetCookies(c *gin.Context) (string, error)
 }
 
 type Service struct {
@@ -276,6 +278,71 @@ func (s *Service) RefreshTokenOpenId(token string) (string, error) {
 
 	if response.AccessToken == "" {
 		return "", errors.New("access token not found in response")
+	}
+
+	return response.AccessToken, nil
+}
+
+// RefreshTokenAndSetCookies รีเฟรช token และ set cookies
+func (s *Service) RefreshTokenAndSetCookies(c *gin.Context) (string, error) {
+	// Get refresh token from cookie
+	refreshToken, err := c.Cookie("blog.rtk")
+	if err != nil {
+		return "", errors.New("refresh token not found in cookies")
+	}
+
+	cfg := config.LoadConfig()
+	url := fmt.Sprintf("%s/auth/refresh?service=blog", cfg.OpenIDURL)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("x-refresh-token", refreshToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("refresh request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to refresh token: %s", string(responseBody))
+	}
+
+	var response struct {
+		Success      bool   `json:"success"`
+		Message      string `json:"message"`
+		AccessToken  string `json:"accessToken"`
+		RefreshToken string `json:"refreshToken"`
+		Error        string `json:"error,omitempty"`
+	}
+
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		return "", fmt.Errorf("failed to parse refresh response: %w", err)
+	}
+
+	if !response.Success || response.AccessToken == "" {
+		return "", errors.New("invalid refresh response")
+	}
+
+	// Set cookies
+	isProd := cfg.AppEnv == "release"
+	domains := strings.Split(cfg.Domain, ",")
+
+	for _, domain := range domains {
+		domain = strings.TrimSpace(domain)
+		c.SetCookie("blog.atk", response.AccessToken, 3600, "/", domain, isProd, true)
+		if response.RefreshToken != "" {
+			c.SetCookie("blog.rtk", response.RefreshToken, 3600*24*7, "/", domain, isProd, true)
+		}
 	}
 
 	return response.AccessToken, nil
