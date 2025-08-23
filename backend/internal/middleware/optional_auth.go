@@ -56,7 +56,7 @@ func (o *OptionalAuthMiddleware) Handler() gin.HandlerFunc {
 		} else {
 			o.Logger.Info("[INFO] User not found in cache, checking database (optional auth)", zap.String("email", claims.Email))
 
-			userDB, err = o.UserService.GetUserByEmail(claims.Email)
+			userDB, _ = o.UserService.GetUserByEmail(claims.Email)
 			if userDB != nil {
 				// Cache it
 				if err := o.CacheService.SetUserCache(userDB.Email, userDB); err != nil {
