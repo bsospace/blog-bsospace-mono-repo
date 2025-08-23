@@ -26,6 +26,7 @@ type PostServiceInterface interface {
 	MyPosts(user *models.User) (*MyPostsResponseDTO, error)
 	GetPostsByAuthor(username string, page, limit int) (*PostListResponse, error)
 	RecordPostView(postID string, user *models.User, fingerprint string, ipAddress, userAgent string) (*PostViewResponse, error)
+	GetPopularPosts(limit int) (*PostListResponse, error)
 }
 
 type PostService struct {
@@ -630,5 +631,36 @@ func (s *PostService) GetPostsByAuthor(username string, page, limit int) (*PostL
 			Limit:       limit,
 			TotalPage:   totalPages,
 		},
+	}, nil
+}
+
+// GetPopularPosts ดึงบทความยอดนิยมตามจำนวน view
+func (s *PostService) GetPopularPosts(limit int) (*PostListResponse, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	posts, err := s.Repo.GetPopularPosts(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	var postDTOs []PostSummaryDTO
+	for _, post := range posts {
+		postDTOs = append(postDTOs, MapPostToSummaryDTO(post))
+	}
+
+	// สำหรับ popular posts ไม่ต้องมี pagination meta
+	meta := Meta{
+		Total:       int64(len(posts)),
+		HasNextPage: false,
+		Page:        1,
+		Limit:       limit,
+		TotalPage:   1,
+	}
+
+	return &PostListResponse{
+		Posts: postDTOs,
+		Meta:  meta,
 	}, nil
 }
