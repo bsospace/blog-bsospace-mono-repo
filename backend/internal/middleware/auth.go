@@ -2,13 +2,12 @@ package middleware
 
 import (
 	"errors"
+	"net/http"
 	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/user"
 	"rag-searchbot-backend/pkg/crypto"
 	"rag-searchbot-backend/pkg/response"
-
-	"net/http"
 	"strings"
 	"time"
 
@@ -39,6 +38,7 @@ func NewAuthMiddleware(userService user.ServiceInterface, cryptoService *crypto.
 func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := extractToken(c)
+
 		if tokenString == "" {
 			a.Logger.Error("[ERROR] No token provided in request")
 			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "No token provided")
@@ -47,11 +47,39 @@ func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 		}
 
 		claims, err := verifyToken(tokenString, a.CryptoService, a.Logger)
+
+		// if token is expired, try to refresh
 		if err != nil {
-			a.Logger.Error("[ERROR] Invalid token", zap.Error(err))
-			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", err.Error())
-			c.Abort()
-			return
+			// Check if token is expired and try to refresh
+			if strings.Contains(err.Error(), "token is expired") || strings.Contains(err.Error(), "expired") {
+				a.Logger.Info("[INFO] Token expired, attempting to refresh", zap.Error(err))
+
+				// Try to refresh the token using UserService
+				newToken, err := a.UserService.RefreshTokenAndSetCookies(c)
+				if err != nil {
+					a.Logger.Error("[ERROR] Failed to refresh token", zap.Error(err))
+					response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Token expired and refresh failed")
+					c.Abort()
+					return
+				}
+
+				// Update the token string and verify again
+				tokenString = newToken
+				claims, err = verifyToken(tokenString, a.CryptoService, a.Logger)
+				if err != nil {
+					a.Logger.Error("[ERROR] Failed to verify refreshed token", zap.Error(err))
+					response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "Failed to verify refreshed token")
+					c.Abort()
+					return
+				}
+
+				a.Logger.Info("[INFO] Token refreshed successfully")
+			} else {
+				a.Logger.Error("[ERROR] Invalid token", zap.Error(err))
+				response.JSONError(c, http.StatusUnauthorized, "Unauthorized", err.Error())
+				c.Abort()
+				return
+			}
 		}
 
 		var userDB *models.User
