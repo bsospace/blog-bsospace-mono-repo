@@ -11,7 +11,6 @@ const inter = Inter({ subsets: ["latin"] });
 import { Toaster } from "@/components/ui/toaster"
 import { SEOProvider } from "./contexts/seoContext";
 import HelmetContextProvider from "./contexts/HelmetProvider";
-import PerformanceMonitor from "./components/PerformanceMonitor";
 import CookiesConsentProvider from "./contexts/cookies-consent-context";
 
 export const viewport: Viewport = {
@@ -130,7 +129,6 @@ export default function RootLayout({
             <CookiesConsentProvider>
             <AuthProvider>
               <Providers>
-                <PerformanceMonitor />
                 <Toaster />
                 <Layout>{children}</Layout>
               </Providers>

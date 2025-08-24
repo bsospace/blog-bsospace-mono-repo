@@ -31,8 +31,8 @@ const BlogCard = ({ post }
                 alt={post.title}
                 fill
                 className="object-cover transform group-hover:scale-110 transition-transform duration-700"
-                sizes="100vw"
-                priority={false}
+                sizes="100%"
+                priority
               />
             </div>
             {/* Tech overlay */}
