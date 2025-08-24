@@ -31,7 +31,7 @@ func NewOptionalAuthMiddleware(userService user.ServiceInterface, cryptoService 
 // It doesn't require authentication but stores user context if valid token is provided
 func (o *OptionalAuthMiddleware) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := extractToken(c)
+		tokenString := extractToken(c, "blog.atk")
 		if tokenString == "" {
 			// No token provided, continue without authentication
 			c.Next()
