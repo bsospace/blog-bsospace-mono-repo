@@ -37,9 +37,10 @@ func NewAuthMiddleware(userService user.ServiceInterface, cryptoService *crypto.
 
 func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := extractToken(c)
+		tokenString := extractToken(c, "blog.atk")
+		tokenRefreshString := extractToken(c, "blog.rtk")
 
-		if tokenString == "" {
+		if tokenString == "" && tokenRefreshString == "" {
 			a.Logger.Error("[ERROR] No token provided in request")
 			response.JSONError(c, http.StatusUnauthorized, "Unauthorized", "No token provided")
 			c.Abort()
@@ -51,7 +52,7 @@ func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 		// if token is expired, try to refresh
 		if err != nil {
 			// Check if token is expired and try to refresh
-			if strings.Contains(err.Error(), "token is expired") || strings.Contains(err.Error(), "expired") {
+			if tokenRefreshString != "" {
 				a.Logger.Info("[INFO] Token expired, attempting to refresh", zap.Error(err))
 
 				// Try to refresh the token using UserService
@@ -217,9 +218,9 @@ func SocketAuthMiddleware(userService *user.Service, cryptoService *crypto.Crypt
 	}
 }
 
-func extractToken(c *gin.Context) string {
+func extractToken(c *gin.Context, tokenType string) string {
 	// allow cookie only
-	if cookie, err := c.Cookie("blog.atk"); err == nil {
+	if cookie, err := c.Cookie(tokenType); err == nil {
 		return cookie
 	}
 	return ""
