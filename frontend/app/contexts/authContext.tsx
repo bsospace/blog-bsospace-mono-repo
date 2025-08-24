@@ -45,6 +45,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     // Check user authentication status
     const checkLogin = async () => {
       try {
+
+        // get logged in status from local storage
+        const loggedIn = localStorage.getItem("logged_in") === 'true';
+        if (!loggedIn) { 
+          setIsLoggedIn(false);
+          setIsFetching(false);
+          setUser(null);
+          return;
+        }
+        
         const response = await axiosInstance.get('/auth/me');
         if (response.data.success) {
           setIsLoggedIn(true);
@@ -63,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('warp');
+        localStorage.removeItem('logged_in');
       }
     };
 
