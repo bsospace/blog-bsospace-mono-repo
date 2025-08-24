@@ -53,7 +53,6 @@ export const checkEnvConfig = () => {
 
 try {
     checkEnvConfig();
-    console.log('All required environment variables are correctly set.');
 } catch (error) {
     if (error instanceof Error) {
         console.error(error.message)
