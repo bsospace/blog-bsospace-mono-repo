@@ -4,7 +4,7 @@ import React, { FC } from "react";
 import Link from "next/link";
 import { Post } from "../interfaces";
 import { FiBookmark, FiClock, FiEye, FiHeart, FiMessageCircle, FiCpu } from "react-icons/fi";
-import { formatDate } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils";
 import Image from "next/image";
 
 const BlogCard = ({ post }
@@ -21,7 +21,7 @@ const BlogCard = ({ post }
       {/* Glowing orb effect */}
       <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-      <div className="relative z-10 flex flex-col md:flex-row group-hover:scale-102 transition-transform duration-300">
+      <Link href={`/posts/@${post.author?.username}/${post.slug}`} className="relative z-10 flex flex-col md:flex-row group-hover:scale-102 transition-transform duration-300">
         {/* Thumbnail Section */}
         <div className="relative w-full md:w-2/5 flex-shrink-0">
           <div className="h-40 sm:h-48 md:h-56 overflow-hidden">
@@ -121,17 +121,17 @@ const BlogCard = ({ post }
                   alt={post.author?.username || 'Author'}
                   width={28}
                   height={28}
-                  className="rounded-full object-cover border-2 border-orange-500/50 shadow-sm"
+                  className="rounded-full object-cover border-2 border-orange-600 shadow-sm"
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border-2 border-slate-900" />
               </div>
 
               <div className="leading-snug min-w-0 flex-1">
-                <p className="text-orange-300 text-xs font-medium m-0 p-0 truncate">
+                <p className="text-xs font-medium m-0 p-0 truncate">
                   @{post.author?.username || "ผู้เขียน"}
                 </p>
                 <p className="text-slate-400 text-[10px] m-0 p-0">
-                  {formatDate(post.published_at ?? '')}
+                  {formatRelativeTime(new Date(post.published_at ?? ''))}
                 </p>
               </div>
             </div>
@@ -161,7 +161,7 @@ const BlogCard = ({ post }
           </div>
 
         </div>
-      </div>
+      </Link>
     </div>
   );
 };
