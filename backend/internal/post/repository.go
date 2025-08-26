@@ -7,6 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// Constants for popular posts configuration
+const (
+	MinPopularPostViews = 0 // Minimum view count required for a post to be considered popular
+)
+
 type PostRepositoryInterface interface {
 	Create(post *models.Post) (string, error)
 	GetAll(limit, offset int, search string) (*PostRepositoryQuery, error)
@@ -482,7 +487,7 @@ func (r *PostRepository) GetPopularPosts(limit int) ([]models.Post, error) {
 		Where("deleted_at IS NULL").
 		Where("published_at IS NOT NULL").
 		Where("status = ?", models.PostPublished).
-		Where("views > ?", 0). // เฉพาะบทความที่มี view มากกว่า 0
+		Where("views > ?", MinPopularPostViews). // เฉพาะบทความที่มี view มากกว่า 0
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id", "username", "avatar")
 		}).
