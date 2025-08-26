@@ -82,3 +82,32 @@ export async function fetchPosts(
     };
   }
 }
+
+export async function fetchPopularPosts(): Promise<{ data: Post[]; meta: Meta }> {
+  try {
+    const response = await axiosInstanceServer.get<{
+      data: PostResponse;
+      message: string;
+      success: boolean;
+    }>('/posts/popular');
+
+    const raw = response.data.data;
+
+    return {
+      data: raw.posts,
+      meta: raw.meta,
+    };
+  } catch (error) {
+    console.error("Failed to fetch popular posts:", error);
+    return {
+      data: [],
+      meta: {
+        total: 0,
+        hasNextPage: false,
+        page: 0,
+        limit: 0,
+        totalPage: 0,
+      },
+    };
+  }
+}
