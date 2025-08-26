@@ -131,7 +131,7 @@ const BlogCard = ({ post }
                   @{post.author?.username || "ผู้เขียน"}
                 </p>
                 <p className="text-slate-400 text-[10px] m-0 p-0">
-                  {formatRelativeTime(new Date(post.published_at ?? ''))}
+                  {post.published_at ? formatRelativeTime(new Date(post.published_at)) : 'ไม่มีวันที่'}
                 </p>
               </div>
             </div>
