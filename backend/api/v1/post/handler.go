@@ -8,6 +8,7 @@ import (
 	"rag-searchbot-backend/pkg/errs"
 	"rag-searchbot-backend/pkg/ginctx"
 	"rag-searchbot-backend/pkg/response"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -333,4 +334,23 @@ func (h *PostHandler) RecordPostView(c *gin.Context) {
 	}
 
 	response.JSONSuccess(c, http.StatusOK, "Post view recorded successfully", result)
+}
+
+// GetPopularPosts ดึงบทความยอดนิยมตามจำนวน view
+func (h *PostHandler) GetPopularPosts(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "4")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 4
+	}
+	posts, err := h.service.GetPopularPosts(limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch popular posts"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    posts,
+		"message": "Get popular posts successfully.",
+	})
 }

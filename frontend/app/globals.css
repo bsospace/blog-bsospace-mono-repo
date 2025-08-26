@@ -576,6 +576,12 @@ p {
   @apply text-base leading-[1.6] mb-4 text-gray-800 dark:text-gray-200;
 }
 
+/* === Blog Content Code Styling === */
+p code {
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm border border-gray-200 dark:border-gray-700;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
 strong {
   @apply font-bold;
 }
@@ -587,11 +593,11 @@ em {
 
 /* === Lists === */
 ul {
-  @apply list-disc list-outside mb-4 text-gray-800 dark:text-gray-200;
+  @apply list-disc list-outside mb-4 text-gray-800 dark:text-gray-200 pl-4;
 }
 
 ol {
-  @apply list-decimal list-outside mb-4 text-gray-800 dark:text-gray-200;
+  @apply list-decimal list-outside mb-4 text-gray-800 dark:text-gray-200  pl-4;
 }
 
 /* === Blockquote === */

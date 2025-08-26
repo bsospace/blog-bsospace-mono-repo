@@ -31,3 +31,27 @@ export const formatDate = (dateString: string) => {
     day: 'numeric'
   });
 };
+
+export const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'ประมาณ 1 นาที';
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes} นาทีที่แล้ว`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours} ชั่วโมงที่แล้ว`;
+  } else if (diffInSeconds < 2592000) {
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} วันที่แล้ว`;
+  } else if (diffInSeconds < 31536000) {
+    const months = Math.floor(diffInSeconds / 2592000);
+    return `${months} เดือนที่แล้ว`;
+  } else {
+    const years = Math.floor(diffInSeconds / 31536000);
+    return `${years} ปีที่แล้ว`;
+  }
+};

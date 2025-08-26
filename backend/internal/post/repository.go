@@ -7,6 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// Constants for popular posts configuration
+const (
+	MinPopularPostViews = 0 // Minimum view count required for a post to be considered popular
+)
+
 type PostRepositoryInterface interface {
 	Create(post *models.Post) (string, error)
 	GetAll(limit, offset int, search string) (*PostRepositoryQuery, error)
@@ -27,6 +32,7 @@ type PostRepositoryInterface interface {
 	BulkInsertEmbeddings(post *models.Post, embeddings []models.Embedding) error
 	RecordPostView(postID string, userID *string, fingerprint string, ipAddress, userAgent string) error
 	GetPostViews(postID string) (int, error)
+	GetPopularPosts(limit int) ([]models.Post, error)
 }
 
 type PostRepository struct {
@@ -467,4 +473,33 @@ func (r *PostRepository) GetPublishedPostsByAuthor(username string, page, limit 
 	}
 
 	return posts, total, nil
+}
+
+// GetPopularPosts ดึงบทความยอดนิยมตามจำนวน view
+func (r *PostRepository) GetPopularPosts(limit int) ([]models.Post, error) {
+	var posts []models.Post
+
+	err := r.DB.
+		Select("id", "slug", "title", "description", "thumbnail",
+			"published", "published_at", "author_id", "likes",
+			"views", "read_time", "ai_chat_open", "ai_ready").
+		Where("published = ?", true).
+		Where("deleted_at IS NULL").
+		Where("published_at IS NOT NULL").
+		Where("status = ?", models.PostPublished).
+		Where("views > ?", MinPopularPostViews). // เฉพาะบทความที่มี view มากกว่า 0
+		Preload("Author", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "username", "avatar")
+		}).
+		Preload("Tags").
+		Preload("Categories").
+		Order("views DESC, published_at DESC"). // เรียงตาม view count จากมากไปน้อย, ถ้า view เท่ากันให้เรียงตามวันที่ publish
+		Limit(limit).
+		Find(&posts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
