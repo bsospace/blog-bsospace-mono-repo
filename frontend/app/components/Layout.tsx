@@ -8,7 +8,7 @@ import Link from "next/link";
 import axios from "axios";
 import Script from "next/script";
 import { AuthContext } from "../contexts/authContext";
-import { ChevronDown, LogOut, Notebook, Settings, SquarePen, User, UserCircle } from "lucide-react";
+import { ChevronDown, LogOut, Notebook, SquarePen, User, UserCircle } from "lucide-react";
 import { getnerateId } from "@/lib/utils";
 import { FiCode, FiCpu } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
@@ -240,16 +240,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                           </Link>
                         </DropdownMenuItem>
                         
-                        <DropdownMenuItem asChild>
-                          <Link
-                            href="/settings"
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
-                            onClick={(e) => e.preventDefault()}
-                          >
-                            <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Settings (Coming soon)</span>
-                          </Link>
-                        </DropdownMenuItem>
                         
                         <DropdownMenuSeparator />
                         
@@ -299,18 +289,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                               onClick={(e) => e.preventDefault()}
                             >
                               <UserCircle className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
-                              <span className="font-medium">Profile (Coming soon)</span>
-                            </Link>
-                          </DropdownMenuItem>
-                          
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href="/settings"
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                              <span className="font-medium">Settings (Coming soon)</span>
+                              <span className="font-medium">Profile</span>
                             </Link>
                           </DropdownMenuItem>
                         </div>
@@ -410,16 +389,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                           </Link>
                         </DropdownMenuItem>
                         
-                        <DropdownMenuItem asChild>
-                          <Link
-                            href="/settings"
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
-                            onClick={(e) => e.preventDefault()}
-                          >
-                            <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Settings (Coming soon)</span>
-                          </Link>
-                        </DropdownMenuItem>
                         
                         <DropdownMenuSeparator />
                         
@@ -469,18 +438,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                               onClick={(e) => e.preventDefault()}
                             >
                               <UserCircle className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
-                              <span className="font-medium">Profile (Coming soon)</span>
-                            </Link>
-                          </DropdownMenuItem>
-                          
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href="/settings"
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 text-gray-400 dark:text-gray-600 cursor-not-allowed group"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              <Settings className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                              <span className="font-medium">Settings (Coming soon)</span>
+                              <span className="font-medium">Profile</span>
                             </Link>
                           </DropdownMenuItem>
                         </div>

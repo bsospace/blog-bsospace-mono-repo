@@ -303,7 +303,7 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
             <div className="mt-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-xl">
-                  {metadata.authorImage ? (
+                  {metadata.authorImage && metadata.authorImage !== "/default-avatar.png" ? (
                     <Image
                       src={metadata.authorImage}
                       alt={metadata.author}
