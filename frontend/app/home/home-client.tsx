@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Link from "next/link";
 import { Meta } from "../interfaces";
 import BlogCard from "../components/Blog";
 import { Post } from "../interfaces";
@@ -329,10 +330,14 @@ export default function HomePageClient({
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : popularPosts && popularPosts.length > 0 ? (
                 <div className="space-y-4">
                   {popularPosts.slice(0, 10).map((post, index) => (
-                    <div key={post.id} className="group cursor-pointer bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-300">
+                    <Link 
+                      key={post.id} 
+                      href={`/posts/@${post.author?.username}/${post.slug}`}
+                      className="group cursor-pointer bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-300 block"
+                    >
                       <div className="flex items-start space-x-3">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-200 line-clamp-2 mb-2">
@@ -364,8 +369,12 @@ export default function HomePageClient({
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-slate-400 text-sm">No popular posts available</p>
                 </div>
               )}
             </section>
