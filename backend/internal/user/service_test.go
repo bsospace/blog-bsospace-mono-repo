@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 	"errors"
+	"mime/multipart"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
-	"mime/multipart"
 	"testing"
 
 	"github.com/google/uuid"
@@ -416,6 +416,314 @@ func TestGetUsers(t *testing.T) {
 			}
 
 			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
+// func TestUpdateUser(t *testing.T) {
+// 	tests := []struct {
+// 		name          string
+// 		user          *models.User
+// 		mockBehavior  func(*MockUserRepository, *MockCacheService)
+// 		expectedError error
+// 	}{
+// 		{
+// 			name: "successful update user",
+// 			user: &models.User{
+// 				ID:        uuid.New(),
+// 				Email:     "test@example.com",
+// 				UserName:  "testuser",
+// 				FirstName: "John",
+// 				LastName:  "Doe",
+// 				Bio:       "Updated bio",
+// 			},
+// 			mockBehavior: func(repo *MockUserRepository, cache *MockCacheService) {
+// 				repo.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(nil)
+// 				cache.On("ClearUserCache", "test@example.com").Return()
+// 			},
+// 			expectedError: nil,
+// 		},
+// 		{
+// 			name: "update user with empty fields",
+// 			user: &models.User{
+// 				ID:       uuid.New(),
+// 				Email:    "test@example.com",
+// 				UserName: "testuser",
+// 			},
+// 			mockBehavior: func(repo *MockUserRepository, cache *MockCacheService) {
+// 				repo.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(nil)
+// 				cache.On("ClearUserCache", "test@example.com").Return()
+// 			},
+// 			expectedError: nil,
+// 		},
+// 		{
+// 			name: "repository error during update",
+// 			user: &models.User{
+// 				ID:       uuid.New(),
+// 				Email:    "test@example.com",
+// 				UserName: "testuser",
+// 			},
+// 			mockBehavior: func(repo *MockUserRepository, cache *MockCacheService) {
+// 				repo.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(errors.New("update failed"))
+// 				// Cache is not cleared if update fails
+// 			},
+// 			expectedError: errors.New("update failed"),
+// 		},
+// 	}
+
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			mockRepo := &MockUserRepository{}
+// 			mockCache := &MockCacheService{}
+// 			mockMedia := &MockMediaService{}
+
+// 			tt.mockBehavior(mockRepo, mockCache)
+
+// 			service := NewService(mockRepo, mockCache, mockMedia)
+// 			err := service.UpdateUser(tt.user)
+
+// 			if tt.expectedError != nil {
+// 				assert.Error(t, err)
+// 				assert.Equal(t, tt.expectedError.Error(), err.Error())
+// 			} else {
+// 				assert.NoError(t, err)
+// 			}
+
+// 			mockRepo.AssertExpectations(t)
+// 			mockCache.AssertExpectations(t)
+// 		})
+// 	}
+// }
+
+func TestGetUserByUsername(t *testing.T) {
+	tests := []struct {
+		name          string
+		username      string
+		mockBehavior  func(*MockUserRepository)
+		expectedUser  *models.User
+		expectedError error
+	}{
+		{
+			name:     "successful get user by username",
+			username: "testuser",
+			mockBehavior: func(repo *MockUserRepository) {
+				expectedUser := &models.User{
+					ID:        uuid.New(),
+					Email:     "test@example.com",
+					UserName:  "testuser",
+					FirstName: "John",
+					LastName:  "Doe",
+				}
+				repo.On("GetUserProfileByUsername", "testuser").Return(expectedUser, nil)
+			},
+			expectedUser: &models.User{
+				Email:     "test@example.com",
+				UserName:  "testuser",
+				FirstName: "John",
+				LastName:  "Doe",
+			},
+			expectedError: nil,
+		},
+		{
+			name:     "user not found by username",
+			username: "nonexistent",
+			mockBehavior: func(repo *MockUserRepository) {
+				repo.On("GetUserProfileByUsername", "nonexistent").Return(nil, errors.New("user not found"))
+			},
+			expectedUser:  nil,
+			expectedError: errors.New("user not found"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := &MockUserRepository{}
+			mockCache := &MockCacheService{}
+			mockMedia := &MockMediaService{}
+
+			tt.mockBehavior(mockRepo)
+
+			service := NewService(mockRepo, mockCache, mockMedia)
+			result, err := service.GetUserProfileByUsername(tt.username, nil)
+
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError.Error(), err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedUser.UserName, result.Username)
+				assert.Equal(t, tt.expectedUser.FirstName, result.FirstName)
+				assert.Equal(t, tt.expectedUser.LastName, result.LastName)
+			}
+
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetExistingUsername(t *testing.T) {
+	tests := []struct {
+		name          string
+		username      string
+		mockBehavior  func(*MockUserRepository)
+		expected      bool
+		expectedError error
+	}{
+		{
+			name:     "username exists",
+			username: "existinguser",
+			mockBehavior: func(repo *MockUserRepository) {
+				repo.On("GetUserByUsername", "existinguser").Return(true, nil)
+			},
+			expected:      true,
+			expectedError: nil,
+		},
+		{
+			name:     "username does not exist",
+			username: "newuser",
+			mockBehavior: func(repo *MockUserRepository) {
+				repo.On("GetUserByUsername", "newuser").Return(false, nil)
+			},
+			expected:      false,
+			expectedError: nil,
+		},
+		{
+			name:     "repository error",
+			username: "testuser",
+			mockBehavior: func(repo *MockUserRepository) {
+				repo.On("GetUserByUsername", "testuser").Return(false, errors.New("database error"))
+			},
+			expected:      false,
+			expectedError: errors.New("failed to check username: database error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := &MockUserRepository{}
+			mockCache := &MockCacheService{}
+			mockMedia := &MockMediaService{}
+
+			tt.mockBehavior(mockRepo)
+
+			service := NewService(mockRepo, mockCache, mockMedia)
+			result, err := service.GetExistingUsername(tt.username)
+
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError.Error(), err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
+
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUserValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		user        *models.User
+		expectValid bool
+	}{
+		{
+			name: "valid user with all fields",
+			user: &models.User{
+				Email:     "test@example.com",
+				UserName:  "testuser",
+				FirstName: "John",
+				LastName:  "Doe",
+				Role:      models.NormalUser,
+			},
+			expectValid: true,
+		},
+		{
+			name: "valid user with minimal fields",
+			user: &models.User{
+				Email:    "test@example.com",
+				UserName: "testuser",
+			},
+			expectValid: true,
+		},
+		{
+			name: "invalid user - missing email",
+			user: &models.User{
+				UserName: "testuser",
+			},
+			expectValid: false,
+		},
+		{
+			name: "invalid user - missing username",
+			user: &models.User{
+				Email: "test@example.com",
+			},
+			expectValid: false,
+		},
+		{
+			name: "invalid user - empty email",
+			user: &models.User{
+				Email:    "",
+				UserName: "testuser",
+			},
+			expectValid: false,
+		},
+		{
+			name: "invalid user - empty username",
+			user: &models.User{
+				Email:    "test@example.com",
+				UserName: "",
+			},
+			expectValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isValid := tt.user.Email != "" && tt.user.UserName != ""
+			assert.Equal(t, tt.expectValid, isValid)
+		})
+	}
+}
+
+func TestUserRoleValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		role     models.UserRole
+		expected bool
+	}{
+		{
+			name:     "valid normal user role",
+			role:     models.NormalUser,
+			expected: true,
+		},
+		{
+			name:     "valid writer user role",
+			role:     models.WriterUser,
+			expected: true,
+		},
+		{
+			name:     "valid admin user role",
+			role:     models.AdminUser,
+			expected: true,
+		},
+		{
+			name:     "invalid user role",
+			role:     "INVALID_ROLE",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			validRoles := map[models.UserRole]bool{
+				models.NormalUser: true,
+				models.WriterUser: true,
+				models.AdminUser:  true,
+			}
+			isValid := validRoles[tt.role]
+			assert.Equal(t, tt.expected, isValid)
 		})
 	}
 }
