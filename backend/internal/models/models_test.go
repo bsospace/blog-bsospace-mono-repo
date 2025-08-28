@@ -143,9 +143,9 @@ func TestComment(t *testing.T) {
 	postID := uuid.New()
 	authorID := uuid.New()
 	comment := &Comment{
-		ID:      uint(1),
-		Content: "This is a test comment",
-		PostID:  postID,
+		ID:       uint(1),
+		Content:  "This is a test comment",
+		PostID:   postID,
 		AuthorID: authorID,
 	}
 
@@ -281,16 +281,16 @@ func TestImageUpload(t *testing.T) {
 func TestQueueTaskLog(t *testing.T) {
 	userID := uuid.New()
 	taskLog := &QueueTaskLog{
-		ID:         uint(1),
-		TaskID:     "task123",
-		TaskType:   "FILTER_AI",
-		RefID:      "post456",
-		RefType:    "POST",
-		Status:     "SUCCESS",
-		Message:    "Task completed successfully",
-		Duration:   1500,
-		Payload:    `{"key": "value"}`,
-		UserID:     userID,
+		ID:       uint(1),
+		TaskID:   "task123",
+		TaskType: "FILTER_AI",
+		RefID:    "post456",
+		RefType:  "POST",
+		Status:   "SUCCESS",
+		Message:  "Task completed successfully",
+		Duration: 1500,
+		Payload:  `{"key": "value"}`,
+		UserID:   userID,
 	}
 
 	assert.Equal(t, uint(1), taskLog.ID)
