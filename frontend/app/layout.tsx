@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+// import { Inter } from "next/font/google";
 import "./globals.css";
 
 import Layout from "./components/Layout";
@@ -7,7 +7,7 @@ import { AuthProvider } from "./contexts/authContext";
 import Providers from "./components/providers";
 import envConfig from "./configs/envConfig";
 
-const inter = Inter({ subsets: ["latin"] });
+// const inter = Inter({ subsets: ["latin"] });
 import { Toaster } from "@/components/ui/toaster"
 import { SEOProvider } from "./contexts/seoContext";
 import HelmetContextProvider from "./contexts/HelmetProvider";
@@ -123,7 +123,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">{/* inter.className */}
         <HelmetContextProvider>
           <SEOProvider>
             <CookiesConsentProvider>

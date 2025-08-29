@@ -737,6 +737,38 @@ td {
   }
 }
 
+/* 🍎 iOS-specific fixes for avatar images */
+@supports (-webkit-appearance: none) {
+  /* iOS Safari/Chrome specific fixes */
+  [role="img"]:has(img),
+  img[src*="avatar"] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  /* Fix for Radix Avatar component on iOS */
+  [data-radix-avatar-image] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    object-fit: cover !important;
+    object-position: center center;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* Additional iOS fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  /* High DPI iOS devices */
+  [data-radix-avatar-image] {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
 /* === Lowlight (highlight.js) theme overrides with light/dark support === */
 /* Light mode */
 .hljs { color: #1f2937; background: transparent; display: block; overflow-x: auto; }
