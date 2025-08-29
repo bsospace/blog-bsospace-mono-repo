@@ -116,13 +116,15 @@ const BlogCard = ({ post }
             {/* Author info */}
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Image
-                  src={post.author?.avatar || '/default-avatar.png'}
-                  alt={post.author?.username || 'Author'}
-                  width={28}
-                  height={28}
-                  className="rounded-full object-cover border-2 border-orange-600 shadow-sm"
-                />
+                <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-orange-600 shadow-sm">
+                  <Image
+                    src={post.author?.avatar || '/default-avatar.png'}
+                    alt={post.author?.username || 'Author'}
+                    width={28}
+                    height={28}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border-2 border-slate-900" />
               </div>
 
