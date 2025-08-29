@@ -16,7 +16,6 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
       notFound();
     }
     const initialProfileData: UserProfileResponse = res.data;
-    console.log("Initial Profile Data", initialProfileData);
     return <UserProfileClient initialProfileData={initialProfileData} />;
   } catch (e: any) {
     if (e?.response?.status === 404) {
