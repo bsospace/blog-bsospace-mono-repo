@@ -22,6 +22,14 @@ interface PostClientProps {
   isLoadingPost: boolean
 }
 
+// Helper function to generate display name from user data
+const getDisplayName = (user: { first_name?: string; last_name?: string; username?: string } | undefined): string => {
+  if (!user) return "Unknown Author";
+  const firstName = user.first_name;
+  const lastName = user.last_name;
+  return firstName && lastName ? `${firstName} ${lastName}` : (user.username || "Unknown Author");
+};
+
 export default function PostClient({ post, isLoadingPost }: PostClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [contentState, setContentState] = useState<JSONContent>();
@@ -61,7 +69,7 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
         title: post.title || "No Title",
         description: post.description || "No description available",
         image: post.thumbnail || "/default-thumbnail.png",
-        author: post.author?.username || "Unknown Author",
+        author: getDisplayName(post.author),
         authorImage: post.author?.avatar || "/default-avatar.png",
         authorBio: post.author?.bio || "No bio available",
         publishDate: post.published_at ? new Date(post.published_at).toLocaleDateString() : "Not Published",
