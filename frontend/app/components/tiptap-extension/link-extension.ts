@@ -6,12 +6,68 @@ import { Plugin, TextSelection } from "@tiptap/pm/state"
 export const Link = TiptapLink.extend({
   inclusive: false,
 
+  addAttributes() {
+    return {
+      href: {
+        default: null,
+        parseHTML: element => element.getAttribute('href'),
+        renderHTML: attributes => {
+          if (!attributes.href) {
+            return {}
+          }
+          return {
+            href: attributes.href,
+          }
+        },
+      },
+      target: {
+        default: null,
+        parseHTML: element => element.getAttribute('target'),
+        renderHTML: attributes => {
+          if (!attributes.target) {
+            return {}
+          }
+          return {
+            target: attributes.target,
+          }
+        },
+      },
+      rel: {
+        default: null,
+        parseHTML: element => element.getAttribute('rel'),
+        renderHTML: attributes => {
+          if (!attributes.rel) {
+            return {}
+          }
+          return {
+            rel: attributes.rel,
+          }
+        },
+      },
+    }
+  },
+
   parseHTML() {
     return [
       {
         tag: 'a[href]:not([data-type="button"]):not([href *= "javascript:" i])',
+        getAttrs: element => {
+          const href = element.getAttribute('href')
+          const target = element.getAttribute('target')
+          const rel = element.getAttribute('rel')
+          
+          return {
+            href,
+            target,
+            rel,
+          }
+        },
       },
     ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['a', HTMLAttributes, 0]
   },
 
   addProseMirrorPlugins() {
