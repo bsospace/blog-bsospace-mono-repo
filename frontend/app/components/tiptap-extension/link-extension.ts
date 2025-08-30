@@ -31,7 +31,7 @@ export const Link = TiptapLink.extend({
             return false
           },
           handleClick(view, pos) {
-            const { schema, doc, tr } = view.state
+            const { schema, doc } = view.state
             let range: ReturnType<typeof getMarkRange> | undefined
 
             if (schema.marks.link) {
@@ -39,7 +39,7 @@ export const Link = TiptapLink.extend({
             }
 
             if (!range) {
-              return
+              return false
             }
 
             const { from, to } = range
@@ -47,14 +47,31 @@ export const Link = TiptapLink.extend({
             const end = Math.max(from, to)
 
             if (pos < start || pos > end) {
-              return
+              return false
             }
 
-            const $start = doc.resolve(start)
-            const $end = doc.resolve(end)
-            const transaction = tr.setSelection(new TextSelection($start, $end))
+            // Get the link mark attributes to extract href
+            const $pos = doc.resolve(pos)
+            const linkMark = $pos.marks().find(mark => mark.type === schema.marks.link)
+            
+            if (linkMark && linkMark.attrs.href) {
+              const href = linkMark.attrs.href
+              
+              // Check if it's an external link
+              const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')
+              
+              if (isExternal) {
+                // Open external links in new tab
+                window.open(href, '_blank', 'noopener,noreferrer')
+              } else {
+                // Navigate to internal links in same tab
+                window.location.href = href
+              }
+              
+              return true
+            }
 
-            view.dispatch(transaction)
+            return false
           },
         },
       }),
