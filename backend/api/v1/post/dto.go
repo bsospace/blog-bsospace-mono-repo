@@ -32,9 +32,11 @@ type GetPublicPostBySlugAndUsernameResponse struct {
 	AIChatOpen  bool       `json:"ai_chat_open"`
 	AIReady     bool       `json:"ai_ready"`
 	Author      struct {
-		Avatar   string `json:"avatar"`
-		Username string `json:"username"`
-		Bio      string `json:"bio"`
+		Avatar    string `json:"avatar"`
+		Username  string `json:"username"`
+		Bio       string `json:"bio"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
 	} `json:"author"`
 }
 
@@ -64,13 +66,17 @@ func MapGetPublicPostBySlugAndUsernameResponse(post *models.Post) *GetPublicPost
 	}
 
 	dto.Author = struct {
-		Avatar   string `json:"avatar"`
-		Username string `json:"username"`
-		Bio      string `json:"bio"`
+		Avatar    string `json:"avatar"`
+		Username  string `json:"username"`
+		Bio       string `json:"bio"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
 	}{
-		Avatar:   post.Author.Avatar,
-		Username: post.Author.UserName,
-		Bio:      post.Author.Bio,
+		Avatar:    post.Author.Avatar,
+		Username:  post.Author.UserName,
+		Bio:       post.Author.Bio,
+		FirstName: post.Author.FirstName,
+		LastName:  post.Author.LastName,
 	}
 
 	return dto

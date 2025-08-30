@@ -274,7 +274,7 @@ func (r *PostRepository) GetPublicPostBySlugAndUsername(slug string, username st
 			"posts.created_at", "posts.updated_at", "posts.ai_chat_open", "posts.ai_ready").
 		Where("posts.deleted_at IS NULL").
 		Preload("Author", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "username", "avatar", "bio")
+			return db.Select("id", "username", "avatar", "bio", "first_name", "last_name")
 		}).
 		Preload("Tags").
 		Preload("Categories").
