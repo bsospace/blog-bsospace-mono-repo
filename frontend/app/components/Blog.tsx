@@ -13,7 +13,7 @@ const BlogCard = ({ post }
   } & React.HTMLAttributes<HTMLDivElement>
 ) => {
   return (
-    <div className="group relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl overflow-hidden border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10">
+    <div className="group relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl overflow-hidden border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10 h-96 flex flex-col">
 
       {/* Animated border effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-red-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
@@ -21,10 +21,10 @@ const BlogCard = ({ post }
       {/* Glowing orb effect */}
       <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-      <Link href={`/posts/@${post.author?.username}/${post.slug}`} className="relative z-10 flex flex-col md:flex-row group-hover:scale-102 transition-transform duration-300">
+      <Link href={`/posts/@${post.author?.username}/${post.slug}`} className="relative z-10 flex flex-col group-hover:scale-102 transition-transform duration-300 flex-1">
         {/* Thumbnail Section */}
-        <div className="relative w-full md:w-2/5 flex-shrink-0">
-          <div className="h-40 sm:h-48 md:h-56 overflow-hidden">
+        <div className="relative w-full flex-shrink-0">
+          <div className="h-48 overflow-hidden">
             <div className="relative w-full h-full">
               <Image
                 src={post?.thumbnail || '/default-thumbnail.png'}
@@ -66,7 +66,7 @@ const BlogCard = ({ post }
         </div>
 
         {/* Content Section */}
-        <div className="w-full md:w-3/5 p-3 sm:p-4 flex flex-col min-h-0">
+        <div className="w-full p-3 sm:p-4 flex flex-col min-h-0 flex-1">
           {/* Tech Tags */}
           {post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2 sm:mb-3">
@@ -105,7 +105,7 @@ const BlogCard = ({ post }
 
           {/* Description - จะยืดหยุ่นตามเนื้อหา */}
           {post.description && (
-            <p className="text-slate-300 text-xs sm:text-sm mb-3 line-clamp-3 leading-relaxed flex-grow">
+            <p className="text-slate-300 text-xs sm:text-sm mb-3 line-clamp-3 leading-relaxed">
               {post.description}
             </p>
           )}
