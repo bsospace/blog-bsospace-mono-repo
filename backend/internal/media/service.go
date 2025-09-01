@@ -53,7 +53,7 @@ func (s *MediaService) CreateMedia(fileHeader *multipart.FileHeader, user *model
 	image := &models.ImageUpload{
 		ID:         uuid.New(),
 		ImageURL:   res.URL,
-		IsUsed:     false,
+		IsUsed:     true,
 		UserID:     user.ID,
 		PostID:     postID,
 		UsedReason: "Blog image",
