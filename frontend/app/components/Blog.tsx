@@ -24,7 +24,7 @@ const BlogCard = ({ post }
       <Link href={`/posts/@${post.author?.username}/${post.slug}`} className="relative z-10 flex flex-col md:flex-row group-hover:scale-102 transition-transform duration-300">
         {/* Thumbnail Section */}
         <div className="relative w-full md:w-2/5 flex-shrink-0">
-          <div className="h-40 sm:h-48 md:h-56 overflow-hidden">
+          <div className={`${!post.ai_ready ? "h-40 sm:h-48 md:h-[230px]" : "h-40 sm:h-48 md:h-[260px]"} overflow-hidden`}>
             <div className="relative w-full h-full">
               <Image
                 src={post?.thumbnail || '/default-thumbnail.png'}
