@@ -11,7 +11,15 @@ const BlogCard = ({ post }
   : {
     post: Post;
   } & React.HTMLAttributes<HTMLDivElement>
+  
 ) => {
+
+  const getImageHeight = () => { 
+    if (post) {
+      return `${!post.ai_ready ? "h-40 sm:h-48 md:h-[230px]" : "h-40 sm:h-48 md:h-[260px]"}`;
+    }
+  }
+
   return (
     <div className="group relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl overflow-hidden border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10">
 
@@ -24,7 +32,7 @@ const BlogCard = ({ post }
       <Link href={`/posts/@${post.author?.username}/${post.slug}`} className="relative z-10 flex flex-col md:flex-row group-hover:scale-102 transition-transform duration-300">
         {/* Thumbnail Section */}
         <div className="relative w-full md:w-2/5 flex-shrink-0">
-          <div className={`${!post.ai_ready ? "h-40 sm:h-48 md:h-[230px]" : "h-40 sm:h-48 md:h-[260px]"} overflow-hidden`}>
+          <div className={`h-40 overflow-hidden` + " " + getImageHeight()}>
             <div className="relative w-full h-full">
               <Image
                 src={post?.thumbnail || '/default-thumbnail.png'}
