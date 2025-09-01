@@ -324,10 +324,6 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 		return errors.New("post not found")
 	}
 
-	if existingPost.Published {
-		return errors.New("post is already published")
-	}
-
 	if existingPost.AuthorID != user.ID {
 		return errors.New("you are not the author of this post")
 	}
