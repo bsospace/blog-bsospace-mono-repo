@@ -153,7 +153,8 @@ type PostContentStructure struct {
 }
 
 type Mark struct {
-	Type string `json:"type"`
+	Type  string                 `json:"type"`
+	Attrs map[string]interface{} `json:"attrs,omitempty"`
 }
 
 func GroupByType(data []PostContentStructure) map[string][]PostContentStructure {

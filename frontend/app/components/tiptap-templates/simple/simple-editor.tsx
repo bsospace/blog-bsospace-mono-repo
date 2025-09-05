@@ -241,6 +241,53 @@ export function SimpleEditor(
         "aria-multiline": "true",
         "aria-describedby": "editor-help",
       },
+      handlePaste: (view, event) => {
+        const clipboardText = event.clipboardData?.getData('text/plain')?.trim()
+        if (!clipboardText) return false
+
+        const isLikelyUrl = (value: string) => {
+          try {
+            // Accept bare domains and protocol URLs
+            if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return true
+            if (/^([\w-]+\.)+[\w-]{2,}(\/.*)?$/i.test(value)) return true
+            return false
+          } catch {
+            return false
+          }
+        }
+
+        if (!isLikelyUrl(clipboardText)) return false
+
+        const normalizeUrl = (raw: string): string => {
+          if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) return raw
+          return `https://${raw}`
+        }
+
+        const href = normalizeUrl(clipboardText)
+
+        const { from, to, empty } = view.state.selection
+        const chain = editor?.chain().focus().extendMarkRange('link')
+        if (!chain) return false
+
+        event.preventDefault()
+
+        if (empty) {
+          chain
+            .insertContent({
+              type: 'text',
+              text: clipboardText,
+              marks: [{ type: 'link', attrs: { href } }],
+            })
+            .run()
+        } else {
+          chain
+            .setTextSelection({ from, to })
+            .setLink({ href })
+            .run()
+        }
+
+        return true
+      },
       handleKeyDown: (view, event) => {
         // Enhanced keyboard shortcuts
         if (event.ctrlKey || event.metaKey) {
@@ -340,10 +387,14 @@ export function SimpleEditor(
       }),
       TrailingNode,
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        protocols: ['http', 'https', 'mailto'],
         HTMLAttributes: {
-          class: 'editor-link',
+          class: 'underline text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer',
           rel: 'noopener noreferrer',
+          target: '_blank',
         },
       }),
     ],

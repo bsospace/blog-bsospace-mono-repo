@@ -31,6 +31,12 @@ export const Link = TiptapLink.extend({
             return false
           },
           handleClick(view, pos) {
+            // If the editor is not editable (e.g., preview) or openOnClick is enabled,
+            // do not intercept clicks so that the default link behavior can occur.
+            if (!editor.isEditable || (this as any).options?.openOnClick) {
+              return false
+            }
+
             const { schema, doc, tr } = view.state
             let range: ReturnType<typeof getMarkRange> | undefined
 
@@ -39,7 +45,7 @@ export const Link = TiptapLink.extend({
             }
 
             if (!range) {
-              return
+              return false
             }
 
             const { from, to } = range
@@ -47,7 +53,7 @@ export const Link = TiptapLink.extend({
             const end = Math.max(from, to)
 
             if (pos < start || pos > end) {
-              return
+              return false
             }
 
             const $start = doc.resolve(start)
@@ -55,6 +61,8 @@ export const Link = TiptapLink.extend({
             const transaction = tr.setSelection(new TextSelection($start, $end))
 
             view.dispatch(transaction)
+            // Prevent default navigation in editable mode when selecting a link.
+            return true
           },
         },
       }),

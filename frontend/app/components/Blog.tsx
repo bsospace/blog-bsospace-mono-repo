@@ -101,15 +101,10 @@ const BlogCard = ({ post }
             </div>
           )}
 
-          {/* Title with tech styling */}
-          <Link
-            className="flex w-full hover:underline hover:underline-offset-4 group/title mb-2 sm:mb-3"
-            href={`/posts/@${post.author?.username}/${post.slug}`}
-          >
-            <h2 className="text-sm sm:text-base md:text-lg font-bold text-black dark:text-white line-clamp-2 group-hover/title:text-transparent group-hover/title:bg-gradient-to-r group-hover/title:from-orange-400 group-hover/title:to-red-400 group-hover/title:bg-clip-text transition-all duration-300">
-              {post.title}
-            </h2>
-          </Link>
+          {/* Title with tech styling (no inner link to avoid nested anchors) */}
+          <h2 className="flex w-full hover:underline hover:underline-offset-4 group/title mb-2 sm:mb-3 text-sm sm:text-base md:text-lg font-bold text-black dark:text-white line-clamp-2 group-hover/title:text-transparent group-hover/title:bg-gradient-to-r group-hover/title:from-orange-400 group-hover/title:to-red-400 group-hover/title:bg-clip-text transition-all duration-300">
+            {post.title}
+          </h2>
 
           {/* Description - จะยืดหยุ่นตามเนื้อหา */}
           {post.description && (
