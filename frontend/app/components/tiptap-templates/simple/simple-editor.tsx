@@ -340,9 +340,9 @@ export function SimpleEditor(
       }),
       TrailingNode,
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
         HTMLAttributes: {
-          class: 'editor-link',
+          class: 'underline text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer',
           rel: 'noopener noreferrer',
         },
       }),
