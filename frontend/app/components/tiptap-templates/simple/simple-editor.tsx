@@ -38,6 +38,7 @@ import { TiptapImageNodeView } from "@/app/components/tiptap-node/image-node/Tip
 import { Image as TiptapImage, ImageOptions } from "@tiptap/extension-image";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import CodeBlockNode from "@/app/components/tiptap-node/code-block-node/code-block-node";
+import { LinkPreviewNode } from "@/app/components/tiptap-node/link-preview-node/link-preview-node-extension";
 
 // --- Tiptap UI ---
 import { HeadingDropdownMenu } from "@/app/components/tiptap-ui/heading-dropdown-menu"
@@ -247,7 +248,6 @@ export function SimpleEditor(
 
         const isLikelyUrl = (value: string) => {
           try {
-            // Accept bare domains and protocol URLs
             if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return true
             if (/^([\w-]+\.)+[\w-]{2,}(\/.*)?$/i.test(value)) return true
             return false
@@ -272,13 +272,49 @@ export function SimpleEditor(
         event.preventDefault()
 
         if (empty) {
-          chain
+          // Insert the pasted URL as a link immediately
+          const tx = editor?.chain()
+            .focus()
             .insertContent({
               type: 'text',
               text: clipboardText,
               marks: [{ type: 'link', attrs: { href } }],
             })
-            .run()
+          tx?.run()
+
+          // Then unfurl in the background and add a preview card
+          fetch('/api/unfurl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: href }),
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (data) {
+                const title = data.title || clipboardText
+                const description = data.description || ''
+                const image = data.image
+                let hostname = ''
+                try { hostname = new URL(href).hostname } catch {}
+                const favicon = hostname ? 'https://icons.duckduckgo.com/ip3/' + hostname + '.ico' : ''
+
+                // Replace the just-inserted URL text (last inserted) with a linkPreview node
+                const id = Math.random().toString(36).slice(2)
+                const { state } = editor!
+                const pos = state.selection.from
+                editor?.chain()
+                  .focus()
+                  .deleteRange({ from: pos - clipboardText.length, to: pos })
+                  .insertContent({
+                    type: 'linkPreview',
+                    attrs: { id, href, title, description, image },
+                  })
+                  .run()
+              }
+            })
+            .catch(() => {
+              // ignore errors; link text is already inserted
+            })
         } else {
           chain
             .setTextSelection({ from, to })
@@ -386,6 +422,7 @@ export function SimpleEditor(
         },
       }),
       TrailingNode,
+      LinkPreviewNode,
       Link.configure({
         openOnClick: true,
         autolink: true,
