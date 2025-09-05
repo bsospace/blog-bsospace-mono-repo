@@ -888,6 +888,56 @@ td {
   color: inherit;
 }
 
+/* === Preview Editor: disable horizontal scrollbars on code blocks (mobile) === */
+@media (max-width: 640px) {
+  .preview-editor .code-block-content {
+    overflow-x: hidden;
+  }
+
+  .preview-editor .code-block-content pre {
+    white-space: pre-wrap; /* wrap long lines */
+    word-break: break-word;
+    overflow-x: hidden;
+  }
+
+  .preview-editor .code-block-content code,
+  .preview-editor .code-block-content .hljs {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Hide potential native horizontal scrollbar in WebKit */
+  .preview-editor .code-block-content::-webkit-scrollbar:horizontal {
+    display: none;
+    height: 0 !important;
+  }
+}
+
+/* === Preview Editor: remove code block scrollbars and wrap lines (all viewports) === */
+.preview-editor .code-block-content {
+  overflow: visible;
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.preview-editor .code-block-content::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.preview-editor pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: visible !important; /* override global overflow-x-auto */
+}
+
+.preview-editor .hljs {
+  overflow: visible !important; /* override highlight.js rule */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* 📝 Line Clamp Utilities */
 .line-clamp-2 {
   display: -webkit-box;
