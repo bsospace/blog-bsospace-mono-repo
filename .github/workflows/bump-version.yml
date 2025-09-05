@@ -25,7 +25,7 @@ jobs:
         run: |
           HEAD_REF="${{ github.event.pull_request.head.ref }}"
           echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
-          if [[ "$HEAD_REF" == feature/* || "$HEAD_REF" == feture/* || "$HEAD_REF" == refactor/* ]]; then
+          if [[ "$HEAD_REF" == feature/* || "$HEAD_REF" == feture/* || "$HEAD_REF" == refactor/* || "$HEAD_REF" == chore/* ]]; then
             echo "type=minor" >> "$GITHUB_OUTPUT"
           elif [[ "$HEAD_REF" == fix/* ]]; then
             echo "type=patch" >> "$GITHUB_OUTPUT"
