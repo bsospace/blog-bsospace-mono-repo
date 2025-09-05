@@ -1,0 +1,83 @@
+name: Bump Beta Version on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ "master" ]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine release type from branch name
+        id: rel
+        shell: bash
+        run: |
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+          if [[ "$HEAD_REF" == feature/* || "$HEAD_REF" == feture/* || "$HEAD_REF" == refactor/* ]]; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          elif [[ "$HEAD_REF" == fix/* ]]; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if no bump required
+        if: steps.rel.outputs.type == 'none'
+        run: echo "No bump for branch '${{ steps.rel.outputs.head_ref }}'. Skipping."
+
+      - name: Configure git user
+        if: steps.rel.outputs.type != 'none'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute next beta tag
+        id: ver
+        if: steps.rel.outputs.type != 'none'
+        shell: bash
+        run: |
+          git fetch --tags --force
+          latest=$(git tag -l "v3.*-beta" | sort -V | tail -n1)
+          if [[ -z "$latest" ]]; then
+            minor=0
+            patch=0
+            latest="v3.0.0-beta"
+          else
+            version_no_v="${latest#v}"
+            base="${version_no_v#3.}"
+            base="${base%-beta}"
+            minor="${base%%.*}"
+            patch="${base#*.}"
+          fi
+
+          if [[ "${{ steps.rel.outputs.type }}" == "minor" ]]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          new_tag="v3.${minor}.${patch}-beta"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "release_type=${{ steps.rel.outputs.type }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.rel.outputs.type != 'none'
+        run: |
+          git tag -a "${{ steps.ver.outputs.new_tag }}" -m "Auto bump ${{ steps.ver.outputs.release_type }} from ${{ steps.ver.outputs.latest }} (PR #${{ github.event.pull_request.number }} from ${{ steps.rel.outputs.head_ref }})"
+          git push origin "${{ steps.ver.outputs.new_tag }}"
+
+
