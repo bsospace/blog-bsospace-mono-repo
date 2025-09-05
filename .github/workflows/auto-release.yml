@@ -1,0 +1,46 @@
+name: Auto Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR body from merged commit
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha="${GITHUB_SHA}"
+          pr_json=$(gh api repos/${{ github.repository }}/commits/$sha/pulls -H "Accept: application/vnd.github+json" 2>/dev/null || echo "[]")
+          pr_number=$(echo "$pr_json" | jq -r '.[0].number // empty')
+          if [ -n "$pr_number" ]; then
+            gh api repos/${{ github.repository }}/pulls/$pr_number -H "Accept: application/vnd.github+json" --jq '.body // ""' > pr_body.txt
+          else
+            echo "" > pr_body.txt
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body_path: pr_body.txt
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
