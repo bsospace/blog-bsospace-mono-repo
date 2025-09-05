@@ -75,19 +75,35 @@ export const useLinkHandler = (props: LinkHandlerProps) => {
   const setLink = React.useCallback(() => {
     if (!url || !editor) return
 
-    const { from, to } = editor.state.selection
-    const text = editor.state.doc.textBetween(from, to)
+    const normalizeUrl = (raw: string): string => {
+      try {
+        // If it already has a protocol, leave as-is
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) return raw
+        // Add https:// by default for bare domains
+        return `https://${raw}`
+      } catch {
+        return raw
+      }
+    }
 
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .insertContent({
-        type: "text",
-        text: text || url,
-        marks: [{ type: "link", attrs: { href: url } }],
-      })
-      .run()
+    const href = normalizeUrl(url.trim())
+
+    const { from, to, empty } = editor.state.selection
+    const chain = editor.chain().focus().extendMarkRange("link")
+
+    if (empty) {
+      // Insert the URL text, select it, then apply the link mark
+      chain
+        .insertContent(href)
+        .setTextSelection({ from, to: from + href.length })
+        .setLink({ href })
+        .run()
+    } else {
+      // Apply link mark to the selected text
+      chain
+        .setLink({ href })
+        .run()
+    }
 
     onSetLink?.()
   }, [editor, onSetLink, url])
