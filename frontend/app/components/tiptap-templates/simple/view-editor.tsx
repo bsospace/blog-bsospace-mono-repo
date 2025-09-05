@@ -24,6 +24,7 @@ import CodeBlockNode from "@/app/components/tiptap-node/code-block-node/code-blo
 import { Link } from "@/app/components/tiptap-extension/link-extension"
 import { Selection } from "@/app/components/tiptap-extension/selection-extension"
 import { TrailingNode } from "@/app/components/tiptap-extension/trailing-node-extension"
+import { LinkPreviewNode } from "@/app/components/tiptap-node/link-preview-node/link-preview-node-extension"
 import Loading from "../../Loading"
 
 interface PreviewEditorProps {
@@ -57,6 +58,7 @@ export function PreviewEditor({ content }: PreviewEditorProps) {
       }).configure({ lowlight }),
       Selection,
       TrailingNode,
+      LinkPreviewNode,
       Link.configure({
         openOnClick: true,
         HTMLAttributes: {
