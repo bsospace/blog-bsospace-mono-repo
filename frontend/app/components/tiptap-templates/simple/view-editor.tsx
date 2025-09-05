@@ -79,7 +79,7 @@ export function PreviewEditor({ content }: PreviewEditorProps) {
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
+    <div className="preview-editor w-full h-full flex flex-col items-center justify-center">
       <div className="transition-all rounded-md duration-300 max-w-screen-xl w-full ease-out sticky top-16 bg-white dark:bg-gray-900">
         <EditorContent editor={editor} />
       </div>
