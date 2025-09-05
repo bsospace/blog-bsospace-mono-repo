@@ -57,7 +57,13 @@ export function PreviewEditor({ content }: PreviewEditorProps) {
       }).configure({ lowlight }),
       Selection,
       TrailingNode,
-      Link.configure({ openOnClick: true }),
+      Link.configure({
+        openOnClick: true,
+        HTMLAttributes: {
+          class: 'underline text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer',
+          rel: 'noopener noreferrer',
+        },
+      }),
     ],
     content,
   })
