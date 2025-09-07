@@ -307,7 +307,15 @@ export function SimpleEditor(
                   .deleteRange({ from: pos - clipboardText.length, to: pos })
                   .insertContent({
                     type: 'linkPreview',
-                    attrs: { id, href, title, description, image },
+                    attrs: { 
+                      id, 
+                      href, 
+                      title, 
+                      description, 
+                      image,
+                      width: 100,
+                      align: 'left'
+                    },
                   })
                   .run()
               }
