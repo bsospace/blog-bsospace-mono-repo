@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Meta } from "../interfaces";
 import BlogCard from "../components/Blog";
 import { Post } from "../interfaces";
@@ -348,10 +349,12 @@ export default function HomePageClient({
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-5 h-5 rounded-full bg-slate-700 overflow-hidden">
                               {post.author?.avatar && (
-                                <img 
+                                <Image 
                                   src={post.author.avatar} 
-                                  alt={post.author.username}
+                                  alt={post.author.username || "Author"}
                                   className="w-full h-full object-cover"
+                                  width={20}
+                                  height={20}
                                 />
                               )}
                             </div>
