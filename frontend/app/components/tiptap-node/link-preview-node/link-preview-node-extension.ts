@@ -18,6 +18,8 @@ export interface LinkPreviewAttrs {
   title?: string
   description?: string
   image?: string
+  width?: number
+  align?: 'left' | 'center' | 'right'
 }
 
 export const LinkPreviewNode = Node.create({
@@ -34,6 +36,8 @@ export const LinkPreviewNode = Node.create({
       title: { default: null },
       description: { default: null },
       image: { default: null },
+      width: { default: 100 },
+      align: { default: 'left' },
     }
   },
 

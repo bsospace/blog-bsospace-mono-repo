@@ -38,10 +38,21 @@ export const Link = TiptapLink.extend({
             }
 
             const { schema, doc, tr } = view.state
+            
+            // Check if position is valid
+            if (pos < 0 || pos > doc.content.size) {
+              return false
+            }
+
             let range: ReturnType<typeof getMarkRange> | undefined
 
-            if (schema.marks.link) {
-              range = getMarkRange(doc.resolve(pos), schema.marks.link)
+            try {
+              if (schema.marks.link) {
+                range = getMarkRange(doc.resolve(pos), schema.marks.link)
+              }
+            } catch (error) {
+              // If resolve fails, return false
+              return false
             }
 
             if (!range) {
@@ -56,13 +67,18 @@ export const Link = TiptapLink.extend({
               return false
             }
 
-            const $start = doc.resolve(start)
-            const $end = doc.resolve(end)
-            const transaction = tr.setSelection(new TextSelection($start, $end))
+            try {
+              const $start = doc.resolve(start)
+              const $end = doc.resolve(end)
+              const transaction = tr.setSelection(new TextSelection($start, $end))
 
-            view.dispatch(transaction)
-            // Prevent default navigation in editable mode when selecting a link.
-            return true
+              view.dispatch(transaction)
+              // Prevent default navigation in editable mode when selecting a link.
+              return true
+            } catch (error) {
+              // If resolve fails, return false
+              return false
+            }
           },
         },
       }),

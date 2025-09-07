@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "pre-commit": "cd frontend && pnpm lint && pnpm type-check",
+    "pre-push": "cd frontend && pnpm build && cd ../backend/cmd/server && go build"
+  }
+}
