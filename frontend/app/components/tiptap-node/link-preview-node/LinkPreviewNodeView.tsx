@@ -63,29 +63,17 @@ export function LinkPreviewNodeView(props: NodeViewProps) {
   // Check if editor is in edit mode (not preview mode)
   const isEditable = editor.isEditable
 
-  // Get alignment class
-  const getAlignClass = () => {
-    switch (align) {
-      case 'center':
-        return 'mx-auto'
-      case 'right':
-        return 'ml-auto'
-      case 'left':
-      default:
-        return 'mr-auto'
-    }
-  }
-
   return (
-    <div className={`flex justify-${align === 'center' ? 'center' : align === 'right' ? 'end' : 'start'} my-3`}>
-      <NodeViewWrapper 
-        className={`group not-prose rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 ${getAlignClass()} w-full md:w-auto`}
-        data-type="link-preview"
-        style={{ 
-          width: `${width}%`,
-          maxWidth: '100%'
-        }}
-      >
+    <NodeViewWrapper 
+      className={`group not-prose rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 w-full md:w-auto my-3`}
+      data-type="link-preview"
+      style={{ 
+        width: `${width}%`,
+        maxWidth: '100%',
+        marginLeft: align === 'center' ? 'auto' : align === 'right' ? 'auto' : '0',
+        marginRight: align === 'center' ? 'auto' : align === 'left' ? 'auto' : '0'
+      }}
+    >
       {image ? (
         <div className="relative h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
           <img src={image} alt="preview" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -171,8 +159,7 @@ export function LinkPreviewNodeView(props: NodeViewProps) {
           </div>
         </div>
       )}
-      </NodeViewWrapper>
-    </div>
+    </NodeViewWrapper>
   )
 }
 
