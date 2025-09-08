@@ -71,16 +71,6 @@ services:
     networks:
       - public
 
-  extractor:
-    build:
-      context: ./extractor
-      dockerfile: Dockerfile
-    container_name: blog-extractor-python-app
-    restart: always
-    ports:
-      - "127.0.0.1:5002:5002"
-    networks:
-      - internal
 
 volumes:
   postgres_data:
