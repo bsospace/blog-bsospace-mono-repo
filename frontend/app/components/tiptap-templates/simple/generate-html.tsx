@@ -15,6 +15,7 @@ import { Link } from "@/app/components/tiptap-extension/link-extension"
 import { Selection } from "@/app/components/tiptap-extension/selection-extension"
 import { TrailingNode } from "@/app/components/tiptap-extension/trailing-node-extension"
 import { ImageUploadNode } from "@/app/components/tiptap-node/image-upload-node/image-upload-node-extension"
+import { LinkPreviewNode } from "@/app/components/tiptap-node/link-preview-node/link-preview-node-extension"
 
 import { JSONContent } from "@tiptap/react"
 
@@ -50,6 +51,7 @@ export function generateHtmlFromContent(content: JSONContent): string {
     Selection,
     TrailingNode,
     ImageUploadNode,
+    LinkPreviewNode,
     Link,
   ])
 }
