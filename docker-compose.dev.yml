@@ -57,14 +57,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  extractor:
-    build:
-      context: ./extractor
-      dockerfile: Dockerfile
-    container_name: dev-blog-extractor-python-app
-    restart: always
-    ports:
-      - "5002:5002"
 
 volumes:
   postgres_data:
