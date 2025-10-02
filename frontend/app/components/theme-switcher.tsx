@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { MoonIcon } from "./moon-icon";
-import { SunIcon } from "./SunIcon";
+import { SunIcon } from "./sun-icon";
 
 export default function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
