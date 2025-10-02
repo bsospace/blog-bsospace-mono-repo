@@ -11,8 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { SimpleEditor } from "@/app/components/tiptaps/tiptap-templates/simple/simple-editor";
 import { PostStatusHeader } from "../components/post-status-header";
 import { PublishModal } from "../components/publish-modal";
-import NewUserModal from "@/app/components/NewUserModal";
-import Loading from "@/app/components/Loading";
+import NewUserModal from "@/app/components/new-user-modal";
+import Loading from "@/app/components/loading";
 
 // Utils
 import { axiosInstance } from "@/lib/api";

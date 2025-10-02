@@ -1,6 +1,6 @@
 'use client'
 
-import Loading from '@/app/components/Loading'
+import Loading from '@/app/components/loading'
 import { useAuth } from '@/app/contexts/auth-context'
 import { axiosInstance } from '@/lib/api'
 import { useEffect } from 'react'

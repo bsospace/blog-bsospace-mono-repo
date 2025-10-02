@@ -14,7 +14,7 @@ import { Calendar, User, MapPin, Globe, Edit, Github, Twitter, Linkedin, Instagr
 import BlogCard from '../components/blog-card';
 import { Post } from '../interfaces';
 import { axiosInstance } from '../../lib/api';
-import Loading from '../components/Loading';
+import Loading from '../components/loading';
 import NotFoundPage from '../not-found';
 import { imageService } from '../services/imageService';
 import { useAlert } from '../components/cxustom-alert';

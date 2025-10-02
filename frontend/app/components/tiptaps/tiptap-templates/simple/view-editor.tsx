@@ -25,7 +25,7 @@ import { Link } from "@/app/components/tiptaps/tiptap-extension/link-extension"
 import { Selection } from "@/app/components/tiptaps/tiptap-extension/selection-extension"
 import { TrailingNode } from "@/app/components/tiptaps/tiptap-extension/trailing-node-extension"
 import { LinkPreviewNode } from "@/app/components/tiptaps/tiptap-node/link-preview-node/link-preview-node-extension"
-import Loading from "../../../Loading"
+import Loading from "../../../loading"
 
 interface PreviewEditorProps {
   content: JSONContent

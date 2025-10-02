@@ -8,7 +8,7 @@ import { Meta } from "../interfaces";
 import BlogCard from "../components/blog";
 import { Post } from "../interfaces";
 import { FiCode, FiCpu, FiSearch, FiTrendingUp, FiZap, FiBookOpen, FiClock, FiEye, FiHeart } from "react-icons/fi";
-import Loading from "../components/Loading";
+import Loading from "../components/loading";
 import { CookiesConsentModal } from "../components/cookies-consent-modal";
 import { formatDate } from "@/lib/utils";
 

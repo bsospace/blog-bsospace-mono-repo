@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { ReactNode, useContext, useEffect, useState, useRef } from "react";
-import ThemeSwitcher from "./ThemeSwitcher";
+import ThemeSwitcher from "./theme-switcher";
 import Image from "next/image";
 import logo from "../../public/logo.svg";
 import Link from "next/link";
@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import NotificationDropdown from "./NotificationDropdown";
+import NotificationDropdown from "./notification-dropdown";
 import { axiosInstance } from "../../lib/api";
 import envConfig from '../configs/env-config';
 
