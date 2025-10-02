@@ -3,19 +3,19 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaCalendar, FaClock, FaUser } from "react-icons/fa";
 import { IoChevronForward } from "react-icons/io5";
-import ScrollProgressBar from "@/app/components/ScrollProgress";
-import { DynamicPreviewEditor } from "@/app/components/tiptap-templates/simple/view-editor";
+import ScrollProgressBar from "@/app/components/scroll-progress";
+import { DynamicPreviewEditor } from "@/app/components/tiptaps/tiptap-templates/simple/view-editor";
 import { JSONContent } from "@tiptap/react";
 import { Post } from "@/app/interfaces";
-import NotFound from "@/app/components/NotFound";
-import { SEOProvider } from "@/app/contexts/seoContext";
-import Loading from "@/app/components/Loading";
+import NotFound from "@/app/components/not-found";
+import { SEOProvider } from "@/app/contexts/seo-context";
+import Loading from "@/app/components/loading";
 import BlogAIChat from "@/app/components/ai-chat";
-import { generateArticleStructuredData } from '@/app/utils/seo';
+import { generateArticleStructuredData } from '@/lib/seo';
 import Image from "next/image";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generateFingerprint } from '@/lib/fingerprint';
-import { axiosInstanceServer } from '@/app/utils/api-server';
+import { axiosInstanceServer } from '@/lib/api-server';
 
 interface PostClientProps {
   post: Post;

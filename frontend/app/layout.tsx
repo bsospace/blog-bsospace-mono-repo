@@ -2,15 +2,15 @@ import type { Metadata, Viewport } from "next";
 // import { Inter } from "next/font/google";
 import "./globals.css";
 
-import Layout from "./components/Layout";
-import { AuthProvider } from "./contexts/authContext";
+import Layout from "./components/layout";
+import { AuthProvider } from "./contexts/auth-context";
 import Providers from "./components/providers";
-import envConfig from "./configs/envConfig";
+import envConfig from "./configs/env-config";
 
 // const inter = Inter({ subsets: ["latin"] });
 import { Toaster } from "@/components/ui/toaster"
-import { SEOProvider } from "./contexts/seoContext";
-import HelmetContextProvider from "./contexts/HelmetProvider";
+import { SEOProvider } from "./contexts/seo-context";
+import HelmetContextProvider from "./contexts/helmet-provider";
 import CookiesConsentProvider from "./contexts/cookies-consent-context";
 
 export const viewport: Viewport = {

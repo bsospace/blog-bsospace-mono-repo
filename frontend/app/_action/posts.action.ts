@@ -1,6 +1,6 @@
 "use server";
 import { Meta, Post } from "@/app/interfaces";
-import { axiosInstanceServer } from "../utils/api-server";
+import { axiosInstanceServer } from "../../lib/api-server";
 
 export async function fetchPostBySlug(slug: string, key: string = "") {
   try {

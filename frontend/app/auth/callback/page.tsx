@@ -1,8 +1,8 @@
 'use client'
 
-import Loading from '@/app/components/Loading'
-import { useAuth } from '@/app/contexts/authContext'
-import { axiosInstance } from '@/app/utils/api'
+import Loading from '@/app/components/loading'
+import { useAuth } from '@/app/contexts/auth-context'
+import { axiosInstance } from '@/lib/api'
 import { useEffect } from 'react'
 
 const Callback = () => {

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Github, Info, CheckCircle, PencilLine, BookOpen, X } from 'lucide-react'
 import Image from 'next/image'
-import { useAuth } from '@/app/contexts/authContext'
+import { useAuth } from '@/app/contexts/auth-context'
 
 export default function LoginPage() {
   const router = useRouter()

@@ -11,14 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Calendar, User, MapPin, Globe, Edit, Github, Twitter, Linkedin, Instagram, Facebook, Youtube, MessageCircle, Send } from 'lucide-react';
-import BlogCard from '../components/BlogCard';
+import BlogCard from '../components/blog-card';
 import { Post } from '../interfaces';
-import { axiosInstance } from '../utils/api';
-import Loading from '../components/Loading';
+import { axiosInstance } from '../../lib/api';
+import Loading from '../components/loading';
 import NotFoundPage from '../not-found';
 import { imageService } from '../services/imageService';
-import { useAlert } from '../components/CustomAlert';
-import { useAuth } from '../contexts/authContext';
+import { useAlert } from '../components/custom-alert';
+import { useAuth } from '../contexts/auth-context';
 import { z } from 'zod';
 
 export interface UserProfile {

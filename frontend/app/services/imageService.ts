@@ -1,4 +1,4 @@
-import { axiosInstance } from '../utils/api';
+import { axiosInstance } from '../../lib/api';
 
 export interface UploadProgress {
   progress: number;

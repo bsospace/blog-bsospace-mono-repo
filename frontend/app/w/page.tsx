@@ -36,12 +36,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Post } from '../interfaces';
-import { axiosInstance } from '../utils/api';
+import { axiosInstance } from '../../lib/api';
 import { formatDate, getnerateId } from '@/lib/utils';
 import { PostCard } from './components/post-card';
 import { PostListItem } from './components/post-item';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../contexts/authContext';
+import { useAuth } from '../contexts/auth-context';
 import DeleteModal from './components/delete-modal';
 import { useToast } from '@/hooks/use-toast';
 import { useWebSocket } from '../contexts/use-web-socket';
