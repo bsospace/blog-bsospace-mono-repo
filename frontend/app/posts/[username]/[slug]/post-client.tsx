@@ -8,7 +8,7 @@ import { DynamicPreviewEditor } from "@/app/components/tiptap-templates/simple/v
 import { JSONContent } from "@tiptap/react";
 import { Post } from "@/app/interfaces";
 import NotFound from "@/app/components/NotFound";
-import { SEOProvider } from "@/app/contexts/seoContext";
+import { SEOProvider } from "@/app/contexts/seo-context";
 import Loading from "@/app/components/Loading";
 import BlogAIChat from "@/app/components/ai-chat";
 import { generateArticleStructuredData } from '@/lib/seo';

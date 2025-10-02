@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { axiosInstance } from "@/lib/api";
 import { imageService } from "@/app/services/imageService";
-import { useAlert } from "@/app/components/CustomAlert";
+import { useAlert } from "@/app/components/cxustom-alert";
 
 type PublishStatus = 'idle' | 'publishing' | 'published' | 'error';
 

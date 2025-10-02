@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
 import { useRouter } from "next/navigation";
-import envConfig from "../configs/envConfig";
+import envConfig from "../configs/env-config";
 import { axiosInstance } from "../../lib/api";
 import { User } from "../interfaces";
 

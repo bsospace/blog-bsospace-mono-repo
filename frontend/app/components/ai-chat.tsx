@@ -3,8 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, MessageCircle, X, Minimize2, Maximize2, Minimize } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '../contexts/authContext';
-import envConfig from '../configs/envConfig';
+import { useAuth } from '../contexts/auth-context';
+import envConfig from '../configs/env-config';
 import { Post } from '../interfaces';
 import { useRouter } from 'next/navigation'
 // import { countTokens, isTokenLimitExceeded } from '../utils/token';

@@ -7,7 +7,7 @@ import {
   removeWSListener,
   sendWSMessage,
 } from "../../lib/ws-client"
-import { useAuth } from "./authContext"
+import { useAuth } from "./auth-context"
 
 export const useWebSocket = (
   onMessage: (data: any) => void

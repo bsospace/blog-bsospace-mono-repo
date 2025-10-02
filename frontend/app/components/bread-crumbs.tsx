@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ChevronRight, Home } from 'lucide-react';
-import envConfig from '../configs/envConfig';
+import envConfig from '../configs/env-config';
 
 interface BreadcrumbItem {
   label: string;

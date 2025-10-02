@@ -7,7 +7,7 @@ import logo from "../../public/logo.svg";
 import Link from "next/link";
 import axios from "axios";
 import Script from "next/script";
-import { AuthContext } from "../contexts/authContext";
+import { AuthContext } from "../contexts/auth-context";
 import { ChevronDown, LogOut, Notebook, SquarePen, User, UserCircle } from "lucide-react";
 import { getnerateId } from "@/lib/utils";
 import { FiCode, FiCpu } from "react-icons/fi";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationDropdown from "./NotificationDropdown";
 import { axiosInstance } from "../../lib/api";
-import envConfig from '../configs/envConfig';
+import envConfig from '../configs/env-config';
 
 // Profile Button Component
 const ProfileButton = ({ 

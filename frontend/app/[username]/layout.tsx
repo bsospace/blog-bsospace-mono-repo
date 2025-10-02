@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { ReactNode } from "react";
 import { axiosInstanceServer } from "../../lib/api-server";
-import envConfig from '../configs/envConfig';
+import envConfig from '../configs/env-config';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

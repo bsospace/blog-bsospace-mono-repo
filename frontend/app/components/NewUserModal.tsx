@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/app/contexts/authContext';
+import { useAuth } from '@/app/contexts/auth-context';
 import { z } from 'zod';
 import { axiosInstance } from '../../lib/api';
 

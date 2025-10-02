@@ -1,5 +1,5 @@
 import axios from 'axios';
-import envConfig from '../app/configs/envConfig';
+import envConfig from '../app/configs/env-config';
 
 // สร้าง axios instance
 export const axiosInstanceServer = axios.create({

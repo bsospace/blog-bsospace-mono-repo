@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, ReactNode } from 'react';
 import { Helmet } from 'react-helmet-async';
-import envConfig from '../configs/envConfig';
+import envConfig from '../configs/env-config';
 
 interface SEOProps {
     title?: string;

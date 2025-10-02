@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import envConfig from '../../configs/envConfig';
+import envConfig from '../../configs/env-config';
 
 export async function GET(request: NextRequest) {
   const baseUrl = envConfig.domain;

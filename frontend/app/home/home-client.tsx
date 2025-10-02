@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Meta } from "../interfaces";
-import BlogCard from "../components/Blog";
+import BlogCard from "../components/blog";
 import { Post } from "../interfaces";
 import { FiCode, FiCpu, FiSearch, FiTrendingUp, FiZap, FiBookOpen, FiClock, FiEye, FiHeart } from "react-icons/fi";
 import Loading from "../components/Loading";

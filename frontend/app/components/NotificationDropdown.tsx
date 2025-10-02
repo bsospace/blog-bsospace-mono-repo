@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Bell, X, Loader2 } from "lucide-react";
 import { useWebSocket } from "../contexts/use-web-socket";
 import { axiosInstance } from "../../lib/api";
-import { useAuth } from "../contexts/authContext";
+import { useAuth } from "../contexts/auth-context";
 import { Notification } from '../interfaces/index';
 
 interface NotificationDropdownProps {

@@ -4,7 +4,7 @@ import { axiosInstanceServer } from '@/lib/api-server';
 import PostClient from './post-client';
 import { notFound } from 'next/navigation';
 import { generateFingerprint } from '@/lib/fingerprint';
-import envConfig from '../../../configs/envConfig';
+import envConfig from '../../../configs/env-config';
 
 function sanitizeParam(value: string): string {
   return decodeURIComponent(value).replace(/^@/, '').split(/[?#]/)[0].trim();
