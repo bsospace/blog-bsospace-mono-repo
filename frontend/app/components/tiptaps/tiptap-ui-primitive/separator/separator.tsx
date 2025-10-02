@@ -1,5 +1,5 @@
 import * as React from "react"
-import "@/app/components/tiptap-ui-primitive/separator/separator.scss"
+import "@/app/components/tiptaps/tiptap-ui-primitive/separator/separator.scss"
 
 type Orientation = "horizontal" | "vertical"
 

@@ -3,7 +3,7 @@ import * as React from "react"
 import type { NodeViewProps } from "@tiptap/react"
 import { NodeViewWrapper } from "@tiptap/react"
 import { CloseIcon } from "@/app/components/tiptaps/tiptap-icons/close-icon"
-import "@/app/components/tiptap-node/image-upload-node/image-upload-node.scss"
+import "@/app/components/tiptaps/tiptap-node/image-upload-node/image-upload-node.scss"
 import { getnerateId } from "@/lib/utils"
 import { axiosInstance } from "@/lib/api"
 
