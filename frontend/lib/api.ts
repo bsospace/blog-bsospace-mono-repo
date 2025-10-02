@@ -1,8 +1,10 @@
+'use client';
+
 import axios from 'axios';
-import envConfig from '../configs/envConfig';
+import envConfig from '../app/configs/envConfig';
 
 // สร้าง axios instance
-export const axiosInstanceServer = axios.create({
+export const axiosInstance = axios.create({
     baseURL: `${envConfig.apiBaseUrl}`, // กำหนด base URL
     timeout: 60000, // กำหนด timeout ในการร้องขอ (10 วินาที)
     headers: {

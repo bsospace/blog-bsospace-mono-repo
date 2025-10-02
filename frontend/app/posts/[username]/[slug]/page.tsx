@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Post } from '@/app/interfaces';
-import { axiosInstanceServer } from '@/app/utils/api-server';
+import { axiosInstanceServer } from '@/lib/api-server';
 import PostClient from './post-client';
 import { notFound } from 'next/navigation';
 import { generateFingerprint } from '@/lib/fingerprint';

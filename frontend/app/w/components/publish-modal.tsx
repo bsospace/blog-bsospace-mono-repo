@@ -18,7 +18,7 @@ import {
     Upload,
     Eye
 } from "lucide-react";
-import { axiosInstance } from "@/app/utils/api";
+import { axiosInstance } from "@/lib/api";
 import { imageService } from "@/app/services/imageService";
 import { useAlert } from "@/app/components/CustomAlert";
 

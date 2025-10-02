@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Bell, X, Loader2 } from "lucide-react";
 import { useWebSocket } from "../contexts/use-web-socket";
-import { axiosInstance } from "../utils/api";
+import { axiosInstance } from "../../lib/api";
 import { useAuth } from "../contexts/authContext";
 import { Notification } from '../interfaces/index';
 

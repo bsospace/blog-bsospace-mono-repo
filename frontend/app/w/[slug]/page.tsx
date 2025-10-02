@@ -15,7 +15,7 @@ import NewUserModal from "@/app/components/NewUserModal";
 import Loading from "@/app/components/Loading";
 
 // Utils
-import { axiosInstance } from "@/app/utils/api";
+import { axiosInstance } from "@/lib/api";
 import { getnerateId } from "@/lib/utils";
 import { generateHtmlFromContent } from "@/app/components/tiptap-templates/simple/generate-html";
 import { Post, PostStatus } from '../../interfaces/index';

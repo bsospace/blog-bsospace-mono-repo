@@ -1,5 +1,5 @@
 import UserProfileClient, { UserProfileResponse } from './user-profile-client';
-import { axiosInstanceServer } from '../utils/api-server';
+import { axiosInstanceServer } from '../../lib/api-server';
 import { notFound } from 'next/navigation';
 
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {

@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar, User, MapPin, Globe, Edit, Github, Twitter, Linkedin, Instagram, Facebook, Youtube, MessageCircle, Send } from 'lucide-react';
 import BlogCard from '../components/BlogCard';
 import { Post } from '../interfaces';
-import { axiosInstance } from '../utils/api';
+import { axiosInstance } from '../../lib/api';
 import Loading from '../components/Loading';
 import NotFoundPage from '../not-found';
 import { imageService } from '../services/imageService';

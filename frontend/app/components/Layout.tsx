@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationDropdown from "./NotificationDropdown";
-import { axiosInstance } from "../utils/api";
+import { axiosInstance } from "../../lib/api";
 import envConfig from '../configs/envConfig';
 
 // Profile Button Component

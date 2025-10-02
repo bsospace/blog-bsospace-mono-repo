@@ -11,7 +11,7 @@ import { LinkIcon } from "@/app/components/tiptap-icons/link-icon"
 import { TrashIcon } from "@/app/components/tiptap-icons/trash-icon"
 
 // --- Lib ---
-import { isMarkInSchema } from "@/app/lib/tiptap-utils"
+import { isMarkInSchema } from "@/lib/tiptap-utils"
 
 // --- UI Primitives ---
 import type { ButtonProps } from "@/app/components/tiptap-ui-primitive/button"

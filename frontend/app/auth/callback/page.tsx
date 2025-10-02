@@ -2,7 +2,7 @@
 
 import Loading from '@/app/components/Loading'
 import { useAuth } from '@/app/contexts/authContext'
-import { axiosInstance } from '@/app/utils/api'
+import { axiosInstance } from '@/lib/api'
 import { useEffect } from 'react'
 
 const Callback = () => {

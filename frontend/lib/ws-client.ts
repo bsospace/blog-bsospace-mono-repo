@@ -1,5 +1,5 @@
-import envConfig from "../configs/envConfig"
-import { useAuth } from "../contexts/authContext"
+import envConfig from "../app/configs/envConfig"
+import { useAuth } from "../app/contexts/authContext"
 
 type WSListener = (event: MessageEvent) => void
 

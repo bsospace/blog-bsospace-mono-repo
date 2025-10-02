@@ -70,7 +70,7 @@ import { useWindowSize } from "@/app/hooks/use-window-size"
 import { useCursorVisibility } from "@/app/hooks/use-cursor-visibility"
 
 // --- Lib ---
-import { handleImageUpload, MAX_FILE_SIZE } from "@/app/lib/tiptap-utils"
+import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils"
 
 // import content from "@/app/components/tiptap-templates/simple/data/content.json"
 import { Input } from "@/components/ui/input"

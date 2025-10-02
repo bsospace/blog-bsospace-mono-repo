@@ -36,7 +36,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Post } from '../interfaces';
-import { axiosInstance } from '../utils/api';
+import { axiosInstance } from '../../lib/api';
 import { formatDate, getnerateId } from '@/lib/utils';
 import { PostCard } from './components/post-card';
 import { PostListItem } from './components/post-item';

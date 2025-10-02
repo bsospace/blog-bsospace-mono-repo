@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import envConfig from '../configs/envConfig';
+import envConfig from '../app/configs/envConfig';
 
 export interface SEOData {
   title: string;

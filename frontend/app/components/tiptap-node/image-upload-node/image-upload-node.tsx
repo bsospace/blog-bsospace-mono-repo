@@ -5,7 +5,7 @@ import { NodeViewWrapper } from "@tiptap/react"
 import { CloseIcon } from "@/app/components/tiptap-icons/close-icon"
 import "@/app/components/tiptap-node/image-upload-node/image-upload-node.scss"
 import { getnerateId } from "@/lib/utils"
-import { axiosInstance } from "@/app/utils/api"
+import { axiosInstance } from "@/lib/api"
 
 export interface FileItem {
   id: string
