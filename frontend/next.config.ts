@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-import envConfig from './app/configs/envConfig';
+import envConfig from './app/configs/env-config';
 
 const nextConfig = {
   // SEO and Performance optimizations

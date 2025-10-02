@@ -28,7 +28,7 @@ import {
   Mail,
   MapPin
 } from 'lucide-react';
-import envConfig from '../configs/envConfig';
+import envConfig from '../configs/env-config';
 
 interface CookiesPolicyDialogProps {
   children: React.ReactNode;

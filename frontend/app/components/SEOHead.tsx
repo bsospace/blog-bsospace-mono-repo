@@ -1,7 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import envConfig from '../configs/envConfig';
+import envConfig from '../configs/env-config';
 
 interface SEOHeadProps {
   title?: string;
