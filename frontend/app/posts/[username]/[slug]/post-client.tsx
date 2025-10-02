@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FaCalendar, FaClock, FaUser } from "react-icons/fa";
 import { IoChevronForward } from "react-icons/io5";
 import ScrollProgressBar from "@/app/components/ScrollProgress";
-import { DynamicPreviewEditor } from "@/app/components/tiptap-templates/simple/view-editor";
+import { DynamicPreviewEditor } from "@/app/components/tiptaps/tiptap-templates/simple/view-editor";
 import { JSONContent } from "@tiptap/react";
 import { Post } from "@/app/interfaces";
 import NotFound from "@/app/components/NotFound";

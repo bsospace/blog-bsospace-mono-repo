@@ -8,7 +8,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 // Components
-import { SimpleEditor } from "@/app/components/tiptap-templates/simple/simple-editor";
+import { SimpleEditor } from "@/app/components/tiptaps/tiptap-templates/simple/simple-editor";
 import { PostStatusHeader } from "../components/post-status-header";
 import { PublishModal } from "../components/publish-modal";
 import NewUserModal from "@/app/components/NewUserModal";
@@ -17,9 +17,9 @@ import Loading from "@/app/components/Loading";
 // Utils
 import { axiosInstance } from "@/lib/api";
 import { getnerateId } from "@/lib/utils";
-import { generateHtmlFromContent } from "@/app/components/tiptap-templates/simple/generate-html";
+import { generateHtmlFromContent } from "@/app/components/tiptaps/tiptap-templates/simple/generate-html";
 import { Post, PostStatus } from '../../interfaces/index';
-import { PreviewEditor } from "@/app/components/tiptap-templates/simple/view-editor";
+import { PreviewEditor } from "@/app/components/tiptaps/tiptap-templates/simple/view-editor";
 import { useWebSocket } from "@/app/contexts/use-web-socket";
 
 
