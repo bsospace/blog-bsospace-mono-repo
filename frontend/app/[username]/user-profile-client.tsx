@@ -17,7 +17,7 @@ import { axiosInstance } from '../../lib/api';
 import Loading from '../components/loading';
 import NotFoundPage from '../not-found';
 import { imageService } from '../services/imageService';
-import { useAlert } from '../components/cxustom-alert';
+import { useAlert } from '../components/custom-alert';
 import { useAuth } from '../contexts/auth-context';
 import { z } from 'zod';
 
