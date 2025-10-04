@@ -39,9 +39,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       APP_ENV: ${APP_ENV}
+      PORT: ${APP_PORT}
       GIN_MODE: release
     ports:
-      - "127.0.0.1:5432"
+      - "127.0.0.1:${APP_PORT}:${APP_PORT}"
     depends_on:
       - db
       - redis
