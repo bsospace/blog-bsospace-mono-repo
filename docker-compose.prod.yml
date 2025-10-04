@@ -64,7 +64,7 @@ services:
     env_file:
       - .env
     ports:
-        - "127.0.0.1:9009:3000"
+        - "127.0.0.1:9009:8088"
     depends_on:
       - backend
     restart: always
