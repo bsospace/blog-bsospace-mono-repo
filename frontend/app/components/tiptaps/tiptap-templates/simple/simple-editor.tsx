@@ -243,8 +243,37 @@ export function SimpleEditor(
         "aria-describedby": "editor-help",
       },
       handlePaste: (view, event) => {
-        const clipboardText = event.clipboardData?.getData('text/plain')?.trim()
-        if (!clipboardText) return false
+        let clipboardText = ""
+        const items = event.clipboardData?.items
+        // for check items in clipboard has value
+        if (!items) return false
+
+        // loop for check values from clipboard are text or image
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          if (item.type === 'text/plain') {
+            item.getAsString((text) => {
+              clipboardText = text?.trim() || "";
+            });
+          }
+          else if (item.type.startsWith('image/')) {
+            const file = item.getAsFile()
+            if (!file) return false
+
+            const src = URL.createObjectURL(file) // local preview url
+
+            event.preventDefault()
+
+            editor?.chain()
+              .focus()
+              .insertContent({
+                type: 'image',
+                attrs: { src },
+              })
+              .run()
+            return true
+          }
+        }
 
         const isLikelyUrl = (value: string) => {
           try {
@@ -295,7 +324,7 @@ export function SimpleEditor(
                 const description = data.description || ''
                 const image = data.image
                 let hostname = ''
-                try { hostname = new URL(href).hostname } catch {}
+                try { hostname = new URL(href).hostname } catch { }
                 const favicon = hostname ? 'https://icons.duckduckgo.com/ip3/' + hostname + '.ico' : ''
 
                 // Replace the just-inserted URL text (last inserted) with a linkPreview node
@@ -307,11 +336,11 @@ export function SimpleEditor(
                   .deleteRange({ from: pos - clipboardText.length, to: pos })
                   .insertContent({
                     type: 'linkPreview',
-                    attrs: { 
-                      id, 
-                      href, 
-                      title, 
-                      description, 
+                    attrs: {
+                      id,
+                      href,
+                      title,
+                      description,
                       image,
                       width: 100,
                       align: 'left'
