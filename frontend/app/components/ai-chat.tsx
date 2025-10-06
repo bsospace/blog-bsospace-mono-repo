@@ -228,7 +228,7 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
     elements.push(text.slice(currentIndex));
   }
 
-  // Handle line breaks - ทำครั้งเดียวตอนท้าย
+  // Handle line breaks - do this only once at the end
   const result: React.ReactNode[] = [];
   elements.forEach((element, elemIndex) => {
     if (typeof element === 'string') {
