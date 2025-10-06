@@ -679,7 +679,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 			return
 		}
 
-		// --- stream ส่วน introduction ก่อน ---
+		// --- stream the introduction section first ---
 		if introText != "" {
 			jsonIntro, _ := json.Marshal(map[string]string{"text": introText + "\n\n"})
 			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonIntro)
