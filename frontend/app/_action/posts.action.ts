@@ -89,7 +89,7 @@ export async function fetchPopularPosts(): Promise<{ data: Post[]; meta: Meta }>
       data: PostResponse;
       message: string;
       success: boolean;
-    }>(`/posts/popular?limit=10`);
+    }>(`/posts/popular?limit=5`);
 
     const raw = response.data.data;
 
