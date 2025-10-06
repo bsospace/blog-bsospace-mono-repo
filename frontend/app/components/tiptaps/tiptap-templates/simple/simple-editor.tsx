@@ -575,7 +575,7 @@ export function SimpleEditor(
       {/* Enhanced Toolbar */}
       <Toolbar
         ref={toolbarRef}
-        className="transition-all duration-300 max-w-screen-xl w-full ease-out sticky top-20 z-10 bg-white dark:bg-gray-900  dark:border-gray-700 shadow-sm"
+        className="transition-all duration-300 max-w-screen-xl w-full ease-out sticky top-20 z-10 bg-white dark:bg-gray-900  dark:border-gray-700"
         style={
           isMobile
             ? {
@@ -605,7 +605,7 @@ export function SimpleEditor(
         <EditorContent
           editor={editor}
           role="presentation"
-          className="w-full border h-full min-h-[50vh]   rounded-b-md select-text transition-all duration-200 ease-out focus:outline-none focus:ring-2 dark:focus:outline-none bg-transparent dark:bg-transparent"
+          className="w-full h-full min-h-[50vh]   rounded-b-md select-text transition-all duration-200 ease-out focus:outline-none focus:ring-2 dark:focus:outline-none bg-transparent dark:bg-transparent"
         />
       </div>
     </EditorContext.Provider>
