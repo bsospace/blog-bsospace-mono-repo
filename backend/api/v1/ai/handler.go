@@ -826,7 +826,7 @@ func (a *AIHandler) extractFullResponseAndReplay(resp *http.Response) (string, e
 		}
 	}
 
-	// ใส่ body คืนให้ stream ต่อได้
+	// Reset the body so it can be streamed again
 	resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(buffer.Bytes()), reader))
 	return strings.TrimSpace(text.String()), nil
 }
