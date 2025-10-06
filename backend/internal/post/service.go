@@ -128,6 +128,8 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (str
 		return "", err
 	}
 
+	s.Repo.DeleteEmbeddingsByPostID(createdPost.ID.String())
+
 	return postID, nil
 }
 
@@ -353,6 +355,9 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 	existingPost.Status = models.PostProcessing
 	existingPost.PublishedAt = nil
 
+	// delete existing embedding from vector db
+	s.Repo.DeleteEmbeddingsByPostID(existingPost.ID.String())
+
 	logger.Log.Info("Enqueuing post content for AI filtering ",
 		zap.String("post_id", existingPost.ID.String()),
 		zap.String("post_title", existingPost.Title),
@@ -386,6 +391,9 @@ func (s *PostService) UnpublishPost(user *models.User, shortSlug string) error {
 
 	existingPost.Published = false
 	existingPost.Status = models.PostDraft
+
+	// delete embedding from vector db
+	s.Repo.DeleteEmbeddingsByPostID(existingPost.ID.String())
 
 	return s.Repo.UnpublishPost(existingPost)
 }
@@ -427,6 +435,8 @@ func (s *PostService) DeletePostByID(id string, user *models.User) error {
 	if err := s.UpdateThumbnailUsageStatus(existingPost, existingPost.Thumbnail); err != nil {
 		return fmt.Errorf("failed to update thumbnail usage status: %w", err)
 	}
+
+	s.Repo.DeleteEmbeddingsByPostID(existingPost.ID.String())
 
 	// Delete the post
 	return s.Repo.DeletePost(existingPost)
