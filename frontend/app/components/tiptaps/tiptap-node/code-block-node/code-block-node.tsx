@@ -88,22 +88,6 @@ const CodeBlockNode: React.FC<ReactNodeViewProps> = ({
       {/* Header with language selector and copy button */}
       <div className="code-block-header">
         <div className="code-block-language-selector">
-          <button
-            type="button"
-            className="language-selector-button"
-            onClick={isEditable ? () => setIsLanguageOpen(!isLanguageOpen) : undefined}
-            contentEditable={false}
-            aria-haspopup="listbox"
-            aria-expanded={isLanguageOpen}
-            aria-label="Select code language"
-            disabled={!isEditable}
-          >
-            <span className="language-label">
-              {defaultLanguage === "null" ? "Auto" : defaultLanguage}
-            </span>
-            <ChevronDown className="chevron-icon" />
-          </button>
-          
           {isEditable && isLanguageOpen && (
             <div className="language-dropdown" ref={dropdownRef} role="listbox">
               <div className="language-option" role="option" aria-selected={defaultLanguage === 'null'} onClick={() => handleLanguageChange("null")}>
