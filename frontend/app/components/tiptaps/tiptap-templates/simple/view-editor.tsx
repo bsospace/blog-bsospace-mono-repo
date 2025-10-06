@@ -47,6 +47,23 @@ export function PreviewEditor({ content }: PreviewEditorProps) {
       Subscript,
       Typography,
       TiptapImage.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            align: {
+              default: 'center',
+              parseHTML: element => element.getAttribute('data-align') || 'center',
+              renderHTML: attributes => {
+                if (!attributes.align) {
+                  return {}
+                }
+                return {
+                  'data-align': attributes.align,
+                }
+              },
+            },
+          }
+        },
         addNodeView() {
           return ReactNodeViewRenderer(TiptapImageNodeView);
         },
