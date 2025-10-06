@@ -531,33 +531,10 @@ export function SimpleEditor(
     }
   }, [isMobile, mobileView])
 
-  // Keyboard shortcuts info
-  const keyboardShortcuts = React.useMemo(() => [
-    { key: 'Ctrl+B', action: 'Bold' },
-    { key: 'Ctrl+I', action: 'Italic' },
-    { key: 'Ctrl+U', action: 'Underline' },
-    { key: 'Ctrl+Z', action: 'Undo' },
-    { key: 'Ctrl+Shift+Z', action: 'Redo' },
-    { key: 'Ctrl+K', action: 'Add Link' },
-  ], [])
-
   // Handle mobile view changes with animation
   const handleMobileViewChange = React.useCallback((view: MobileViewType) => {
     setMobileView(view)
   }, [])
-
-  // Error dismissal
-  const dismissError = React.useCallback(() => {
-    setError(null)
-  }, [])
-
-
-  const handleShowContent = () => {
-    if (editor) {
-      const html = editor.getHTML()
-      const json = editor.getJSON()
-    }
-  }
 
   if (isLoading) {
     return (
