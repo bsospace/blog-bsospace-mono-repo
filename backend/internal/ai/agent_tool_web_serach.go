@@ -75,7 +75,7 @@ func trimRunes(s string, max int) string {
 	return strings.TrimSpace(string(r[:max])) + "…"
 }
 func guessSource(u string, parsed []string) string {
-	// searx ให้ parsed_url = [scheme, host, path, ...]
+	// searx provides parsed_url = [scheme, host, path, ...]
 	if len(parsed) >= 2 && parsed[1] != "" {
 		return parsed[1]
 	}
