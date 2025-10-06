@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
+import Image from 'next/image';
 
 const Modal = ({ src, alt, open, onClose }: { src: string; alt?: string; open: boolean; onClose: () => void }) => {
     if (!open) return null;
@@ -9,9 +10,9 @@ const Modal = ({ src, alt, open, onClose }: { src: string; alt?: string; open: b
             style={{ top: 60, bottom: 0 }}
             onClick={onClose}
         >
-            <img
+            <Image
                 src={src}
-                alt={alt}
+                alt={alt || 'Image preview'}
                 className="max-h-[90vh] max-w-[90vw] rounded shadow-lg border-2 border-white"
                 onClick={e => e.stopPropagation()}
             />
@@ -20,7 +21,7 @@ const Modal = ({ src, alt, open, onClose }: { src: string; alt?: string; open: b
                 onClick={onClose}
                 aria-label="Close preview"
             >
-                ×
+                x
             </button>
         </div>
     );
@@ -97,7 +98,7 @@ export const TiptapImageNodeView: React.FC<NodeViewProps> = ({ node, selected, u
 
     return (
         <NodeViewWrapper as="span" className="tiptap-image-node-view " style={{ position: 'relative', display: 'inline-block' }}>
-            <img
+            <Image
                 ref={imgRef}
                 src={src}
                 alt={alt || title || ''}
