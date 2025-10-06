@@ -17,7 +17,8 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 	aiRepo := ai.NewAIRepository(container.DB)
 	aiService := ai.NewAIService(postRepo, aiTaskEnqueuer, aiRepo)
 	aiContentClassifier := ai.NewAgentIntentClassifier(container.Log, postRepo)
-	handler := NewAIHandler(aiService, aiContentClassifier, postRepo, container.Log)
+	agentToolWebSearch := ai.NewAgentToolWebSearchService(container.Log, postRepo, container.Env)
+	handler := NewAIHandler(aiService, aiContentClassifier, postRepo, container.Log, agentToolWebSearch)
 
 	authMiddleware := middleware.NewAuthMiddleware(
 		container.UserService,
