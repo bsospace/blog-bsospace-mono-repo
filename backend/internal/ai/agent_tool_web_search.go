@@ -49,14 +49,14 @@ type AgentToolWebSearch interface {
 	SearchExternalWeb(message string) (string, error)
 }
 
-type agentAgentToolWebSearchService struct {
+type agentToolWebSearchService struct {
 	logger  *zap.Logger
 	PosRepo post.PostRepositoryInterface
 	env     *config.Config
 }
 
 func NewAgentToolWebSearchService(logger *zap.Logger, posRepo post.PostRepositoryInterface, env *config.Config) AgentToolWebSearch {
-	return &agentAgentToolWebSearchService{
+	return &agentToolWebSearchService{
 		logger:  logger,
 		PosRepo: posRepo,
 		env:     env,
@@ -97,7 +97,7 @@ func guessType(u string) string {
 }
 
 // ---- main ----
-func (a *agentAgentToolWebSearchService) SearchExternalWeb(message string) (string, error) {
+func (a *agentToolWebSearchService) SearchExternalWeb(message string) (string, error) {
 	base := a.env.Searxng_url
 	if base == "" {
 		return "", fmt.Errorf("searxng_url not configured")
