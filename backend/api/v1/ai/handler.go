@@ -216,7 +216,21 @@ func (a *AIHandler) Chat(c *gin.Context) {
 			zap.String("prompt", req.Prompt),
 			zap.String("plaintextContent", plaintextContent))
 
-		ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
+		fullText := ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
+
+		// Save history
+		postUUID, err := uuid.Parse(postID)
+		if err != nil {
+			a.logger.Error("Failed to parse post ID", zap.Error(err))
+			return
+		}
+
+		// Save user question and AI response to history
+		tokenCount := token.CountTokens(req.Prompt + fullText)
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount); err != nil {
+			a.logger.Error("Failed to save chat history", zap.Error(err))
+			return
+		}
 		return
 	}
 
@@ -226,8 +240,21 @@ func (a *AIHandler) Chat(c *gin.Context) {
 			zap.String("post_id", postID),
 			zap.String("prompt", req.Prompt))
 
-		ai.StreamGreetingFarewellAgent(c, req.Prompt)
-		return
+		fullText := ai.StreamGreetingFarewellAgent(c, req.Prompt)
+
+		// Save history
+		postUUID, err := uuid.Parse(postID)
+		if err != nil {
+			a.logger.Error("Failed to parse post ID", zap.Error(err))
+			return
+		}
+
+		// Save user question and AI response to history
+		tokenCount := token.CountTokens(req.Prompt + fullText)
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount); err != nil {
+			a.logger.Error("Failed to save chat history", zap.Error(err))
+			return
+		}
 	}
 
 	if string(intent) == "blog_question" {
@@ -671,7 +698,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		// Save history
 		combinedResponse := strings.TrimSpace(introText + "\n\n" + searchExternalResult)
 		realTotalTokens := inputTokens + token.CountTokens(combinedResponse)
-		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, question, combinedResponse, realTotalTokens); err != nil {
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, combinedResponse, question, realTotalTokens); err != nil {
 			a.logger.Error("Failed to save chat history", zap.Error(err))
 		}
 		return
