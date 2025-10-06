@@ -1,5 +1,6 @@
 import type { Attrs, Node } from "@tiptap/pm/model"
 import type { Editor } from "@tiptap/react"
+import { axiosInstance } from "./api"
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
@@ -150,6 +151,16 @@ export const handleImageUpload = async (
     )
   }
 
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("post_id", localStorage.getItem("post_id") || "")
+  const signal = abortSignal || new AbortController().signal
+
+  // Simulate progress if no onProgress provided
+  if (!onProgress) {
+    onProgress = () => { }
+  }
+
   // For demo/testing: Simulate upload progress
   for (let progress = 0; progress <= 100; progress += 10) {
     if (abortSignal?.aborted) {
@@ -159,7 +170,36 @@ export const handleImageUpload = async (
     onProgress?.({ progress })
   }
 
-  return "/images/placeholder-image.png"
+  try {
+    const response = await axiosInstance.post(
+      "media/upload",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        signal,
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total)
+            onProgress({ progress: percent })
+          }
+        },
+        withCredentials: true,
+      }
+    )
+
+    const url = response?.data?.data?.image_url
+
+    if (!url) {
+      throw new Error("No image_url returned from server")
+    }
+
+    return url
+  } catch (error: any) {
+    console.error("Upload error:", error)
+    throw new Error(error?.message || "Upload failed")
+  }
 
   // Uncomment for production use:
   // return convertFileToBase64(file, abortSignal);
