@@ -295,7 +295,7 @@ export default function EditPost() {
             }
         }
 
-        if (titleText) {
+        if (titleText && metadata?.title?.trim() === "") {
             setMetadata((prev) => ({
                 ...prev,
                 title: titleText,
