@@ -28,18 +28,23 @@ import (
 )
 
 type AIHandler struct {
-	AIService                    *ai.AIService
-	AgentIntentClassifierService ai.AgentIntentClassifierServiceInterface
-	PosRepo                      post.PostRepositoryInterface
-	logger                       *zap.Logger
+	AIService                      *ai.AIService
+	AgentIntentClassifierService   ai.AgentIntentClassifierServiceInterface
+	PosRepo                        post.PostRepositoryInterface
+	logger                         *zap.Logger
+	agentAgentToolWebSearchService ai.AgentToolWebSearch
 }
 
-func NewAIHandler(aiService *ai.AIService, agentIntentClassifierService ai.AgentIntentClassifierServiceInterface, posRepo post.PostRepositoryInterface, logger *zap.Logger) *AIHandler {
+func NewAIHandler(aiService *ai.AIService,
+	agentIntentClassifierService ai.AgentIntentClassifierServiceInterface,
+	posRepo post.PostRepositoryInterface, logger *zap.Logger,
+	agentAgentToolWebSearchService ai.AgentToolWebSearch) *AIHandler {
 	return &AIHandler{
-		AIService:                    aiService,
-		PosRepo:                      posRepo,
-		logger:                       logger,
-		AgentIntentClassifierService: agentIntentClassifierService,
+		AIService:                      aiService,
+		PosRepo:                        posRepo,
+		logger:                         logger,
+		AgentIntentClassifierService:   agentIntentClassifierService,
+		agentAgentToolWebSearchService: agentAgentToolWebSearchService,
 	}
 }
 
@@ -154,7 +159,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 		return // Error already handled in validateChatRequest
 	}
 
-	a.logger.Info("Chat handler triggered",
+	a.logger.Info("===================================================== Chat handler triggered =====================================================",
 		zap.String("post_id", postID),
 		zap.String("user_email", user.Email))
 
@@ -229,6 +234,24 @@ func (a *AIHandler) Chat(c *gin.Context) {
 
 		// log the intent
 		a.logger.Info("Intent detected: blog_question",
+			zap.String("post_id", postID),
+			zap.String("prompt", req.Prompt))
+		// 4. Get RAG configuration
+		config := a.getRAGConfig()
+
+		// 5. Process RAG pipeline
+		context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
+		if err != nil {
+			return // Error already handled in processRAGPipeline
+		}
+
+		// 6. Generate and stream response
+		a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+	}
+	if string(intent) == "unknown" {
+
+		// log the intent
+		a.logger.Info("Intent detected: unknown",
 			zap.String("post_id", postID),
 			zap.String("prompt", req.Prompt))
 		// 4. Get RAG configuration
@@ -520,23 +543,27 @@ func (a *AIHandler) buildContext(chunks []ScoredChunk) string {
 func (a *AIHandler) buildSystemPrompt(context string) string {
 	if strings.TrimSpace(context) == "" {
 		a.logger.Warn("No context provided, using fallback system message")
-		return `บทความนี้ไม่มีข้อมูลประกอบการตอบคำถาม
+		return `คุณเป็นผู้ช่วยตอบคำถามจากบทความ ใช้เฉพาะข้อมูลในบทความเท่านั้น  
+ห้ามเดา และห้ามใช้องค์ความรู้นอกเหนือจากนี้  
 
-หากไม่สามารถตอบได้จากเนื้อหาที่มี ให้ตอบสุภาพว่า
-"ไม่สามารถหาคำตอบจากเนื้อหาในบทความนี้ได้ค่ะ ลองถามคำถามอื่นได้นะคะ 😊"
-`
+หากไม่พบคำตอบในบทความ ให้ตอบเพียง 2 บรรทัดเท่านั้นในรูปแบบนี้:
+INTRODUCTION: <ข้อความแนะนำสั้น ๆ ว่าควรค้นหาอะไรเพิ่มเติม (อาจจะบอกว่าไม่พบเนื้อหาที่เกี่ยวข้องลองดูจากข้อมูลนี้ค่ะ)>
+WEB SEARCH: <คำค้นหาที่ควรใช้>
+
+ถ้าพบคำตอบในบทความ ให้ตอบตามปกติแบบสุภาพ กระชับ ไม่เกิน 5 ประโยค`
 	}
 
-	return fmt.Sprintf(`คุณเป็นผู้ช่วยในการตอบคำถามจากบทความ **โดยใช้เฉพาะเนื้อหาที่กำหนดด้านล่างนี้เท่านั้น** ห้ามใช้ความรู้ภายนอก
+	return fmt.Sprintf(`คุณเป็นผู้ช่วยตอบคำถามจากบทความด้านล่างนี้  
+ใช้เฉพาะข้อมูลในบทความเท่านั้น ห้ามเดา และห้ามใช้องค์ความรู้นอกเหนือจากนี้  
 
-หากผู้ใช้ถามคำถาม ให้พยายามตอบคำถามอย่างตรงประเด็นมากที่สุด  
-โดยอิงจากเนื้อหาด้านล่างเท่านั้น  
-หากไม่สามารถตอบได้จากเนื้อหาที่มี ให้ตอบสุภาพว่า  
-"ไม่สามารถหาคำตอบจากเนื้อหาในบทความนี้ได้ค่ะ ลองถามคำถามอื่นได้นะคะ 😊"
+หากไม่พบคำตอบในบทความ แต่เห็นว่าควรค้นต่อจากภายนอก ให้ตอบเพียง 2 บรรทัดเท่านั้นในรูปแบบนี้:
+INTRODUCTION: <ข้อความแนะนำสั้น ๆ ว่าควรค้นหาอะไรเพิ่มเติม (อาจจะบอกว่าไม่พบเนื้อหาที่เกี่ยวข้องลองดูจากข้อมูลนี้ค่ะ)>
+WEB SEARCH: <คำค้นหาที่ควรใช้>
 
------
-%s
------`, context)
+ถ้าพบคำตอบในบทความ ให้ตอบตามปกติแบบสุภาพ กระชับ ไม่เกิน 5 ประโยค
+
+เนื้อหา:
+%s`, context)
 }
 
 func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context string, config RAGConfig, postID string, user *models.User) {
@@ -582,18 +609,85 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	}
 
 	a.writeEvent(c, "start", "Streaming started")
+	const webSearchPrefix = "WEB SEARCH: "
+	const introductionPrefix = "INTRODUCTION: "
+
+	firstChunk, err := a.extractFullResponseAndReplay(resp)
+	if err != nil {
+		a.writeErrorEvent(c, "Stream reading error")
+		return
+	}
+
+	// log the full text for debugging
+	a.logger.Debug("Full LLM response extracted",
+		zap.String("response", firstChunk))
+
+	if strings.Contains(strings.ToUpper(firstChunk), webSearchPrefix) {
+		var introText, searchQuery string
+		// แยกบรรทัด
+		lines := strings.Split(firstChunk, "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(strings.ToUpper(line), introductionPrefix) {
+				introText = strings.TrimSpace(line[len(introductionPrefix):])
+			}
+			if strings.HasPrefix(strings.ToUpper(line), webSearchPrefix) {
+				searchQuery = strings.TrimSpace(line[len(webSearchPrefix):])
+			}
+		}
+
+		if searchQuery == "" {
+			a.writeErrorEvent(c, "Empty web search query")
+			return
+		}
+
+		a.logger.Info("Agent requested web search",
+			zap.String("query", searchQuery))
+
+		// เรียก external web search
+		searchExternalResult, err := a.agentAgentToolWebSearchService.SearchExternalWeb(searchQuery)
+		if err != nil {
+			a.logger.Error("Web search failed", zap.Error(err))
+			a.writeErrorEvent(c, "Web search failed")
+			return
+		}
+
+		// --- stream ส่วน introduction ก่อน ---
+		if introText != "" {
+			jsonIntro, _ := json.Marshal(map[string]string{"text": introText + "\n\n"})
+			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonIntro)
+			c.Writer.Flush()
+		}
+
+		// --- stream ผลการค้นหา ---
+		// เติมคำว่า introduction ไปใน json
+
+		jsonResult, _ := json.Marshal(map[string]string{"intro": introText, "text": searchExternalResult})
+		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonResult)
+		c.Writer.Flush()
+
+		a.writeEvent(c, "end", "done")
+
+		// Save history
+		combinedResponse := strings.TrimSpace(introText + "\n\n" + searchExternalResult)
+		realTotalTokens := inputTokens + token.CountTokens(combinedResponse)
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, question, combinedResponse, realTotalTokens); err != nil {
+			a.logger.Error("Failed to save chat history", zap.Error(err))
+		}
+		return
+	}
 
 	// Stream the response
-	fullText := a.streamLLMResponse(c, resp)
+	a.streamLLMResponse(c, resp)
 
 	// Token usage = input + streamed output
-	realTotalTokens := inputTokens + token.CountTokens(fullText)
+	// realTotalTokens := inputTokens + token.CountTokens(firstChunk)
 
 	// Save history
-	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, question, realTotalTokens); err != nil {
-		a.logger.Error("Failed to save chat history", zap.Error(err))
-		a.writeErrorEvent(c, "Failed to save chat history")
-	}
+	// if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, inputText, realTotalTokens); err != nil {
+	// 	a.logger.Error("Failed to save chat history", zap.Error(err))
+	// 	a.writeErrorEvent(c, "Failed to save chat history")
+	// }
 }
 
 func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGConfig) (*http.Response, error) {
@@ -669,6 +763,45 @@ func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) strin
 	}
 
 	return fullText.String()
+}
+
+func (a *AIHandler) extractFullResponseAndReplay(resp *http.Response) (string, error) {
+	reader := bufio.NewReader(resp.Body)
+	var buffer bytes.Buffer
+	var text strings.Builder
+
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			if err != io.EOF {
+				a.logger.Error("LLM read error", zap.Error(err))
+			}
+			break
+		}
+
+		buffer.Write(line)
+
+		if !bytes.HasPrefix(line, []byte("data: ")) {
+			continue
+		}
+
+		raw := bytes.TrimSpace(line[6:])
+		if len(raw) == 0 {
+			continue
+		}
+		if bytes.Equal(raw, []byte("[DONE]")) {
+			break
+		}
+
+		chunk := a.parseStreamChunk(raw)
+		if chunk != "" {
+			text.WriteString(chunk)
+		}
+	}
+
+	// ใส่ body คืนให้ stream ต่อได้
+	resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(buffer.Bytes()), reader))
+	return strings.TrimSpace(text.String()), nil
 }
 
 func (a *AIHandler) parseStreamChunk(raw []byte) string {
@@ -749,6 +882,15 @@ func SplitQuestionToPhrases(q string) []string {
 
 // save chat history
 func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *models.User, responseText string, promt string, tokenUse int) error {
+
+	// logs all before save
+	a.logger.Info("Saving chat history",
+		zap.String("post_id", post.ID.String()),
+		zap.String("response_text", responseText),
+		zap.String("prompt", promt),
+		zap.Int("token_used", tokenUse),
+		zap.String("user_email", user.Email))
+
 	chat := &models.AIResponse{
 		Response:  responseText,
 		Prompt:    promt,
