@@ -678,16 +678,16 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	}
 
 	// Stream the response
-	a.streamLLMResponse(c, resp)
+	fullText := a.streamLLMResponse(c, resp)
 
 	// Token usage = input + streamed output
-	// realTotalTokens := inputTokens + token.CountTokens(firstChunk)
+	realTotalTokens := inputTokens + token.CountTokens(firstChunk)
 
 	// Save history
-	// if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, inputText, realTotalTokens); err != nil {
-	// 	a.logger.Error("Failed to save chat history", zap.Error(err))
-	// 	a.writeErrorEvent(c, "Failed to save chat history")
-	// }
+	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, inputText, realTotalTokens); err != nil {
+		a.logger.Error("Failed to save chat history", zap.Error(err))
+		a.writeErrorEvent(c, "Failed to save chat history")
+	}
 }
 
 func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGConfig) (*http.Response, error) {
