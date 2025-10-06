@@ -142,7 +142,7 @@ func (a *agentAgentToolWebSearchService) SearchExternalWeb(message string) (stri
 	// Parse SearxNG JSON
 	var sr searxResp
 	if err := json.Unmarshal(raw, &sr); err != nil {
-		// ถ้า parse ไม่ได้ คืน raw เดิมเพื่อ debug UI
+		// If parsing fails, return the raw response for UI debugging
 		return string(raw), nil
 	}
 
