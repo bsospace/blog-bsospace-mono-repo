@@ -132,22 +132,24 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
   const elements: React.ReactNode[] = [];
   let currentIndex = 0;
 
-  // Define regex patterns for different markdown elements
+  // Define regex patterns - ลำดับสำคัญ (ตัวยาวก่อน)
   const patterns = [
-    { regex: /\*\*(.*?)\*\*/g, component: 'strong' }, // **bold**
-    { regex: /\*(.*?)\*/g, component: 'em' }, // *italic*
-    { regex: /`(.*?)`/g, component: 'code' }, // `code`
-    { regex: /~~(.*?)~~/g, component: 'del' }, // ~~strikethrough~~
-    { regex: /\[(.*?)\]\((.*?)\)/g, component: 'link' }, // [text](url)
+    { regex: /\*\*\*(.+?)\*\*\*/g, component: 'strongem', priority: 3 }, // ***bold+italic***
+    { regex: /\*\*(.+?)\*\*/g, component: 'strong', priority: 2 }, // **bold**
+    { regex: /\*(.+?)\*/g, component: 'em', priority: 1 }, // *italic*
+    { regex: /`(.+?)`/g, component: 'code', priority: 2 }, // `code`
+    { regex: /~~(.+?)~~/g, component: 'del', priority: 2 }, // ~~strikethrough~~
+    { regex: /\[(.+?)\]\((.+?)\)/g, component: 'link', priority: 3 }, // [text](url)
   ];
 
-  // Find all matches and their positions
+  // Find all matches
   const matches: Array<{
     start: number;
     end: number;
     content: string;
     component: string;
     url?: string;
+    priority: number;
   }> = [];
 
   patterns.forEach((pattern) => {
@@ -160,34 +162,38 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
         end: match.index + match[0].length,
         content: match[1],
         component: pattern.component,
-        url: match[2] // for links
+        url: match[2],
+        priority: pattern.priority
       });
     }
   });
 
-  // Sort matches by start position
-  matches.sort((a, b) => a.start - b.start);
+  // Sort by start position, then priority
+  matches.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    return b.priority - a.priority;
+  });
 
-  // Remove overlapping matches (keep the first one)
+  // Remove overlapping matches
   const validMatches = matches.filter((match, index) => {
     return !matches.slice(0, index).some(prevMatch =>
-      match.start < prevMatch.end && match.end > prevMatch.start
+      match.start >= prevMatch.start && match.start < prevMatch.end
     );
   });
 
-  // Build the result
+  // Build result
   validMatches.forEach((match, index) => {
-    // Add text before the match
+    // Add text before match
     if (match.start > currentIndex) {
-      const textBefore = text.slice(currentIndex, match.start);
-      if (textBefore) {
-        elements.push(textBefore);
-      }
+      elements.push(text.slice(currentIndex, match.start));
     }
 
-    // Add the formatted element
+    // Add formatted element
     const key = `${keyPrefix}-${index}`;
     switch (match.component) {
+      case 'strongem':
+        elements.push(<strong key={key} className="font-bold"><em className="italic">{match.content}</em></strong>);
+        break;
       case 'strong':
         elements.push(<strong key={key} className="font-bold">{match.content}</strong>);
         break;
@@ -219,29 +225,30 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
 
   // Add remaining text
   if (currentIndex < text.length) {
-    const remainingText = text.slice(currentIndex);
-    if (remainingText) {
-      elements.push(remainingText);
-    }
+    elements.push(text.slice(currentIndex));
   }
 
-  // Handle line breaks
-  return elements.length > 0 ? elements.map((element, index) => {
+  // Handle line breaks - ทำครั้งเดียวตอนท้าย
+  const result: React.ReactNode[] = [];
+  elements.forEach((element, elemIndex) => {
     if (typeof element === 'string') {
-      return element.split('\n').map((line, lineIndex, array) => (
-        <React.Fragment key={`${keyPrefix}-line-${index}-${lineIndex}`}>
-          {line}
-          {lineIndex < array.length - 1 && <br />}
-        </React.Fragment>
-      ));
+      const lines = element.split('\n');
+      lines.forEach((line, lineIndex) => {
+        result.push(
+          <React.Fragment key={`${keyPrefix}-frag-${elemIndex}-${lineIndex}`}>
+            {line}
+          </React.Fragment>
+        );
+        if (lineIndex < lines.length - 1) {
+          result.push(<br key={`${keyPrefix}-br-${elemIndex}-${lineIndex}`} />);
+        }
+      });
+    } else {
+      result.push(element);
     }
-    return element;
-  }) : text.split('\n').map((line, lineIndex, array) => (
-    <React.Fragment key={`${keyPrefix}-simple-${lineIndex}`}>
-      {line}
-      {lineIndex < array.length - 1 && <br />}
-    </React.Fragment>
-  ));
+  });
+
+  return result;
 };
 
 const BlogAIChat: React.FC<AIProps> = ({
