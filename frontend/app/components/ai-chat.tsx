@@ -35,14 +35,21 @@ const parseSearchResults = (jsonObj: any): React.ReactNode => {
       <div className="text-sm font-medium text-muted-foreground">
       </div>
       <div className="space-y-2">
-        {jsonObj.results.slice(0, 5).map((result: any, idx: number) => (
-          <a
-            key={idx}
-            href={result.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-          >
+        {jsonObj.results.slice(0, 5).map((result: any, idx: number) => {
+          const toSafeHttpUrl = (u: string): string | null => {
+            try {
+              const url = new URL(u, window.location.origin);
+              const proto = url.protocol.toLowerCase();
+              return proto === 'http:' || proto === 'https:' ? url.toString() : null;
+            } catch {
+              return null;
+            }
+          };
+          const safeUrl = toSafeHttpUrl(result.url);
+          const source = result.source ?? (() => {
+            try { return safeUrl ? new URL(safeUrl).hostname : ''; } catch { return ''; }
+          })();
+          const CardInner = (
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-orange-600 dark:text-orange-400 hover:underline line-clamp-2">
@@ -53,13 +60,28 @@ const parseSearchResults = (jsonObj: any): React.ReactNode => {
                     {result.snippet}
                   </div>
                 )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  {result.source || new URL(result.url).hostname}
-                </div>
+                {source && (
+                  <div className="text-xs text-muted-foreground mt-1">{source}</div>
+                )}
               </div>
             </div>
-          </a>
-        ))}
+          );
+          return safeUrl ? (
+            <a
+              key={idx}
+              href={safeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+            >
+              {CardInner}
+            </a>
+          ) : (
+            <div key={idx} className="block p-3 rounded-lg border border-border bg-muted/30">
+              {CardInner}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -359,7 +381,7 @@ const BlogAIChat: React.FC<AIProps> = ({
         });
       }, 0);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, Post?.id]);
 
   useEffect(() => {
