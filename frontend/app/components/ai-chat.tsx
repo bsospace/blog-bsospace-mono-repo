@@ -154,7 +154,7 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
   const elements: React.ReactNode[] = [];
   let currentIndex = 0;
 
-  // Define regex patterns - ลำดับสำคัญ (ตัวยาวก่อน)
+  // Define regex patterns - order matters (longer patterns first)
   const patterns = [
     { regex: /\*\*\*(.+?)\*\*\*/g, component: 'strongem', priority: 3 }, // ***bold+italic***
     { regex: /\*\*(.+?)\*\*/g, component: 'strong', priority: 2 }, // **bold**
