@@ -242,6 +242,42 @@ body {
 .tiptap-toolbar-group {
   @apply flex items-center gap-1 ;
 }
+.tiptap-tooltip {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 9999;
+  animation: tooltipFadeIn 0.15s ease-out;
+
+  @media (prefers-color-scheme: light) {
+    background-color: #2d2d2d;
+  }
+
+  &[data-placement^="top"] {
+    margin-bottom: 4px;
+  }
+
+  &[data-placement^="bottom"] {
+    margin-top: 4px;
+  }
+
+  &[data-placement^="left"] {
+    margin-right: 4px;
+  }
+
+  &[data-placement^="right"] {
+    margin-left: 4px;
+  }
+}
 
 /* =========================
    Inline code formatting
@@ -874,7 +910,7 @@ td {
 }
 
 .code-block-content {
-  @apply overflow-auto;
+  @apply overflow-hidden;
 }
 
 .code-block-content pre {
