@@ -309,24 +309,24 @@ export default function EditPost() {
             getPostByShortSlug(slug);
         }
     });
-
     return (
-        <div className="flex flex-col items-center justify-center w-full h-full">
+        <div className="flex flex-col items-center justify-center w-full bg-white rounded-lg border dark:bg-gray-900"  >
             <NewUserModal />
-
             {/* Status Header */}
-            <PostStatusHeader
-                post={post}
-                saveStatus={saveStatus}
-                publishStatus={publishStatus}
-                lastSaved={lastSaved}
-                onPublish={() => setShowPublishModal(true)}
-                onUnpublish={handleUnpublish}
-                onEditMetadata={() => setShowPublishModal(true)}
-                onManualSave={() => saveContent(true)}
-                canManualEdit={canManualEdit()}
-                metadata={metadata}
-            />
+            <div className="w-full flex justify-center mt-6 bg-white dark:bg-gray-900">
+                <PostStatusHeader
+                    post={post}
+                    saveStatus={saveStatus}
+                    publishStatus={publishStatus}
+                    lastSaved={lastSaved}
+                    onPublish={() => setShowPublishModal(true)}
+                    onUnpublish={handleUnpublish}
+                    onEditMetadata={() => setShowPublishModal(true)}
+                    onManualSave={() => saveContent(true)}
+                    canManualEdit={canManualEdit()}
+                    metadata={metadata}
+                />
+            </div>
 
             {/* Editor */}
             {contentState || !isLoadingOldContent ? (
