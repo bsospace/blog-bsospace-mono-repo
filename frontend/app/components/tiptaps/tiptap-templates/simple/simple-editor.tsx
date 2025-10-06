@@ -261,18 +261,17 @@ export function SimpleEditor(
             if (!file) return false
 
             event.preventDefault()
-            // loading linke pasting ...
-            editor?.chain()
-              .focus()
-              .insertContent({
-                type: 'paragraph',
-                content: [{
-                  type: 'text',
-                  text: 'Uploading image...',
-                  marks: [{ type: 'italic' }]
-                }]
-              })
-              .run()
+            // preview image first with URL.createObjectURL
+            const srcPreview = URL.createObjectURL(file)
+            if (srcPreview) {
+              editor?.chain()
+                .focus()
+                .insertContent({
+                  type: 'image',
+                  attrs: { src: srcPreview },
+                })
+                .run()
+            }
             // Handle async upload without blocking
             handleImageUpload(file)
               .then((src) => {
@@ -287,24 +286,8 @@ export function SimpleEditor(
                     })
                     .run()
                 }
-
-                // delete Uploading image...
-                const { state } = editor!
-                const doc = state.doc
-                let pos = -1
-                doc.descendants((node, position) => {
-                  if (node.type.name === 'text' && node.text === 'Uploading image...') {
-                    pos = position
-                    return false // Stop iteration
-                  }
-                  return true
-                })
-                if (pos !== -1) {
-                  editor?.chain()
-                    .focus()
-                    .deleteRange({ from: pos, to: pos + 'Uploading image...'.length })
-                    .run()
-                }
+                // Revoke the object URL to free memory
+                URL.revokeObjectURL(srcPreview)
               })
               .catch((uploadError) => {
                 const errorMessage = uploadError instanceof Error ?
