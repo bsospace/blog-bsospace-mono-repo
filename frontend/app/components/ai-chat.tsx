@@ -26,42 +26,106 @@ interface AIProps {
   setIsTyping?: (typing: boolean) => void;
 }
 
+// Function to parse search results JSON
+const parseSearchResults = (jsonObj: any): React.ReactNode => {
+  if (!jsonObj.query || !jsonObj.results) return null;
+
+  return (
+    <div className="my-3 space-y-2">
+      <div className="text-sm font-medium text-muted-foreground">
+      </div>
+      <div className="space-y-2">
+        {jsonObj.results.slice(0, 5).map((result: any, idx: number) => (
+          <a
+            key={idx}
+            href={result.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-start gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-orange-600 dark:text-orange-400 hover:underline line-clamp-2">
+                  {result.title}
+                </div>
+                {result.snippet && (
+                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {result.snippet}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground mt-1">
+                  {result.source || new URL(result.url).hostname}
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Markdown parser function
 const parseMarkdown = (text: string): React.ReactNode => {
   if (!text) return null;
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed.intro && parsed.text) {
+      const jsonObj = JSON.parse(parsed.text);
+      if (jsonObj.query && jsonObj.results) {
+        return parseSearchResults(jsonObj);
+      }
+    }
+  } catch {
+    // continue normal markdown parsing
+  }
 
-  // Split text by code blocks first (triple backticks)
+  // ld logic (for inline JSON in markdown)
+  const jsonMatch = text.match(/\{\"query\"[\s\S]*?\}(?=\s|$)/);
+  const intro = text.replace(/\{\"intro\"[\s\S]*?\}(?=\s|$)/, '');
+
+  if (jsonMatch && intro) {
+    try {
+      const jsonObj = JSON.parse(jsonMatch[0]);
+      if (jsonObj.query && jsonObj.results) {
+        const beforeJson = text.substring(0, jsonMatch.index);
+        const afterJson = text.substring((jsonMatch.index || 0) + jsonMatch[0].length);
+
+        return (
+          <>
+            {beforeJson && parseMarkdown(beforeJson)}
+            {parseSearchResults(jsonObj)}
+            {afterJson && parseMarkdown(afterJson)}
+          </>
+        );
+      }
+    } catch {
+      // ignore invalid json
+    }
+  }
+
+  // parse code blocks normally
   const codeBlockRegex = /```([\s\S]*?)```/g;
   const parts: (string | { type: 'codeblock'; content: string })[] = [];
   let lastIndex = 0;
   let match;
 
   while ((match = codeBlockRegex.exec(text)) !== null) {
-    // Add text before code block
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    // Add code block
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
     parts.push({ type: 'codeblock', content: match[1] });
     lastIndex = match.index + match[0].length;
   }
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
 
-  return parts.map((part, index) => {
-    if (typeof part === 'object' && part.type === 'codeblock') {
-      return (
-        <pre key={index} className="bg-gray-800 text-gray-100 p-3 rounded-md my-2 overflow-x-auto">
-          <code>{part.content}</code>
-        </pre>
-      );
-    }
-
-    // Process inline markdown for text parts
-    return parseInlineMarkdown(part as string, index);
-  });
+  return parts.map((part, index) =>
+    typeof part === 'object' && part.type === 'codeblock' ? (
+      <pre key={index} className="bg-gray-800 text-gray-100 p-3 rounded-md my-2 overflow-x-auto">
+        <code>{part.content}</code>
+      </pre>
+    ) : (
+      parseInlineMarkdown(part as string, index)
+    )
+  );
 };
 
 const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode => {
