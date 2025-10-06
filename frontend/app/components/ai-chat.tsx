@@ -102,7 +102,7 @@ const parseMarkdown = (text: string): React.ReactNode => {
     // continue normal markdown parsing
   }
 
-  // ld logic (for inline JSON in markdown)
+  // Logic for handling inline JSON in markdown
   const jsonMatch = text.match(/\{\"query\"[\s\S]*?\}(?=\s|$)/);
   const intro = text.replace(/\{\"intro\"[\s\S]*?\}(?=\s|$)/, '');
 
