@@ -1,6 +1,8 @@
 import * as React from "react"
 import type { NodeViewProps } from "@tiptap/react"
 import { NodeViewWrapper } from "@tiptap/react"
+import { X } from "lucide-react"
+import Image from "next/image"
 
 // Add CSS for mobile responsiveness
 const mobileStyles = `
@@ -60,6 +62,13 @@ export function LinkPreviewNodeView(props: NodeViewProps) {
     updateAttributes({ align: newAlign })
   }
 
+  const handleRemove = () => {
+    editor.chain()
+      .focus()
+      .deleteRange({ from: props.getPos(), to: props.getPos() + node.nodeSize })
+      .run()
+  }
+
   // Check if editor is in edit mode (not preview mode)
   const isEditable = editor.isEditable
 
@@ -76,7 +85,18 @@ export function LinkPreviewNodeView(props: NodeViewProps) {
     >
       {image ? (
         <div className="relative h-44 overflow-hidden bg-gray-100 dark:bg-gray-900">
-          <img src={image} alt="preview" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          <Image src={image} alt="preview" fill className="object-cover transition-transform duration-300 group-hover:scale-105" unoptimized />
+          {isEditable && (
+            <>
+              <button
+                onClick={() => handleRemove()}
+                className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:shadow-lg transition  cursor-pointer z-50"
+                title="Remove image"
+              >
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
       ) : null}
@@ -96,7 +116,7 @@ export function LinkPreviewNodeView(props: NodeViewProps) {
       
       {/* Resize Controls - Only show in edit mode */}
       {isEditable && (
-        <div className="p-2 bg-gray-50 flex items-center justify-between items-center dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 space-y-2">
+        <div className="p-2 bg-gray-50 flex justify-between items-center dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 space-y-2">
           {/* Width Controls */}
           <div className="flex items-center">
             <input
