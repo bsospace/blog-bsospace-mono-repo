@@ -321,11 +321,27 @@ func (suite *PostRepositoryTestSuite) TestGetPublicPostBySlugAndUsername() {
 	suite.Equal(post.Slug, got.Slug)
 }
 
-// func (suite *PostRepositoryTestSuite) TestPublishPost() {
-// 	user := &TestUser{
-// 		ID:       uuid.NewString(),
-// 		UserName: "testuser",
-// 		Email:    "test@example.com",
+func (suite *PostRepositoryTestSuite) DeleteEmbeddingsByPostID() {
+	post := &TestPost{
+		ID: uuid.NewString(),
+	}
+	suite.db.Create(post)
+
+	embedding := &TestEmbedding{
+		ID:      uuid.NewString(),
+		PostID:  post.ID,
+		Content: "Test embedding content",
+	}
+	suite.db.Create(embedding)
+
+	err := suite.db.Delete(&embedding).Error
+	suite.NoError(err)
+
+	var got TestEmbedding
+	err = suite.db.First(&got, "id = ?", embedding.ID).Error
+	suite.Error(err)
+}
+
 // 	}
 // 	suite.db.Create(user)
 
