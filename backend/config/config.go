@@ -39,6 +39,7 @@ type Config struct {
 	PGAdminPassword    string
 	PGAdminPort        string
 	GinMode            string
+	Searxng_url        string
 }
 
 func LoadConfig() Config {
@@ -103,5 +104,6 @@ func LoadConfig() Config {
 		PGAdminPassword:    os.Getenv("PGADMIN_DEFAULT_PASSWORD"),
 		PGAdminPort:        os.Getenv("PGADMIN_PORT"),
 		GinMode:            os.Getenv("GIN_MODE"),
+		Searxng_url:        os.Getenv("SEARXNG_URL"),
 	}
 }
