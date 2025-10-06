@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useState, useRef } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import Image from 'next/image';
@@ -10,7 +11,7 @@ const Modal = ({ src, alt, open, onClose }: { src: string; alt?: string; open: b
             style={{ top: 60, bottom: 0 }}
             onClick={onClose}
         >
-            <Image
+            <img
                 src={src}
                 alt={alt || 'Image preview'}
                 className="max-h-[90vh] max-w-[90vw] rounded shadow-lg border-2 border-white"
@@ -98,7 +99,7 @@ export const TiptapImageNodeView: React.FC<NodeViewProps> = ({ node, selected, u
 
     return (
         <NodeViewWrapper as="span" className="tiptap-image-node-view " style={{ position: 'relative', display: 'inline-block' }}>
-            <Image
+            <img
                 ref={imgRef}
                 src={src}
                 alt={alt || title || ''}
