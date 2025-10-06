@@ -910,7 +910,7 @@ func SplitQuestionToPhrases(q string) []string {
 // save chat history
 func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *models.User, responseText string, promt string, tokenUse int) error {
 
-	// logs all before save
+	// Log all relevant parameters (post ID, response text, prompt, token usage, user email) before saving chat history for debugging and audit purposes
 	a.logger.Info("Saving chat history",
 		zap.String("post_id", post.ID.String()),
 		zap.String("response_text", responseText),
