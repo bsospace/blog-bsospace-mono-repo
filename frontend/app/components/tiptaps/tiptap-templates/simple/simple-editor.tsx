@@ -261,10 +261,23 @@ export function SimpleEditor(
             if (!file) return false
 
             event.preventDefault()
-
+            // loading linke pasting ...
+            editor?.chain()
+              .focus()
+              .insertContent({
+                type: 'paragraph',
+                content: [{
+                  type: 'text',
+                  text: 'Uploading image...',
+                  marks: [{ type: 'italic' }]
+                }]
+              })
+              .run()
             // Handle async upload without blocking
             handleImageUpload(file)
               .then((src) => {
+
+                // Replace the placeholder text with the uploaded image
                 if (src) {
                   editor?.chain()
                     .focus()
@@ -272,6 +285,24 @@ export function SimpleEditor(
                       type: 'image',
                       attrs: { src },
                     })
+                    .run()
+                }
+
+                // delete Uploading image...
+                const { state } = editor!
+                const doc = state.doc
+                let pos = -1
+                doc.descendants((node, position) => {
+                  if (node.type.name === 'text' && node.text === 'Uploading image...') {
+                    pos = position
+                    return false // Stop iteration
+                  }
+                  return true
+                })
+                if (pos !== -1) {
+                  editor?.chain()
+                    .focus()
+                    .deleteRange({ from: pos, to: pos + 'Uploading image...'.length })
                     .run()
                 }
               })
