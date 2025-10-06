@@ -575,7 +575,7 @@ export function SimpleEditor(
       {/* Enhanced Toolbar */}
       <Toolbar
         ref={toolbarRef}
-        className="transition-all duration-300 max-w-screen-xl w-full ease-out sticky top-16 z-10 bg-white dark:bg-gray-900  dark:border-gray-700 shadow-sm"
+        className="transition-all duration-300 max-w-screen-xl w-full ease-out sticky top-20 z-10 bg-white dark:bg-gray-900  dark:border-gray-700 shadow-sm"
         style={
           isMobile
             ? {
