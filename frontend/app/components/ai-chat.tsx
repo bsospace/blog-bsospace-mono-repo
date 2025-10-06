@@ -288,6 +288,7 @@ const BlogAIChat: React.FC<AIProps> = ({
         });
       }, 0);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, Post?.id]);
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Info, X, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
