@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -28,15 +29,34 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
 
-    - name: Install dependencies
+    - name: Install Go dependencies
       run: go mod download
       working-directory: ./backend
 
-    - name: Run tests
+    - name: Run Go tests
       run: go test -v ./...
       working-directory: ./backend
 
-    - name: Build
+    - name: Build Go backend
       run: go build -v ./cmd/server
       working-directory: ./backend
 
+    # -------------------------------------------------
+    # Frontend build steps
+    # -------------------------------------------------
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+
+    - name: Install pnpm
+      run: npm install -g pnpm
+
+    - name: Install frontend dependencies
+      run: pnpm install --frozen-lockfile
+      working-directory: ./frontend
+
+    - name: Build frontend
+      run: pnpm build
+      working-directory: ./frontend
