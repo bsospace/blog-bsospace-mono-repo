@@ -686,7 +686,6 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 			c.Writer.Flush()
 		}
 
-		// --- stream ผลการค้นหา ---
 		// Add the word 'introduction' to the JSON
 
 		jsonResult, _ := json.Marshal(map[string]string{"intro": introText, "text": searchExternalResult})
@@ -708,7 +707,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	fullText := a.streamLLMResponse(c, resp)
 
 	// Token usage = input + streamed output
-	realTotalTokens := inputTokens + token.CountTokens(firstChunk)
+	realTotalTokens := inputTokens + token.CountTokens(fullText)
 
 	// Save history
 	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, inputText, realTotalTokens); err != nil {
