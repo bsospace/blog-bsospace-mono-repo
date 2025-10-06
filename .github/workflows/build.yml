@@ -40,22 +40,3 @@ jobs:
     - name: Build Go backend
       run: go build -v ./cmd/server
       working-directory: ./backend
-
-    # -------------------------------------------------
-    # Frontend build steps
-    # -------------------------------------------------
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-    - name: Set up pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
-    - name: Install frontend dependencies
-      run: pnpm install
-      working-directory: ./frontend
-
-    - name: Build frontend
-      run: npm run build
-      working-directory: ./frontend
