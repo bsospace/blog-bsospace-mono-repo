@@ -161,14 +161,14 @@ func (a *agentIntentClassifierService) RetrieveContext(message string, post *mod
 		)
 	}
 
-	var intent string = string(IntentUnknown)
 	if len(selectedChunks) == 0 {
-		var err error
-		intent, err = a.ClassifyWithOpenRouter(message, []string{"[No context available]"})
+		intent, err := a.ClassifyWithOpenRouter(message, []string{post.Title + "\n\n" + post.Description})
 		if err != nil {
 			a.logger.Warn("Failed to classify intent with no context", zap.Error(err))
 			return string(IntentUnknown), err
 		}
+		a.logger.Debug("Intent classified with no context", zap.String("intent", string(intent)))
+		return string(intent), nil
 	}
 
 	// Join selected chunks into a single context string
