@@ -108,7 +108,7 @@ func parseStreamChunk(raw []byte) string {
 }
 
 // AGENT : Summarize post agent
-func StreamPostSummaryAgent(c *gin.Context, question string, htmlContent string) {
+func StreamPostSummaryAgent(c *gin.Context, question string, htmlContent string) string {
 	// 1. สร้าง system prompt
 	systemPrompt := fmt.Sprintf(`คุณเป็นผู้ช่วยสรุปเนื้อหาบทความใน BSO Space Blog
 โปรดสรุปเนื้อหาด้านล่างนี้ให้กระชับ เข้าใจง่าย และเป็นมิตร
@@ -142,7 +142,7 @@ func StreamPostSummaryAgent(c *gin.Context, question string, htmlContent string)
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		writeErrorEvent(c, "เรียกใช้ LLM ไม่สำเร็จ")
-		return
+		return ""
 	}
 	defer resp.Body.Close()
 
@@ -156,14 +156,17 @@ func StreamPostSummaryAgent(c *gin.Context, question string, htmlContent string)
 	writeEvent(c, "start", "เริ่มการสรุปเนื้อหา")
 
 	// 7. อ่านและส่ง stream
-	streamLLMResponse(c, resp)
+	fullText := streamLLMResponse(c, resp)
 
 	// 8. ส่ง event จบ
 	writeEvent(c, "end", "สรุปเนื้อหาเสร็จสิ้น")
+
+	// 9. return full text
+	return fullText
 }
 
 // AGENT: greeting_farewell agent
-func StreamGreetingFarewellAgent(c *gin.Context, question string) {
+func StreamGreetingFarewellAgent(c *gin.Context, question string) string {
 	// 1. สร้าง system prompt
 	systemPrompt := `คุณเป็นผู้ช่วยทักทายและกล่าวลาใน BSO Space
 โปรดตอบคำถามทักทายหรือกล่าวลาอย่างเป็นมิตรและสุภาพ 
@@ -191,7 +194,7 @@ func StreamGreetingFarewellAgent(c *gin.Context, question string) {
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		writeErrorEvent(c, "เรียกใช้ LLM ไม่สำเร็จ")
-		return
+		return ""
 	}
 	defer resp.Body.Close()
 
@@ -205,10 +208,11 @@ func StreamGreetingFarewellAgent(c *gin.Context, question string) {
 	writeEvent(c, "start", "เริ่มการตอบคำถามทักทาย/กล่าวลา")
 
 	// 6. อ่านและส่ง stream
-	streamLLMResponse(c, resp)
+	fullText := streamLLMResponse(c, resp)
 
 	// 7. ส่ง event จบ
 	writeEvent(c, "end", "ตอบคำถามทักทาย/กล่าวลาเสร็จสิ้น")
+	return fullText
 }
 
 // AGENT: Generic question agent
