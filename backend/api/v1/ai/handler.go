@@ -687,7 +687,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		}
 
 		// --- stream ผลการค้นหา ---
-		// เติมคำว่า introduction ไปใน json
+		// Add the word 'introduction' to the JSON
 
 		jsonResult, _ := json.Marshal(map[string]string{"intro": introText, "text": searchExternalResult})
 		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonResult)
