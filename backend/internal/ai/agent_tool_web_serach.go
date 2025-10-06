@@ -171,6 +171,6 @@ func (a *agentAgentToolWebSearchService) SearchExternalWeb(message string) (stri
 	}
 	out.Total = len(out.Results)
 
-	b, _ := json.Marshal(out) // safe: fields ควบคุมเองแล้ว
+	b, _ := json.Marshal(out) // safe: fields are already controlled
 	return string(b), nil
 }
