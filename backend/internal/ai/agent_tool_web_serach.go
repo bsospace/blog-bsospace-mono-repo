@@ -1,4 +1,3 @@
-// ภายในไฟล์เดียวกับ service นี้
 package ai
 
 import (
