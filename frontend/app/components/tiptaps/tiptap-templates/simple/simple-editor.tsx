@@ -243,16 +243,16 @@ export function SimpleEditor(
         "aria-describedby": "editor-help",
       },
       handlePaste: (view, event) => {
-        let clipboardText = ""
-        const items = event.clipboardData?.items
+        let clipboardText = event.clipboardData?.getData('text/plain')?.trim() || "";
+        const itemsImage = event.clipboardData?.items
         // for check items in clipboard has value
-        if (!items) return false
+        if (!itemsImage) return false
 
         // loop for check values from clipboard are text or image
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i]
+        for (let i = 0; i < itemsImage.length; i++) {
+          const item = itemsImage[i]
           if (item.type === 'text/plain') {
-            item.getAsString((text) => {
+            item.getAsString((text: string) => {
               clipboardText = text?.trim() || "";
             });
           }
@@ -260,17 +260,27 @@ export function SimpleEditor(
             const file = item.getAsFile()
             if (!file) return false
 
-            const src = URL.createObjectURL(file) // local preview url
-
             event.preventDefault()
 
-            editor?.chain()
-              .focus()
-              .insertContent({
-                type: 'image',
-                attrs: { src },
+            // Handle async upload without blocking
+            handleImageUpload(file)
+              .then((src) => {
+                if (src) {
+                  editor?.chain()
+                    .focus()
+                    .insertContent({
+                      type: 'image',
+                      attrs: { src },
+                    })
+                    .run()
+                }
               })
-              .run()
+              .catch((uploadError) => {
+                const errorMessage = uploadError instanceof Error ?
+                  uploadError.message :
+                  'Failed to upload image'
+                setError(errorMessage)
+              })
             return true
           }
         }
