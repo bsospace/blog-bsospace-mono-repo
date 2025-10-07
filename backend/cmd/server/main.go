@@ -11,9 +11,7 @@ import (
 	"rag-searchbot-backend/api/v1/user"
 	"rag-searchbot-backend/api/v1/ws"
 	"rag-searchbot-backend/config"
-	"rag-searchbot-backend/internal/cache"
 	"rag-searchbot-backend/internal/container"
-	mediaInternal "rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/pkg/logger"
 	"strings"
 	"time"
@@ -23,55 +21,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
-	"github.com/robfig/cron/v3"
-	"gorm.io/gorm"
 )
-
-// Cron expression format explanation:
-// "0 0 0 * * *"
-//
-//	^ ^ ^ ^ ^ ^
-//	| | | | | +--- Day of Week (0-6 or SUN-SAT)
-//	| | | | +----- Month (1-12)
-//	| | | +------- Day of Month (1-31)
-//	| | +--------- Hour (0-23)
-//	| +----------- Minute (0-59)
-func StartMediaCleanupCron(db *gorm.DB, cache *cache.Service, logger *zap.Logger) {
-	repo := mediaInternal.NewMediaRepository(db)
-	service := mediaInternal.NewMediaService(repo, logger)
-
-	c := cron.New(cron.WithSeconds())
-
-	// เรียกตอนเริ่ม server ทันที
-	go func() {
-		logger.Info("[Startup] Starting to delete unused images...")
-		err := service.DeleteUnusedImages()
-		if err != nil {
-			logger.Error("[Startup] Fail to deleting image", zap.Error(err))
-		} else {
-			logger.Info("[Startup] Deleted unused images successfully")
-		}
-	}()
-
-	// ตั้ง Cron ให้ลบทุกเที่ยงคืน
-	_, err := c.AddFunc("0 0 0 * * *", func() {
-		logger.Info("[Cron] Starting to delete unused images...")
-		err := service.DeleteUnusedImages()
-		if err != nil {
-			logger.Error("[Cron] Failed to delete unused images", zap.Error(err))
-		} else {
-			logger.Info("[Cron] Deleted unused images successfully")
-		}
-	})
-
-	if err != nil {
-		logger.Error("[Cron] Failed to schedule media cleanup", zap.Error(err))
-	} else {
-		logger.Info("[Cron] Media cleanup scheduled to run daily at midnight")
-	}
-
-	c.Start()
-}
 
 func main() {
 
@@ -109,13 +59,6 @@ func main() {
 		logger.Log.Info("Redis connection established successfully")
 	}
 
-	// TTL 15 minutes
-	cacheService := &cache.Service{
-		Cache:       make(map[string]interface{}),
-		RedisClient: redisClient,
-		RedisTTL:    24 * time.Hour,
-	}
-
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr: cfg.RedisAddr,
 	})
@@ -134,8 +77,6 @@ func main() {
 	}()
 
 	logger.Log.Info("Cache service initialized successfully")
-
-	StartMediaCleanupCron(db, cacheService, logger.Log)
 
 	containerDI, err := container.InitializeContainer(&cfg, db, logger.Log, redisClient, 24*time.Hour, asynqClient)
 	if err != nil {
