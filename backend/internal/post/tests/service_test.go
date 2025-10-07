@@ -326,7 +326,7 @@ func TestCreatePost_NewPost_UpdatesImageUsageStatus(t *testing.T) {
 	repo.On("GetByShortSlug", slug).Return((*models.Post)(nil), gorm.ErrRecordNotFound) // No existing post
 	repo.On("Create", mock.AnythingOfType("*models.Post")).Return(postID, nil)
 	repo.On("GetByID", postID).Return(createdPost, nil)
-	repo.On("DeleteEmbeddingsByPostID", postID).Return(nil)
+	// repo.On("DeleteEmbeddingsByPostID", postID).Return(nil)
 
 	// Mock media service calls for UpdateImageUsageStatus
 	media.On("GetImagesByPostID", createdPost.ID).Return([]models.ImageUpload{imageUpload}, nil)
