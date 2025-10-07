@@ -1,0 +1,43 @@
+{
+    # ปิด admin API และ Auto HTTPS
+    admin off
+    auto_https off
+
+    # Logging
+    log {
+        output stderr
+        format console
+    }
+
+    # ให้ Caddy อ่าน X-Forwarded-For / X-Real-IP จาก trusted proxies
+    servers {
+        client_ip_headers X-Forwarded-For X-Real-IP
+        trusted_proxies static private_ranges
+        trusted_proxies_strict
+    }
+}
+
+:80 {
+    # บีบอัด response
+    encode gzip zstd
+
+    # Header สำหรับ backend / API
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, OPTIONS"
+        Referrer-Policy "same-origin"
+        X-Content-Type-Options "nosniff"
+        -Server
+    }
+
+    # Cache headers
+    header /static/* Cache-Control "public, max-age=30, stale-while-revalidate=60"
+    header /image_proxy Cache-Control "public, max-age=3600"
+    header Cache-Control "no-cache"
+
+    # Proxy ทุก request ไปยัง SearXNG และส่ง X-Forwarded-For / X-Real-IP
+    reverse_proxy http://searxng:8080 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
+    }
+}
