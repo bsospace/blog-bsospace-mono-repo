@@ -82,7 +82,7 @@ services:
       - searxng-data:/var/cache/searxng:rw
     environment:
       - SEARXNG_SECRET=${SEARXNG_SECRET}
-      - SEARXNG_URL=${SEARXNG_URL}
+      - SEARXNG_BASE_URL=${SEARXNG_URL}
     logging:
       driver: "json-file"
       options:
@@ -93,7 +93,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  searxng:
+  searxng-data:
   
 
 networks:
