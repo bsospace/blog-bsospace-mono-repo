@@ -128,8 +128,6 @@ func (s *PostService) CreatePost(post CreatePostRequest, user *models.User) (str
 		return "", err
 	}
 
-	s.Repo.DeleteEmbeddingsByPostID(createdPost.ID.String())
-
 	return postID, nil
 }
 
