@@ -68,6 +68,24 @@ services:
         max-size: "1m"
         max-file: "1"
 
+  extractor:
+    build:
+      context: ./extractor
+      dockerfile: Dockerfile
+    container_name: dev-extractor
+    environment:
+      TESS_LANGS: tha+eng
+      FLASK_ENV: production
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5002/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

@@ -1,4 +1,10 @@
 Flask==3.0.2
 PyMuPDF==1.23.21
-pytesseract 
-pdf2image
+pytesseract==0.3.10
+pdf2image==1.17.0
+Pillow==10.4.0
+beautifulsoup4==4.12.3
+langchain>=0.2
+langchain-community>=0.2
+langchain-text-splitters>=0.2
+playwright==1.47.0
