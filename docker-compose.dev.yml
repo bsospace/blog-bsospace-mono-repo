@@ -40,12 +40,6 @@ services:
     container_name: dev-backend-go-app
     env_file:
       - .env
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      APP_ENV: ${APP_ENV}
-      GIN_MODE: ${GIN_MODE}
     ports:
       - "${APP_PORT}:${APP_PORT}"
     volumes:
@@ -56,7 +50,27 @@ services:
       - redis
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: searxng
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "${SEARXNG_EXTERNAL_PORT}:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+      - searxng-data:/var/cache/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
 
 
 volumes:
   postgres_data:
+  searxng-data:
