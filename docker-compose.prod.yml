@@ -41,6 +41,7 @@ services:
       APP_ENV: ${APP_ENV}
       PORT: ${APP_PORT}
       GIN_MODE: release
+      SEARXNG_URL: ${SEARXNG_URL}
     ports:
       - "127.0.0.1:${APP_PORT}:${APP_PORT}"
     depends_on:
@@ -88,6 +89,8 @@ services:
       options:
         max-size: "1m"
         max-file: "1"
+    networks:
+      - public
 
 
 volumes:
