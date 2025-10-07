@@ -50,6 +50,22 @@ services:
       - redis
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    
+  caddy:
+    container_name: caddy
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data:rw
+      - caddy-config:/config:rw
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
   
   searxng:
     image: docker.io/searxng/searxng:latest
@@ -61,14 +77,17 @@ services:
       - ./searxng:/etc/searxng:rw
       - searxng-data:/var/cache/searxng:rw
     environment:
-      - SEARXNG_SECRET=${SEARXNG_SECRET}
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-default}
+      - SEARXNG_BASE_URL=http://searxng:8080/search
     logging:
       driver: "json-file"
       options:
         max-size: "1m"
         max-file: "1"
 
-
 volumes:
   postgres_data:
   searxng-data:
+  caddy-data:
+  caddy-config:
+
