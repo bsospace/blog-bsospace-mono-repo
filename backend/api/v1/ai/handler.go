@@ -3,6 +3,7 @@ package ai
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,17 +11,17 @@ import (
 	"os"
 	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/llm"
+	"rag-searchbot-backend/internal/llm_types"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/ginctx"
 	"rag-searchbot-backend/pkg/response"
 	"rag-searchbot-backend/pkg/tiptap"
+	"rag-searchbot-backend/pkg/token"
 	"rag-searchbot-backend/pkg/utils"
 	"sort"
 	"strconv"
 	"strings"
-
-	"rag-searchbot-backend/pkg/token"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -631,24 +632,23 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		maxNewTokens = 1024
 	}
 
-	payload := map[string]interface{}{
-		"model":      config.Model,
-		"stream":     true,
-		"max_tokens": maxNewTokens,
-		"messages": []map[string]string{
-			{"role": "system", "content": systemPrompt},
-			{"role": "user", "content": question},
-		},
+	// Prepare messages for LLM
+	messages := []llm_types.ChatMessage{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: question},
 	}
 
-	resp, err := a.sendLLMRequest(payload, config)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		a.logger.Error("LLM error", zap.Error(err), zap.String("body", string(bodyBytes)))
+	fullText, err := a.sendLLMRequest(c.Request.Context(), messages, config, func(chunk string) {
+		jsonEncoded, _ := json.Marshal(map[string]string{"text": chunk})
+		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
+		c.Writer.Flush()
+	})
+
+	if err != nil {
+		a.logger.Error("LLM error", zap.Error(err))
 		a.writeErrorEvent(c, "LLM service error")
 		return
 	}
-	defer resp.Body.Close()
 
 	postUUID, err := uuid.Parse(postID)
 	if err != nil {
@@ -660,20 +660,16 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	const webSearchPrefix = "WEB SEARCH: "
 	const introductionPrefix = "INTRODUCTION: "
 
-	firstChunk, err := a.extractFullResponseAndReplay(resp)
-	if err != nil {
-		a.writeErrorEvent(c, "Stream reading error")
-		return
-	}
+	// The fullText is already extracted and replayed by sendLLMRequest
 
 	// log the full text for debugging
 	a.logger.Debug("Full LLM response extracted",
-		zap.String("response", firstChunk))
+		zap.String("response", fullText))
 
-	if strings.Contains(strings.ToUpper(firstChunk), webSearchPrefix) {
+	if strings.Contains(strings.ToUpper(fullText), webSearchPrefix) {
 		var introText, searchQuery string
 		// แยกบรรทัด
-		lines := strings.Split(firstChunk, "\n")
+		lines := strings.Split(fullText, "\n")
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(strings.ToUpper(line), introductionPrefix) {
@@ -724,9 +720,6 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		return
 	}
 
-	// Stream the response
-	fullText := a.streamLLMResponse(c, resp)
-
 	// Token usage = input + streamed output
 	realTotalTokens := inputTokens + token.CountTokens(fullText)
 
@@ -737,39 +730,46 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	}
 }
 
-func (a *AIHandler) sendLLMRequest(payload map[string]interface{}, config RAGConfig) (*http.Response, error) {
+func (a *AIHandler) sendLLMRequest(ctx context.Context, messages []llm_types.ChatMessage, config RAGConfig, streamCallback func(string)) (string, error) {
+	// Convert llm.ChatMessage to the format expected by the HTTP request for OpenRouter/Ollama
+	httpMessages := make([]map[string]string, len(messages))
+	for i, msg := range messages {
+		httpMessages[i] = map[string]string{"role": msg.Role, "content": msg.Content}
+	}
+
+	payload := map[string]interface{}{
+		"model":    config.Model,
+		"stream":   true,
+		"messages": httpMessages,
+	}
+
 	body, _ := json.Marshal(payload)
 
-	// logger
 	a.logger.Info("Sending request to LLM",
 		zap.String("payload", string(body)))
 
 	if config.UseSelfHost {
 		a.logger.Info("Using self-hosted Ollama", zap.String("host", config.Host))
-		return http.Post(config.Host+"/api/chat", "application/json", bytes.NewBuffer(body))
+		resp, err := http.Post(config.Host+"/api/chat", "application/json", bytes.NewBuffer(body))
+		if err != nil {
+			return "", fmt.Errorf("ollama request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			return "", fmt.Errorf("ollama service error: %s", string(bodyBytes))
+		}
+
+		return a.streamHTTPResponse(resp, streamCallback)
 	}
 
-	// Using OpenRouter
-	a.logger.Info("Using OpenRouter")
-	if config.APIKey == "" {
-		return nil, fmt.Errorf("OpenRouter API key missing")
-	}
-
-	req, err := http.NewRequest("POST", "https://openrouter.ai/api/v1/chat/completions", bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+config.APIKey)
-	req.Header.Set("HTTP-Referer", "https://blog.bsospace.com")
-	req.Header.Set("X-Title", "https://blog.bsospace.com")
-
-	client := &http.Client{}
-	return client.Do(req)
+	// Using Bedrock via llmClient
+	a.logger.Info("Using Bedrock via llmClient")
+	return a.llmClient.StreamChatCompletion(ctx, messages, streamCallback)
 }
 
-func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) string {
+func (a *AIHandler) streamHTTPResponse(resp *http.Response, streamCallback func(string)) (string, error) {
 	reader := bufio.NewReader(resp.Body)
 	var fullText strings.Builder
 
@@ -778,10 +778,9 @@ func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) strin
 		if err != nil {
 			if err == io.EOF {
 				a.logger.Info("LLM stream finished")
-				a.writeEvent(c, "end", "done")
 			} else {
 				a.logger.Error("Error reading LLM stream", zap.Error(err))
-				a.writeErrorEvent(c, "Stream reading error")
+				return "", fmt.Errorf("error reading LLM stream: %w", err)
 			}
 			break
 		}
@@ -796,59 +795,17 @@ func (a *AIHandler) streamLLMResponse(c *gin.Context, resp *http.Response) strin
 		}
 
 		if bytes.Equal(raw, []byte("[DONE]")) {
-			a.writeEvent(c, "end", "done")
 			break
 		}
 
 		content := a.parseStreamChunk(raw)
 		if content != "" {
 			fullText.WriteString(content)
-			jsonEncoded, _ := json.Marshal(map[string]string{"text": content})
-			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
-			c.Writer.Flush()
+			streamCallback(content)
 		}
 	}
 
-	return fullText.String()
-}
-
-func (a *AIHandler) extractFullResponseAndReplay(resp *http.Response) (string, error) {
-	reader := bufio.NewReader(resp.Body)
-	var buffer bytes.Buffer
-	var text strings.Builder
-
-	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			if err != io.EOF {
-				a.logger.Error("LLM read error", zap.Error(err))
-			}
-			break
-		}
-
-		buffer.Write(line)
-
-		if !bytes.HasPrefix(line, []byte("data: ")) {
-			continue
-		}
-
-		raw := bytes.TrimSpace(line[6:])
-		if len(raw) == 0 {
-			continue
-		}
-		if bytes.Equal(raw, []byte("[DONE]")) {
-			break
-		}
-
-		chunk := a.parseStreamChunk(raw)
-		if chunk != "" {
-			text.WriteString(chunk)
-		}
-	}
-
-	// Reset the body so it can be streamed again
-	resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(buffer.Bytes()), reader))
-	return strings.TrimSpace(text.String()), nil
+	return fullText.String(), nil
 }
 
 func (a *AIHandler) parseStreamChunk(raw []byte) string {

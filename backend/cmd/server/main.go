@@ -29,7 +29,6 @@ func main() {
 
 	logger.InitLogger(cfg.AppEnv)
 	defer logger.Log.Sync()
-
 	logger.Log.Info("Application started")
 
 	// กำหนด Mode การทำงาน
