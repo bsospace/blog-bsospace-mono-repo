@@ -7,10 +7,16 @@
 package container
 
 import (
+	"github.com/google/wire"
+	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"rag-searchbot-backend/config"
 	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/post"
@@ -19,12 +25,6 @@ import (
 	"rag-searchbot-backend/internal/ws"
 	"rag-searchbot-backend/pkg/crypto"
 	"time"
-
-	"github.com/google/wire"
-	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
@@ -45,8 +45,7 @@ func InitializeContainer(env *config.Config, db *gorm.DB, log *zap.Logger, redis
 	serveMux := NewAsynqMux()
 	cryptoService := crypto.NewCryptoService()
 	authServiceInterface := auth.NewAuthService(userServiceInterface, cryptoService, env)
-	agentIntentClassifierServiceInterface := ai.NewAgentIntentClassifier(log, postRepositoryInterface)
-	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepositoryInterface, asynqClient, serveMux, cryptoService, authServiceInterface, agentIntentClassifierServiceInterface)
+	container := NewContainer(env, db, log, repositoryInterface, postRepositoryInterface, notificationRepositoryInterface, mediaRepositoryInterface, userServiceInterface, postServiceInterface, notificationServiceInterface, mediaServiceInterface, serviceInterface, manager, queueRepositoryInterface, asynqClient, serveMux, cryptoService, authServiceInterface)
 	return container, nil
 }
 
@@ -72,10 +71,16 @@ var asynqSet = wire.NewSet(
 
 var aiSet = wire.NewSet(ai.NewAgentIntentClassifier)
 
+var llmSet = wire.NewSet(llm.NewBedrockLLM, wire.Bind(new(llm.LLM), new(*llm.BedrockLLM)))
+
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
 	return cache.NewService(redisClient, redisTTL)
 }
 
 func NewAsynqMux() *asynq.ServeMux {
 	return asynq.NewServeMux()
+}
+
+func NewConfig(cfg *config.Config) config.Config {
+	return *cfg
 }
