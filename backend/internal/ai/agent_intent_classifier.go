@@ -3,6 +3,7 @@ package ai
 import (
 	"fmt"
 	"os"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/utils"
@@ -66,14 +67,16 @@ type AgentIntentClassifierServiceInterface interface {
 }
 
 type agentIntentClassifierService struct {
-	logger  *zap.Logger
-	PosRepo post.PostRepositoryInterface
+	logger    *zap.Logger
+	PosRepo   post.PostRepositoryInterface
+	LLmClient llm.LLM
 }
 
-func NewAgentIntentClassifier(logger *zap.Logger, posRepo post.PostRepositoryInterface) AgentIntentClassifierServiceInterface {
+func NewAgentIntentClassifier(logger *zap.Logger, posRepo post.PostRepositoryInterface, LLmClient llm.LLM) AgentIntentClassifierServiceInterface {
 	return &agentIntentClassifierService{
-		logger:  logger,
-		PosRepo: posRepo,
+		logger:    logger,
+		PosRepo:   posRepo,
+		LLmClient: LLmClient,
 	}
 }
 
@@ -108,7 +111,7 @@ func (a *agentIntentClassifierService) RetrieveContext(message string, post *mod
 	var allScoredChunks []ScoredChunk
 	// log all phrases for debugging
 	for _, phrase := range phrases {
-		embedding32, err := GetEmbedding(phrase)
+		embedding32, err := a.LLmClient.GenerateEmbedding(nil, phrase)
 		a.logger.Debug("Embedding for phrase", zap.String("phrase", phrase), zap.Any("embedding", len(embedding32)))
 		if err != nil {
 			a.logger.Warn("Failed to get embedding for phrase", zap.String("phrase", phrase), zap.Error(err))
