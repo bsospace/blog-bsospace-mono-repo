@@ -40,6 +40,11 @@ type Config struct {
 	PGAdminPort        string
 	GinMode            string
 	Searxng_url        string
+	AWSRegion          string
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
+	AWSBedrockLLMModel string
+	AWSBedrockEmbeddingModel string
 }
 
 func LoadConfig() Config {
@@ -105,5 +110,10 @@ func LoadConfig() Config {
 		PGAdminPort:        os.Getenv("PGADMIN_PORT"),
 		GinMode:            os.Getenv("GIN_MODE"),
 		Searxng_url:        os.Getenv("SEARXNG_URL"),
+		AWSRegion:          os.Getenv("AWS_REGION"),
+		AWSAccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		AWSBedrockLLMModel: os.Getenv("AWS_BEDROCK_LLM_MODEL"),
+		AWSBedrockEmbeddingModel: os.Getenv("AWS_BEDROCK_EMBEDDING_MODEL"),
 	}
 }
