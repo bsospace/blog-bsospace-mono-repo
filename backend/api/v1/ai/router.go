@@ -2,12 +2,15 @@ package ai
 
 import (
 	"rag-searchbot-backend/internal/ai"
+	"rag-searchbot-backend/internal/awsbedrock"
 	"rag-searchbot-backend/internal/container"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/middleware"
 	"rag-searchbot-backend/internal/notification"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
+	"go.uber.org/zap"
 )
 
 func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux *asynq.ServeMux) {
@@ -15,10 +18,17 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 	postRepo := container.PostRepo
 	aiTaskEnqueuer := ai.NewTaskEnqueuer(container.AsynqClient)
 	aiRepo := ai.NewAIRepository(container.DB)
-	aiService := ai.NewAIService(postRepo, aiTaskEnqueuer, aiRepo)
-	aiContentClassifier := ai.NewAgentIntentClassifier(container.Log, postRepo)
+
+	bedrockClient, err := awsbedrock.NewBedrockClient(*container.Env) // Instantiate Bedrock client
+	if err != nil {
+		container.Log.Fatal("Failed to create Bedrock client", zap.Error(err))
+	}
+	llmClient := llm.NewBedrockLLM(bedrockClient) // Instantiate LLM client
+
+	aiContentClassifier := ai.NewAgentIntentClassifier(container.Log, postRepo, llmClient)
+	aiService := ai.NewAIService(postRepo, aiTaskEnqueuer, aiRepo, aiContentClassifier, llmClient)
 	agentToolWebSearch := ai.NewAgentToolWebSearchService(container.Log, postRepo, container.Env)
-	handler := NewAIHandler(aiService, aiContentClassifier, postRepo, container.Log, agentToolWebSearch)
+	handler := NewAIHandler(aiService, aiContentClassifier, postRepo, container.Log, agentToolWebSearch, llmClient)
 
 	authMiddleware := middleware.NewAuthMiddleware(
 		container.UserService,
