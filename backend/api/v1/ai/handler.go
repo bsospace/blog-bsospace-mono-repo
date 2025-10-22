@@ -716,17 +716,15 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 			return
 		}
 
-		// --- stream ส่วน introduction ก่อน ---
-		if introText != "" {
-			jsonIntro, _ := json.Marshal(map[string]string{"text": introText + "\n\n"})
-			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonIntro)
-			c.Writer.Flush()
-		}
-
 		// --- stream ผลลัพธ์จาก external web ---
+		combinedText := ""
+		if introText != "" {
+			combinedText = introText + "\n\n"
+		}
+		combinedText += searchExternalResult
+
 		jsonResult, _ := json.Marshal(map[string]string{
-			"intro": introText,
-			"text":  searchExternalResult,
+			"text": combinedText,
 		})
 		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonResult)
 		c.Writer.Flush()
