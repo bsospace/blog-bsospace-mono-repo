@@ -3,10 +3,12 @@ package ai
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/utils"
@@ -17,16 +19,20 @@ import (
 )
 
 type AIService struct {
-	PosRepo      post.PostRepositoryInterface
-	TaskEnqueuer *TaskEnqueuer
-	AIRepo       AIRepositoryInterface
+	PosRepo                 post.PostRepositoryInterface
+	TaskEnqueuer            *TaskEnqueuer
+	AIRepo                  AIRepositoryInterface
+	IntentClassifierService AgentIntentClassifierServiceInterface
+	llmClient               llm.LLM
 }
 
-func NewAIService(posRepo post.PostRepositoryInterface, enqueuer *TaskEnqueuer, aiRepo AIRepositoryInterface) *AIService {
+func NewAIService(posRepo post.PostRepositoryInterface, enqueuer *TaskEnqueuer, aiRepo AIRepositoryInterface, intentClassifierService AgentIntentClassifierServiceInterface, llmClient llm.LLM) *AIService {
 	return &AIService{
-		PosRepo:      posRepo,
-		TaskEnqueuer: enqueuer,
-		AIRepo:       aiRepo,
+		PosRepo:                 posRepo,
+		TaskEnqueuer:            enqueuer,
+		AIRepo:                  aiRepo,
+		IntentClassifierService: intentClassifierService,
+		llmClient:               llmClient,
 	}
 }
 
@@ -242,13 +248,17 @@ func (s *AIService) ClassifyContent(message string) (string, error) {
 		return "", fmt.Errorf("message cannot be empty")
 	}
 
-	messageType := IntentClassifier(message)
+	// Use the injected IntentClassifierService
+	messageType, err := s.IntentClassifierService.ClassifyIntent(message, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to classify intent: %w", err)
+	}
 
-	if messageType == IntentUnknown {
+	if Intent(messageType) == IntentUnknown {
 		return "", fmt.Errorf("unknown message type: %s", messageType)
 	}
 
-	return string(messageType), nil
+	return messageType, nil
 }
 
 func ToChatDTO(chat models.AIResponse) ChatDTO {
@@ -274,4 +284,30 @@ func (s *AIService) GetChatsByPost(postID string, userID *uuid.UUID, limit, offs
 		dtos = append(dtos, ToChatDTO(chat))
 	}
 	return dtos, nil
+}
+
+func (s *AIService) StreamPostSummary(ctx context.Context, prompt, plaintextContent string, onChunk func(string)) (string, error) {
+	systemPrompt := `คุณคือผู้ช่วยสรุปบทความ จงสรุปบทความที่ให้มาอย่างกระชับและได้ใจความสำคัญ ไม่เกิน 5 ประโยค`
+	fullPrompt := fmt.Sprintf("%s\nบทความ: %s\nคำสั่ง: %s", systemPrompt, plaintextContent, prompt)
+
+	resp, err := s.llmClient.InvokeLLM(ctx, fullPrompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to invoke LLM for post summary: %w", err)
+	}
+
+	onChunk(resp)
+	return resp, nil
+}
+
+func (s *AIService) StreamGreetingFarewell(ctx context.Context, prompt string, onChunk func(string)) (string, error) {
+	systemPrompt := `คุณคือผู้ช่วยตอบคำทักทายและกล่าวลา จงตอบกลับอย่างสุภาพและเป็นมิตร`
+	fullPrompt := fmt.Sprintf("%s\nผู้ใช้: %s", systemPrompt, prompt)
+
+	resp, err := s.llmClient.InvokeLLM(ctx, fullPrompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to invoke LLM for greeting/farewell: %w", err)
+	}
+
+	onChunk(resp)
+	return resp, nil
 }
