@@ -42,12 +42,13 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
+│                              CLIENT LAYER                                   │
 │  ┌────────────────────────────────────────────────────────────────────┐     │
 │  │  Next.js 15 Frontend (Port 9009)                                   │     │
 │  │  - React Components (ShadCN UI + Tailwind)                         │     │
 │  │  - Tiptap Editor (Markdown + Image Upload)                         │     │
 │  │  - OAuth Integration (Google/GitHub/Discord)                       │     │
+│  │  (frontend/app, frontend/components, frontend/hooks, frontend/lib) │     │
 │  └────────────────────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -60,6 +61,7 @@
 │  │  - Auto HTTPS / SSL Termination                                    │     │
 │  │  - Request Routing & Load Balancing                                │     │
 │  │  - Gzip/Zstd Compression                                           │     │
+│  │  (Caddyfile)                                                       │     │
 │  └────────────────────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -74,46 +76,43 @@
 │  │                            │     │   │  │  - Privacy-focused  │    │
 │  │  ┌──────────────────────┐  │     │   │  └─────────────────────┘    │
 │  │  │  API Routes          │  │     │   └──────────────────────────────┘
-│  │  │  - /v1/posts         │  │     │
-│  │  │  - /v1/auth          │  │     │
-│  │  │  - /v1/users         │  │────────┐
-│  │  │  - /v1/ai            │  │     │  │
-│  │  │  - /v1/media         │  │     │  │
-│  │  │  - /v1/ws (WebSocket)│  │     │  │
-│  │  └──────────────────────┘  │     │  │
-│  │                            │     │  │
-│  │  ┌──────────────────────┐  │     │  │
-│  │  │  Middleware Layer    │  │     │  │
-│  │  │  - JWT Auth          │  │     │  │
-│  │  │  - Rate Limiting     │  │     │  │
-│  │  │  - CORS              │  │     │  │
-│  │  └──────────────────────┘  │     │  │
-│  └────────────────────────────┘     │  │
-└─────────────────────────────────────┘  │
-                    │                    │
-    ┌───────────────┼────────────────────┴─────────────────┐
-    │               │                                       │
-    ▼               ▼                                       ▼
-┌─────────────┐  ┌─────────────┐                  ┌──────────────────┐
-│  DATABASE   │  │   CACHE     │                  │  AI/ML SERVICES  │
-│             │  │             │                  │                  │
-│ PostgreSQL  │  │   Redis     │                  │  ┌────────────┐  │
-│   + Vector  │  │   (Port     │                  │  │  Ollama    │  │
-│ (PGVector)  │  │    6379)    │                  │  │  LLM Host  │  │
-│             │  │             │                  │  │            │  │
-│ ┌─────────┐ │  │ - Session   │                  │  │ - nomic-   │  │
-│ │ Posts   │ │  │   Cache     │                  │  │   embed-   │  │
-│ │ Users   │ │  │ - Query     │                  │  │   text     │  │
-│ │ Tags    │ │  │   Cache     │                  │  │   (384dim) │  │
-│ │ Comments│ │  │ - Rate      │                  │  │ - LLaMA3   │  │
-│ │ Embeddings│ │ │   Limit    │                  │  │   Model    │  │
-│ └─────────┘ │  │   Store     │                  │  └────────────┘  │
-│             │  └─────────────┘                  └──────────────────┘
-└─────────────┘                                            │
-       │                                                   │
-       └───────────────────────────────────────────────────┘
-                               │
-                               ▼
+│  │  │  - /v1/ai, /v1/auth, /v1/image, /v1/media, /v1/notification, │
+│  │  │    /v1/post, /v1/user, /v1/ws                               │  │
+│  │  └──────────────────────┘  │     │
+│  │                            │     │
+│  │  ┌──────────────────────┐  │     │
+│  │  │  Internal Services   │  │     │
+│  │  │  - AI, Auth, Cache, Chat, Image, LLM, Media, Middleware,     │
+│  │  │    Models, Notification, Ollama, Post, Queue, Social, Storage,│
+│  │  │    User, WS                                                 │  │
+│  │  └──────────────────────┘  │     │
+│  │  (backend/cmd/server, backend/api, backend/internal, backend/config, backend/pkg) │
+│  └────────────────────────────┘     │
+└─────────────────────────────────────┘
+                    │
+    ┌───────────────┼────────────────────┐
+    │               │                    │
+    ▼               ▼                    ▼
+┌─────────────┐  ┌─────────────┐  ┌──────────────────┐
+│  DATABASE   │  │   CACHE     │  │  AI/ML SERVICES  │
+│             │  │             │  │                  │
+│ PostgreSQL  │  │   Redis     │  │  ┌────────────┐  │
+│   + Vector  │  │   (Port     │  │  │  Ollama    │  │
+│ (PGVector)  │  │    6379)    │  │  │  LLM Host  │  │
+│             │  │             │  │  │            │  │
+│ ┌─────────┐ │  │ - Session   │  │  │ - nomic-   │  │
+│ │ Posts   │ │  │   Cache     │  │  │   embed-   │  │
+│ │ Users   │ │  │ - Query     │  │  │   text     │  │
+│ │ Tags    │ │  │   Cache     │  │  │   (384dim) │  │
+│ │ Comments│ │  │ - Rate      │  │  │ - LLaMA3   │  │
+│ │ Embeddings│ │ │   Limit    │  │  │   Model    │  │
+│ └─────────┘ │  │   Store     │  │  └────────────┘  │
+│             │  └─────────────┘  └──────────────────┘
+└─────────────┘
+       │
+       └───────────────────────────────────────────────────┐
+                               │                           │
+                               ▼                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         AI/RAG PROCESSING FLOW                               │
 │                                                                              │
@@ -168,7 +167,7 @@
 │  │  PDF Extractor       │    │  Background Workers  │                       │
 │  │  (Python/Flask)      │    │  (Go Routines)       │                       │
 │  │  (Port 5002)         │    │                      │                       │
-│  │                      │    │  - Embedding Queue   │                       │
+│  │  (extractor/)        │    │  - Embedding Queue   │                       │
 │  │  - PyMuPDF           │    │  - Post Processing   │                       │
 │  │  - Tesseract OCR     │    │  - Notification Send │                       │
 │  │  - pdf2image         │    │  - Analytics Update  │                       │
@@ -191,6 +190,7 @@
 │                                                                              │
 │   Networks: internal (db, redis, backend) | public (caddy, frontend,        │
 │             searxng) | ollama_net (external AI services)                    │
+│   (Jenkinsfile, .github/workflows, docker-compose.*.yml)                    │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 Key Technologies:

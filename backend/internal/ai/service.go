@@ -300,8 +300,8 @@ func (s *AIService) StreamPostSummary(ctx context.Context, prompt, plaintextCont
 }
 
 func (s *AIService) StreamGreetingFarewell(ctx context.Context, prompt string, onChunk func(string)) (string, error) {
-	systemPrompt := `คุณคือผู้ช่วยตอบคำทักทายและกล่าวลา จงตอบกลับอย่างสุภาพและเป็นมิตร`
-	fullPrompt := fmt.Sprintf("%s\nผู้ใช้: %s", systemPrompt, prompt)
+	systemPrompt := `คุณคือผู้ช่วยตอบคำทักทายและกล่าวลา จงตอบกลับอย่างสุภาพและเป็นมิตรจากข้อความนี้ และตอบกลับมาในรูปแบบสั้นๆ`
+	fullPrompt := fmt.Sprintf("%s\n%s", systemPrompt, prompt)
 
 	resp, err := s.llmClient.InvokeLLM(ctx, fullPrompt)
 	if err != nil {

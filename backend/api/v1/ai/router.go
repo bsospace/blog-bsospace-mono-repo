@@ -25,7 +25,7 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 	}
 	llmClient := llm.NewBedrockLLM(bedrockClient) // Instantiate LLM client
 
-	aiContentClassifier := ai.NewAgentIntentClassifier(container.Log, postRepo, llmClient)
+	aiContentClassifier := ai.NewAgentIntentClassifier(container.Log, postRepo)
 	aiService := ai.NewAIService(postRepo, aiTaskEnqueuer, aiRepo, aiContentClassifier, llmClient)
 	agentToolWebSearch := ai.NewAgentToolWebSearchService(container.Log, postRepo, container.Env)
 	handler := NewAIHandler(aiService, aiContentClassifier, postRepo, container.Log, agentToolWebSearch, llmClient)
