@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"rag-searchbot-backend/internal/ai"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/ginctx"
@@ -33,18 +34,20 @@ type AIHandler struct {
 	PosRepo                        post.PostRepositoryInterface
 	logger                         *zap.Logger
 	agentAgentToolWebSearchService ai.AgentToolWebSearch
+	llmClient                      llm.LLM
 }
 
 func NewAIHandler(aiService *ai.AIService,
 	agentIntentClassifierService ai.AgentIntentClassifierServiceInterface,
 	posRepo post.PostRepositoryInterface, logger *zap.Logger,
-	agentAgentToolWebSearchService ai.AgentToolWebSearch) *AIHandler {
+	agentAgentToolWebSearchService ai.AgentToolWebSearch, llmClient llm.LLM) *AIHandler {
 	return &AIHandler{
 		AIService:                      aiService,
 		PosRepo:                        posRepo,
 		logger:                         logger,
 		AgentIntentClassifierService:   agentIntentClassifierService,
 		agentAgentToolWebSearchService: agentAgentToolWebSearchService,
+		llmClient:                      llmClient,
 	}
 }
 
@@ -216,7 +219,16 @@ func (a *AIHandler) Chat(c *gin.Context) {
 			zap.String("prompt", req.Prompt),
 			zap.String("plaintextContent", plaintextContent))
 
-		fullText := ai.StreamPostSummaryAgent(c, req.Prompt, plaintextContent)
+		fullText, err := a.AIService.StreamPostSummary(c.Request.Context(), req.Prompt, plaintextContent, func(chunk string) {
+			jsonEncoded, _ := json.Marshal(map[string]string{"text": chunk})
+			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
+			c.Writer.Flush()
+		})
+		if err != nil {
+			a.logger.Error("Failed to stream post summary", zap.Error(err))
+			a.writeErrorEvent(c, "Failed to stream post summary")
+			return
+		}
 
 		// Save history
 		postUUID, err := uuid.Parse(postID)
@@ -240,7 +252,16 @@ func (a *AIHandler) Chat(c *gin.Context) {
 			zap.String("post_id", postID),
 			zap.String("prompt", req.Prompt))
 
-		fullText := ai.StreamGreetingFarewellAgent(c, req.Prompt)
+		fullText, err := a.AIService.StreamGreetingFarewell(c.Request.Context(), req.Prompt, func(chunk string) {
+			jsonEncoded, _ := json.Marshal(map[string]string{"text": chunk})
+			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
+			c.Writer.Flush()
+		})
+		if err != nil {
+			a.logger.Error("Failed to stream greeting/farewell", zap.Error(err))
+			a.writeErrorEvent(c, "Failed to stream greeting/farewell")
+			return
+		}
 
 		// Save history
 		postUUID, err := uuid.Parse(postID)
