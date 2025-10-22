@@ -90,10 +90,16 @@ const parseSearchResults = (jsonObj: any): React.ReactNode => {
 // Markdown parser function
 const parseMarkdown = (text: string): React.ReactNode => {
   if (!text) return null;
+  // Remove common assistant header markers like `assistant<|end_header_id|>:` (allow optional spaces and case-insensitive)
+  text = text.replace(/assistant\s*<\|end_header_id\|>\s*:?\s*/gi, '');
+
   try {
     const parsed = JSON.parse(text);
     if (parsed.intro && parsed.text) {
-      const jsonObj = JSON.parse(parsed.text);
+
+      // ถ้ามีคำว่า "assistant" ให้ตัดออก
+      const textWithoutAssistant = (parsed.text || '').replace(/assistant\s*<\|end_header_id\|>\s*:?\s*/gi, '').trim();
+      const jsonObj = JSON.parse(textWithoutAssistant);
       if (jsonObj.query && jsonObj.results) {
         return parseSearchResults(jsonObj);
       }
