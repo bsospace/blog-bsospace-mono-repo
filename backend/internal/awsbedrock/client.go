@@ -89,8 +89,16 @@ func (bc *BedrockClient) InvokeLLM(ctx context.Context, prompt string) (string, 
 		}
 
 	case strings.Contains(modelID, "meta.llama3"):
+		// ใช้ prompt format ของ Meta Llama 3
+		formattedPrompt := fmt.Sprintf(`
+		<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+		%s
+		<|eot_id|>
+		<|start_header_id|>assistant<|end_header_id|>
+`, prompt)
+
 		requestBody = map[string]interface{}{
-			"prompt":      prompt,
+			"prompt":      formattedPrompt,
 			"max_gen_len": 512,
 			"temperature": 0.7,
 			"top_p":       0.9,
@@ -135,6 +143,8 @@ func (bc *BedrockClient) InvokeLLM(ctx context.Context, prompt string) (string, 
 	if completion, ok := responseBody["completion"].(string); ok {
 		return completion, nil
 	}
+
+	var results string
 	if results, ok := responseBody["results"].([]interface{}); ok && len(results) > 0 {
 		if result, ok := results[0].(map[string]interface{}); ok {
 			if text, ok := result["outputText"].(string); ok {
@@ -143,7 +153,9 @@ func (bc *BedrockClient) InvokeLLM(ctx context.Context, prompt string) (string, 
 		}
 	}
 
-	return "", fmt.Errorf("could not extract generated text from Bedrock response")
+	// if have ctx make stream
+
+	return results, fmt.Errorf("could not extract generated text from Bedrock response")
 }
 
 // ────────────────────────────────
@@ -269,6 +281,10 @@ func (bc *BedrockClient) StreamChatCompletion(
 // ────────────────────────────────
 
 func (bc *BedrockClient) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	modelID := bc.cfg.AWSBedrockEmbeddingModel
 	if modelID == "" {
 		modelID = "amazon.titan-embed-text-v1"
