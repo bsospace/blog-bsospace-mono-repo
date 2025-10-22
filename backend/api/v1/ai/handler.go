@@ -597,7 +597,7 @@ func (a *AIHandler) buildSystemPrompt(context string) string {
 
 หากไม่พบคำตอบในบทความ ให้ตอบเพียง 2 บรรทัดเท่านั้นในรูปแบบนี้:
 INTRODUCTION: <ข้อความแนะนำสั้น ๆ ว่าควรค้นหาอะไรเพิ่มเติม (อาจจะบอกว่าไม่พบเนื้อหาที่เกี่ยวข้องลองดูจากข้อมูลนี้ค่ะ)>
-WEB SEARCH: <คำค้นหาที่ควรใช้>
+WEBSEARCH: <คำค้นหาที่ควรใช้>
 
 ถ้าพบคำตอบในบทความ ให้ตอบตามปกติแบบสุภาพ กระชับ ไม่เกิน 5 ประโยค`
 	}
@@ -607,7 +607,7 @@ WEB SEARCH: <คำค้นหาที่ควรใช้>
 
 หากไม่พบคำตอบในบทความ แต่เห็นว่าควรค้นต่อจากภายนอก ให้ตอบเพียง 2 บรรทัดเท่านั้นในรูปแบบนี้:
 INTRODUCTION: <ข้อความแนะนำสั้น ๆ ว่าควรค้นหาอะไรเพิ่มเติม (อาจจะบอกว่าไม่พบเนื้อหาที่เกี่ยวข้องลองดูจากข้อมูลนี้ค่ะ)>
-WEB SEARCH: <คำค้นหาที่ควรใช้>
+WEBSEARCH: <คำค้นหาที่ควรใช้>
 
 ถ้าพบคำตอบในบทความ ให้ตอบตามปกติแบบสุภาพ กระชับ ไม่เกิน 5 ประโยค
 
@@ -639,8 +639,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	}
 
 	fullText, err := a.sendLLMRequest(c.Request.Context(), messages, config, func(chunk string) {
-		jsonEncoded, _ := json.Marshal(map[string]string{"text": chunk})
-		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
+		//  ไม่ต้อง stream ออกไปในที่นี้ เพราะเราจะ parse ทีหลัง
 		c.Writer.Flush()
 	})
 
@@ -657,28 +656,34 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	}
 
 	a.writeEvent(c, "start", "Streaming started")
-	const webSearchPrefix = "WEB SEARCH: "
-	const introductionPrefix = "INTRODUCTION: "
 
-	// The fullText is already extracted and replayed by sendLLMRequest
+	const webSearchPrefix = "WEBSEARCH:"
+	const introductionPrefix = "INTRODUCTION:"
 
-	// log the full text for debugging
+	// ตัวอย่างข้อความที่ LLM อาจตอบ:
+	// INTRODUCTION:ขอโทษค่ะไม่พบคำตอบในบทความนี้คุณอาจลองค้นหาข้อมูลเพิ่มเติมเกี่ยวกับ"webserverคืออะไร"จากแหล่งข้อมูลอื่นค่ะWEBSEARCH:webserverคืออะไร
+
 	a.logger.Debug("Full LLM response extracted",
 		zap.String("response", fullText))
 
-	if strings.Contains(strings.ToUpper(fullText), webSearchPrefix) {
+	// แปลงเป็น upper เพื่อค้น marker ได้ง่าย
+	upperText := strings.ToUpper(fullText)
+	webSearchIndex := strings.Index(upperText, webSearchPrefix)
+	introIndex := strings.Index(upperText, introductionPrefix)
+
+	if webSearchIndex != -1 {
 		var introText, searchQuery string
-		// แยกบรรทัด
-		lines := strings.Split(fullText, "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(strings.ToUpper(line), introductionPrefix) {
-				introText = strings.TrimSpace(line[len(introductionPrefix):])
-			}
-			if strings.HasPrefix(strings.ToUpper(line), webSearchPrefix) {
-				searchQuery = strings.TrimSpace(line[len(webSearchPrefix):])
+
+		// ดึงส่วน introduction (ถ้ามี)
+		if introIndex != -1 {
+			start := introIndex + len(introductionPrefix)
+			if webSearchIndex > start {
+				introText = strings.TrimSpace(fullText[start:webSearchIndex])
 			}
 		}
+
+		// ดึงส่วน search query
+		searchQuery = strings.TrimSpace(fullText[webSearchIndex+len(webSearchPrefix):])
 
 		if searchQuery == "" {
 			a.writeErrorEvent(c, "Empty web search query")
@@ -688,7 +693,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		a.logger.Info("Agent requested web search",
 			zap.String("query", searchQuery))
 
-		// เรียก external web search
+		//  เรียก external web search
 		searchExternalResult, err := a.agentAgentToolWebSearchService.SearchExternalWeb(searchQuery)
 		if err != nil {
 			a.logger.Error("Web search failed", zap.Error(err))
@@ -696,22 +701,24 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 			return
 		}
 
-		// --- stream the introduction section first ---
+		// --- stream ส่วน introduction ก่อน ---
 		if introText != "" {
 			jsonIntro, _ := json.Marshal(map[string]string{"text": introText + "\n\n"})
 			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonIntro)
 			c.Writer.Flush()
 		}
 
-		// Add the word 'introduction' to the JSON
-
-		jsonResult, _ := json.Marshal(map[string]string{"intro": introText, "text": searchExternalResult})
+		// --- stream ผลลัพธ์จาก external web ---
+		jsonResult, _ := json.Marshal(map[string]string{
+			"intro": introText,
+			"text":  searchExternalResult,
+		})
 		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonResult)
 		c.Writer.Flush()
 
 		a.writeEvent(c, "end", "done")
 
-		// Save history
+		// --- บันทึกประวัติการสนทนา ---
 		combinedResponse := strings.TrimSpace(introText + "\n\n" + searchExternalResult)
 		realTotalTokens := inputTokens + token.CountTokens(combinedResponse)
 		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, combinedResponse, question, realTotalTokens); err != nil {
