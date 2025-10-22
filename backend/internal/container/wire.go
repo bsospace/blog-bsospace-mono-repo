@@ -8,6 +8,7 @@ import (
 	"rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/auth"
 	"rag-searchbot-backend/internal/cache"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/post"
@@ -68,6 +69,11 @@ var aiSet = wire.NewSet(
 	ai.NewAgentIntentClassifier,
 )
 
+var llmSet = wire.NewSet(
+	llm.NewBedrockLLM,
+	wire.Bind(new(llm.LLM), new(*llm.BedrockLLM)),
+)
+
 // ----- Wire Providers -----
 
 func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.ServiceInterface {
@@ -76,6 +82,10 @@ func NewCacheService(redisClient *redis.Client, redisTTL time.Duration) cache.Se
 
 func NewAsynqMux() *asynq.ServeMux {
 	return asynq.NewServeMux()
+}
+
+func NewConfig(cfg *config.Config) config.Config {
+	return *cfg
 }
 
 // ----- Wire Injector ----
@@ -100,7 +110,6 @@ func InitializeContainer(
 		asynqSet,
 		NewCacheService,
 		ws.NewManager,
-		aiSet,
 	)
 	return &Container{}, nil
 }
