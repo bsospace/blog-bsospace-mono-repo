@@ -300,20 +300,34 @@ func (a *AIHandler) Chat(c *gin.Context) {
 	if string(intent) == "unknown" {
 
 		// log the intent
-		a.logger.Info("Intent detected: unknown",
+		a.logger.Info("Intent detected: greeting_farewell",
 			zap.String("post_id", postID),
 			zap.String("prompt", req.Prompt))
-		// 4. Get RAG configuration
-		config := a.getRAGConfig()
 
-		// 5. Process RAG pipeline
-		context, err := a.processRAGPipeline(c, postID, req.Prompt, config)
+		fullText, err := a.AIService.StreamGreetingFarewell(c.Request.Context(), req.Prompt, func(chunk string) {
+			jsonEncoded, _ := json.Marshal(map[string]string{"text": chunk})
+			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonEncoded)
+			c.Writer.Flush()
+		})
 		if err != nil {
-			return // Error already handled in processRAGPipeline
+			a.logger.Error("Failed to stream greeting/farewell", zap.Error(err))
+			a.writeErrorEvent(c, "Failed to stream greeting/farewell")
+			return
 		}
 
-		// 6. Generate and stream response
-		a.generateAndStreamResponse(c, req.Prompt, context, config, postID, user)
+		// Save history
+		postUUID, err := uuid.Parse(postID)
+		if err != nil {
+			a.logger.Error("Failed to parse post ID", zap.Error(err))
+			return
+		}
+
+		// Save user question and AI response to history
+		tokenCount := token.CountTokens(req.Prompt + fullText)
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount); err != nil {
+			a.logger.Error("Failed to save chat history", zap.Error(err))
+			return
+		}
 	}
 }
 
