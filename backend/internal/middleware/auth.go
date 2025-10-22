@@ -17,7 +17,6 @@ import (
 )
 
 // AuthMiddleware struct for DI
-//go:generate mockgen -destination=../../mocks/mock_authmiddleware.go -package=mocks rag-searchbot-backend/internal/middleware AuthMiddleware
 
 type AuthMiddleware struct {
 	UserService   user.ServiceInterface
@@ -50,7 +49,7 @@ func (a *AuthMiddleware) Handler() gin.HandlerFunc {
 		claims, err := verifyToken(tokenString, a.CryptoService, a.Logger)
 
 		// if token is expired, try to refresh
-		if err != nil {
+			if err != nil {
 			// Check if token is expired and try to refresh
 			if tokenRefreshString != "" {
 				a.Logger.Info("[INFO] Token expired, attempting to refresh", zap.Error(err))
@@ -258,3 +257,4 @@ func verifyToken(tokenString string, cryptoService *crypto.CryptoService, logger
 		},
 	}, nil
 }
+
