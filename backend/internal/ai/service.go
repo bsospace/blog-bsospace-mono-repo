@@ -287,7 +287,7 @@ func (s *AIService) GetChatsByPost(postID string, userID *uuid.UUID, limit, offs
 }
 
 func (s *AIService) StreamPostSummary(ctx context.Context, prompt, plaintextContent string, onChunk func(string)) (string, error) {
-	systemPrompt := `คุณคือผู้ช่วยสรุปบทความ จงสรุปบทความที่ให้มาอย่างกระชับและได้ใจความสำคัญ ไม่เกิน 5 ประโยค`
+	systemPrompt := `You are an assistant that generates concise summaries of articles in Thai language.`
 	fullPrompt := fmt.Sprintf("%s\nบทความ: %s\nคำสั่ง: %s", systemPrompt, plaintextContent, prompt)
 
 	resp, err := s.llmClient.InvokeLLM(ctx, fullPrompt)
@@ -300,8 +300,8 @@ func (s *AIService) StreamPostSummary(ctx context.Context, prompt, plaintextCont
 }
 
 func (s *AIService) StreamGreetingFarewell(ctx context.Context, prompt string, onChunk func(string)) (string, error) {
-	systemPrompt := `คุณคือผู้ช่วยตอบคำทักทายและกล่าวลา จงตอบกลับอย่างสุภาพและเป็นมิตร`
-	fullPrompt := fmt.Sprintf("%s\nผู้ใช้: %s", systemPrompt, prompt)
+	systemPrompt := `You are an assistant that generates friendly greetings and farewells in Thai language.`
+	fullPrompt := fmt.Sprintf("%s\n%s", systemPrompt, prompt)
 
 	resp, err := s.llmClient.InvokeLLM(ctx, fullPrompt)
 	if err != nil {

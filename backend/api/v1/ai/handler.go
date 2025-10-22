@@ -240,7 +240,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 
 		// Save user question and AI response to history
 		tokenCount := token.CountTokens(req.Prompt + fullText)
-		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount); err != nil {
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount, os.Getenv("AI_MODEL")); err != nil {
 			a.logger.Error("Failed to save chat history", zap.Error(err))
 			return
 		}
@@ -273,7 +273,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 
 		// Save user question and AI response to history
 		tokenCount := token.CountTokens(req.Prompt + fullText)
-		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount); err != nil {
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount, os.Getenv("AWS_BEDROCK_LLM_MODEL")); err != nil {
 			a.logger.Error("Failed to save chat history", zap.Error(err))
 			return
 		}
@@ -324,7 +324,7 @@ func (a *AIHandler) Chat(c *gin.Context) {
 
 		// Save user question and AI response to history
 		tokenCount := token.CountTokens(req.Prompt + fullText)
-		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount); err != nil {
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, req.Prompt, tokenCount, os.Getenv("AI_MODEL")); err != nil {
 			a.logger.Error("Failed to save chat history", zap.Error(err))
 			return
 		}
@@ -445,7 +445,7 @@ func (a *AIHandler) processRAGPipeline(c *gin.Context, postID, question string, 
 	phrases := SplitQuestionToPhrases(question)
 
 	for _, phrase := range phrases {
-		embedding32, err := ai.GetEmbedding(phrase)
+		embedding32, err := a.llmClient.GenerateEmbedding(c.Request.Context(), phrase)
 		if err != nil {
 			a.logger.Warn("Failed to get embedding for phrase", zap.String("phrase", phrase), zap.Error(err))
 			continue
@@ -670,6 +670,7 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 	}
 
 	a.writeEvent(c, "start", "Streaming started")
+	c.Writer.Flush()
 
 	const webSearchPrefix = "WEBSEARCH:"
 	const introductionPrefix = "INTRODUCTION:"
@@ -715,17 +716,15 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 			return
 		}
 
-		// --- stream ส่วน introduction ก่อน ---
-		if introText != "" {
-			jsonIntro, _ := json.Marshal(map[string]string{"text": introText + "\n\n"})
-			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonIntro)
-			c.Writer.Flush()
-		}
-
 		// --- stream ผลลัพธ์จาก external web ---
+		combinedText := ""
+		if introText != "" {
+			combinedText = introText + "\n\n"
+		}
+		combinedText += searchExternalResult
+
 		jsonResult, _ := json.Marshal(map[string]string{
-			"intro": introText,
-			"text":  searchExternalResult,
+			"text": combinedText,
 		})
 		fmt.Fprintf(c.Writer, "data: %s\n\n", jsonResult)
 		c.Writer.Flush()
@@ -735,19 +734,29 @@ func (a *AIHandler) generateAndStreamResponse(c *gin.Context, question, context 
 		// --- บันทึกประวัติการสนทนา ---
 		combinedResponse := strings.TrimSpace(introText + "\n\n" + searchExternalResult)
 		realTotalTokens := inputTokens + token.CountTokens(combinedResponse)
-		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, combinedResponse, question, realTotalTokens); err != nil {
+		if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, combinedResponse, question, realTotalTokens, config.Model); err != nil {
 			a.logger.Error("Failed to save chat history", zap.Error(err))
 		}
 		return
 	}
 
+	// Use Gin's streaming mechanism
+	c.Stream(func(w io.Writer) bool {
+		jsonEncoded, _ := json.Marshal(map[string]string{"text": fullText})
+		fmt.Fprintf(w, "data: %s\n\n", jsonEncoded)
+
+		// Send the "end" event within the stream
+		fmt.Fprintf(w, "event: end\ndata: done\n\n")
+		return false // Close the stream after sending the full text and end event
+	})
+
 	// Token usage = input + streamed output
 	realTotalTokens := inputTokens + token.CountTokens(fullText)
 
 	// Save history
-	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, inputText, realTotalTokens); err != nil {
+	if err := a.SaveChatHistory(c, &models.Post{ID: postUUID}, user, fullText, question, realTotalTokens, config.Model); err != nil {
 		a.logger.Error("Failed to save chat history", zap.Error(err))
-		a.writeErrorEvent(c, "Failed to save chat history")
+		// a.writeErrorEvent(c, "Failed to save chat history") // Cannot use c.Writer after c.Stream
 	}
 }
 
@@ -906,7 +915,7 @@ func SplitQuestionToPhrases(q string) []string {
 }
 
 // save chat history
-func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *models.User, responseText string, promt string, tokenUse int) error {
+func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *models.User, responseText string, promt string, tokenUse int, modelName string) error {
 
 	// Log all relevant parameters (post ID, response text, prompt, token usage, user email) before saving chat history for debugging and audit purposes
 	a.logger.Info("Saving chat history",
@@ -923,7 +932,7 @@ func (a *AIHandler) SaveChatHistory(c *gin.Context, post *models.Post, user *mod
 		PostID:    post.ID,
 		TokenUsed: tokenUse,
 		Success:   true,
-		Model:     os.Getenv("AI_MODEL"),
+		Model:     modelName,
 	}
 
 	if err := a.AIService.CreateChat(chat, post.ID.String(), user); err != nil {
