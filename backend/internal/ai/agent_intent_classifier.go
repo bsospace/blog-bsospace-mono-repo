@@ -1,8 +1,9 @@
 package ai
 
 import (
+	"context"
 	"fmt"
-	"os"
+	"rag-searchbot-backend/internal/llm"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
 	"rag-searchbot-backend/pkg/utils"
@@ -66,14 +67,16 @@ type AgentIntentClassifierServiceInterface interface {
 }
 
 type agentIntentClassifierService struct {
-	logger  *zap.Logger
-	PosRepo post.PostRepositoryInterface
+	logger    *zap.Logger
+	PosRepo   post.PostRepositoryInterface
+	llmClient llm.LLM
 }
 
-func NewAgentIntentClassifier(logger *zap.Logger, posRepo post.PostRepositoryInterface) AgentIntentClassifierServiceInterface {
+func NewAgentIntentClassifier(logger *zap.Logger, posRepo post.PostRepositoryInterface, llmClient llm.LLM) AgentIntentClassifierServiceInterface {
 	return &agentIntentClassifierService{
-		logger:  logger,
-		PosRepo: posRepo,
+		logger:    logger,
+		PosRepo:   posRepo,
+		llmClient: llmClient,
 	}
 }
 
@@ -108,7 +111,7 @@ func (a *agentIntentClassifierService) RetrieveContext(message string, post *mod
 	var allScoredChunks []ScoredChunk
 	// log all phrases for debugging
 	for _, phrase := range phrases {
-		embedding32, err := GetEmbedding(phrase)
+		embedding32, err := a.llmClient.GenerateEmbedding(context.Background(), phrase)
 		a.logger.Debug("Embedding for phrase", zap.String("phrase", phrase), zap.Any("embedding", len(embedding32)))
 		if err != nil {
 			a.logger.Warn("Failed to get embedding for phrase", zap.String("phrase", phrase), zap.Error(err))
@@ -234,17 +237,16 @@ func (a *agentIntentClassifierService) retrieveAndScoreChunks(postID string, que
 	return scoredChunks, nil
 }
 
-// call open router for classification
-func (a *agentIntentClassifierService) ClassifyWithOpenRouter(message string, context []string) (string, error) {
+func (a *agentIntentClassifierService) ClassifyWithOpenRouter(message string, ctxStrings []string) (string, error) {
 	// Join context chunks (จำกัดจำนวนหรือความยาวตามความเหมาะสม)
-	joinedContext := strings.Join(context, "\n\n")
+	joinedContext := strings.Join(ctxStrings, "\n\n")
 	if len(joinedContext) > 4000 {
 		joinedContext = joinedContext[:4000] // ตัดความยาวกัน LLM token overflow
 	}
 
 	systemPrompt := `
 		You are an intent classifier for a blog Q&A system.
-		Your job is to classify the user's question based on the given blog context.
+		Your job is to classify the user\'s question based on the given blog context.
 
 		Here are the possible intents:
 		- blog_question: ถามเนื้อหาบทความ เช่น "บทความนี้เกี่ยวกับอะไร", "RAG คืออะไร"
@@ -258,39 +260,25 @@ func (a *agentIntentClassifierService) ClassifyWithOpenRouter(message string, co
 		Blog Context:
 		"""` + joinedContext + `"""`
 
-	payload := map[string]interface{}{
-		"model":  os.Getenv("AI_MODEL"),
-		"stream": false,
-		"messages": []map[string]string{
-			{"role": "system", "content": systemPrompt},
-			{"role": "user", "content": message},
-		},
-	}
+	fullPrompt := fmt.Sprintf("%s\nUser question: %s", systemPrompt, message)
 
-	config := map[string]string{
-		"api_key":       os.Getenv("AI_API_KEY"),
-		"model":         os.Getenv("AI_MODEL"),
-		"host":          os.Getenv("AI_HOST"),
-		"use_self_host": os.Getenv("AI_SELF_HOST"),
-	}
-
-	a.logger.Debug("Sending intent classification request to OpenRouter",
+	a.logger.Debug("Sending intent classification request to LLM",
 		zap.String("message", message),
-		zap.Int("context_len", len(context)),
+		zap.Int("context_len", len(ctxStrings)),
 	)
 
-	resp, err := SendLLMRequestToOpenRouter(payload, config)
+	resp, err := a.llmClient.InvokeLLM(context.Background(), fullPrompt)
 	if err != nil {
-		a.logger.Warn("Failed to classify intent via OpenRouter", zap.Error(err))
+		a.logger.Warn("Failed to classify intent via LLM", zap.Error(err))
 		return string(IntentUnknown), err
 	}
 
 	intent := parseIntentFromLLM(resp)
 
 	// log raw intent for debugging
-	a.logger.Debug("Raw intent from OpenRouter response", zap.String("raw_intent", resp))
+	a.logger.Debug("Raw intent from LLM response", zap.String("raw_intent", resp))
 
-	a.logger.Debug("Intent classified by OpenRouter", zap.String("intent", string(intent)))
+	a.logger.Debug("Intent classified by LLM", zap.String("intent", string(intent)))
 
 	return string(intent), nil
 }
@@ -341,4 +329,23 @@ func (a *agentIntentClassifierService) selectTopChunks(scoredChunks []ScoredChun
 	}
 
 	return selectedChunks
+}
+
+func parseIntentFromLLM(resp string) Intent {
+	switch strings.TrimSpace(resp) {
+	case string(IntentBlogQuestion):
+		return IntentBlogQuestion
+	case string(IntentSummarizePost):
+		return IntentSummarizePost
+	case string(IntentGreetingFarewell):
+		return IntentGreetingFarewell
+	case string(IntentSearchBlog):
+		return IntentSearchBlog
+	case string(IntentGeneric):
+		return IntentGeneric
+	case string(IntentExternalQuestion):
+		return IntentExternalQuestion
+	default:
+		return IntentUnknown
+	}
 }
