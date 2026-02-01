@@ -11,17 +11,20 @@ import { FiCode, FiCpu, FiSearch, FiTrendingUp, FiZap, FiBookOpen, FiClock, FiEy
 import Loading from "../components/loading";
 import { CookiesConsentModal } from "../components/cookies-consent-modal";
 import { formatDate } from "@/lib/utils";
+import { Snowfall } from "../components/christmas";
+import { ChristmasTree } from "../components/christmas";
+import { ChristmasLights } from "../components/christmas";
 
-export default function HomePageClient({ 
-  fetchPosts, 
-  fetchPopularPosts 
-}: { 
+export default function HomePageClient({
+  fetchPosts,
+  fetchPopularPosts
+}: {
   fetchPosts: (page: number, limit: number, search: string) => Promise<{ data: Post[]; meta: Meta }>;
   fetchPopularPosts: () => Promise<{ data: Post[]; meta: Meta }>;
 }) {
   // Constants
   const NO_SEARCH_QUERY = "";
-  
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [popularPosts, setPopularPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,20 +149,29 @@ export default function HomePageClient({
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative">
+      {/* Christmas Snowfall Effect */}
+      <Snowfall count={80} color="255,255,255" />
+
       <div className="container mx-auto px-4 py-6">
         {/* Header Section - More Compact */}
         <div className="absolute inset-0 overflow-hidden mt-16">
-          <div className="absolute top-10 left-1/4 w-48 h-48 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-20 right-1/4 w-40 h-40 bg-gradient-to-br from-red-500/10 to-yellow-500/10 rounded-full blur-3xl"></div>
+          {/* Christmas themed gradient orbs */}
+          <div className="absolute top-10 left-1/4 w-48 h-48 bg-gradient-to-br from-red-500/20 to-green-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 right-1/4 w-40 h-40 bg-gradient-to-br from-green-500/20 to-yellow-500/20 rounded-full blur-3xl"></div>
         </div>
 
         <header className="text-center mb-12 relative">
+          {/* Christmas Lights Decoration */}
+          <div className="flex justify-center mb-6">
+            <ChristmasLights className="animate-pulse" />
+          </div>
+
           <div className="relative z-10">
             <div className="flex justify-center items-center mb-4">
-              <FiCode className="w-6 h-6 text-orange-400 mr-2" />
+              <FiCode className="w-6 h-6 text-red-400 mr-2" />
               <h1 className="text-2xl md:text-5xl font-bold" style={{
-                background: 'linear-gradient(to right, #fb923c, #f87171, #facc15)',
+                background: 'linear-gradient(to right, #ef4444, #22c55e, #eab308)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -167,7 +179,7 @@ export default function HomePageClient({
               }}>
                 Be Simple but Outstanding
               </h1>
-              <FiCpu className="w-6 h-6 text-red-400 ml-2" />
+              <FiCpu className="w-6 h-6 text-green-400 ml-2" />
             </div>
 
             {/* Compact search bar */}
@@ -176,16 +188,22 @@ export default function HomePageClient({
                 <input
                   type="text"
                   placeholder="ค้นหาบทความ..."
-                  className="w-full p-3 pl-10 pr-20 text-sm rounded-xl bg-slate-800/50 backdrop-blur-md border border-slate-700/50 dark:text-white placeholder-slate-400 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300"
+                  className="w-full p-3 pl-10 pr-20 text-sm rounded-xl bg-slate-800/50 backdrop-blur-md border border-red-700/50 dark:text-white placeholder-slate-400 focus:outline-none focus:border-green-500/50 focus:ring-2 focus:ring-green-500/20 transition-all duration-300"
                   onChange={handleSearchChange}
                 />
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-orange-400" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-400" />
 
                 {/* Search button */}
-                <button className="absolute right-1.5 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 rounded-lg text-white text-sm font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-300">
+                <button className="absolute right-1.5 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-red-500 to-green-500 px-3 py-1.5 rounded-lg text-white text-sm font-medium hover:from-red-600 hover:to-green-600 transition-all duration-300">
                   <FiZap className="w-3 h-3" />
                 </button>
               </div>
+            </div>
+
+            {/* Christmas Trees Decoration */}
+            <div className="hidden md:flex justify-between items-end absolute left-0 right-0 top-0 pointer-events-none">
+              <ChristmasTree className="h-32 w-32 opacity-60" />
+              <ChristmasTree className="h-32 w-32 opacity-60" />
             </div>
           </div>
         </header>
@@ -197,8 +215,8 @@ export default function HomePageClient({
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                  <FiTrendingUp className="w-5 h-5 text-orange-400 mr-2" />
-                  <h2 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent mt-3">
+                  <FiTrendingUp className="w-5 h-5 text-red-400 mr-2" />
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-red-400 to-green-400 bg-clip-text text-transparent mt-3">
                     Latest From the BSO Blog
                   </h2>
                 </div>
@@ -215,7 +233,7 @@ export default function HomePageClient({
                           <div className="w-full md:w-2/5 flex-shrink-0">
                             <div className="h-40 sm:h-48 md:h-56 bg-slate-700 rounded-lg"></div>
                           </div>
-                          
+
                           {/* Content skeleton */}
                           <div className="w-full md:w-3/5 p-4 flex flex-col">
                             {/* Tags skeleton */}
@@ -224,18 +242,18 @@ export default function HomePageClient({
                               <div className="w-20 h-6 bg-slate-700 rounded-full"></div>
                               <div className="w-14 h-6 bg-slate-700 rounded-full"></div>
                             </div>
-                            
+
                             {/* Title skeleton */}
                             <div className="h-5 bg-slate-700 rounded mb-3 w-3/4"></div>
                             <div className="h-5 bg-slate-700 rounded mb-4 w-1/2"></div>
-                            
+
                             {/* Description skeleton */}
                             <div className="space-y-2 mb-4 flex-grow">
                               <div className="h-4 bg-slate-700 rounded w-full"></div>
                               <div className="h-4 bg-slate-700 rounded w-4/5"></div>
                               <div className="h-4 bg-slate-700 rounded w-3/4"></div>
                             </div>
-                            
+
                             {/* Bottom section skeleton */}
                             <div className="border-t border-slate-700/50 pt-4">
                               <div className="flex items-center justify-between">
@@ -247,7 +265,7 @@ export default function HomePageClient({
                                     <div className="w-16 h-3 bg-slate-700 rounded"></div>
                                   </div>
                                 </div>
-                                
+
                                 {/* Stats skeleton */}
                                 <div className="flex items-center gap-4">
                                   <div className="w-8 h-3 bg-slate-700 rounded"></div>
@@ -312,12 +330,12 @@ export default function HomePageClient({
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                  <FiBookOpen className="w-5 h-5 text-orange-400 mr-2 flex-shrink-0" />
-                  <h2 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent mt-3">
+                  <FiBookOpen className="w-5 h-5 text-green-400 mr-2 flex-shrink-0" />
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-green-400 to-red-400 bg-clip-text text-transparent mt-3">
                     Popular Posts
                   </h2>
                 </div>
-                <div className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-full">
+                <div className="text-xs text-slate-400 bg-red-800/30 px-2 py-1 rounded-full">
                   Top 10
                 </div>
               </div>
@@ -334,23 +352,23 @@ export default function HomePageClient({
               ) : popularPosts && popularPosts.length > 0 ? (
                 <div className="space-y-4">
                   {popularPosts.slice(0, 10).map((post, index) => (
-                    <Link 
-                      key={post.id} 
+                    <Link
+                      key={post.id}
                       href={`/posts/@${post.author?.username}/${post.slug}`}
-                      className="group cursor-pointer bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-300 block"
+                      className="group cursor-pointer bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-red-700/30 hover:border-green-600/50 transition-all duration-300 block"
                     >
                       <div className="flex items-start space-x-3">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-200 line-clamp-2 mb-2">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-green-400 transition-colors duration-200 line-clamp-2 mb-2">
                             {post.title}
                           </h3>
-                          
+
                           {/* Author info */}
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-5 h-5 rounded-full bg-slate-700 overflow-hidden">
                               {post.author?.avatar && (
-                                <Image 
-                                  src={post.author.avatar} 
+                                <Image
+                                  src={post.author.avatar}
                                   alt={post.author.username || "Author"}
                                   className="w-full h-full object-cover"
                                   width={20}
