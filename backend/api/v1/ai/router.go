@@ -55,7 +55,6 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 	{
 		aiRoutes.POST("/:post_id/on", handler.OpenAIMode)
 		aiRoutes.POST("/:post_id/off", handler.DisableOpenAIMode)
-		aiRoutes.POST("/:post_id/chat", handler.Chat)
-		aiRoutes.GET("/:post_id/chats", handler.GetChatsByPost)
+		aiRoutes.POST("/:post_id/search", handler.WebSearch)
 	}
 }

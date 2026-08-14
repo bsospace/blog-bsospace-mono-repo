@@ -86,7 +86,7 @@ const PostsManagement = () => {
       const post = posts.find(p => p.id === postId);
       if (post) {
         // Update the post's AI mode status
-        setPosts(posts.map(p => p.id === postId ? { ...p, ai_ready: true } : p));
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, ai_ready: true } : p));
         toast({
           title: 'AI Mode Enabled',
           description: `AI mode has been enabled for post: ${post.title}`,
@@ -162,7 +162,7 @@ const PostsManagement = () => {
     try {
       await axiosInstance.post(`/posts/${postId}/like`);
       // Update the post in the local state
-      setPosts(posts.map(post =>
+      setPosts(prev => prev.map(post =>
         post.id === postId
           ? { ...post, likes: (post.likes || 0) + 1 }
           : post
@@ -176,16 +176,17 @@ const PostsManagement = () => {
     try {
 
       // set post status ai_ready to true
-      setPosts(posts.map(p => p.id === postId ? { ...p, ai_chat_open: true } : p));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, ai_chat_open: true } : p));
       await axiosInstance.post(`/ai/${postId}/on`);
       toast({
-        title: 'AI Mode under update',
-        description: 'AI mode update in progress',
+        title: 'AI Mode enabled',
+        description: 'Readers can use on-device AI when their browser supports it.',
         variant: 'default',
       });
 
     } catch (err) {
       console.error('Error toggling AI mode:', err);
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, ai_chat_open: false } : p));
       toast({
         title: 'Error',
         description: 'Failed to update AI mode. Please try again.',
@@ -197,7 +198,7 @@ const PostsManagement = () => {
   const onToggleAiModeOff = async (postId: string) => {
     try {
       // set post status ai_ready to false
-      setPosts(posts.map(p => p.id === postId ? { ...p, ai_chat_open: false } : p));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, ai_chat_open: false } : p));
       await axiosInstance.post(`/ai/${postId}/off`);
       toast({
         title: 'AI Mode disabled',

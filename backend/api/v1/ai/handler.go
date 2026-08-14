@@ -36,6 +36,7 @@ type AIHandler struct {
 	logger                         *zap.Logger
 	agentAgentToolWebSearchService ai.AgentToolWebSearch
 	llmClient                      llm.LLM
+	publicSearchLimiter            *publicSearchRateLimiter
 }
 
 func NewAIHandler(aiService *ai.AIService,
@@ -49,6 +50,7 @@ func NewAIHandler(aiService *ai.AIService,
 		AgentIntentClassifierService:   agentIntentClassifierService,
 		agentAgentToolWebSearchService: agentAgentToolWebSearchService,
 		llmClient:                      llmClient,
+		publicSearchLimiter:            newPublicSearchRateLimiter(),
 	}
 }
 
@@ -80,7 +82,7 @@ func (a *AIHandler) OpenAIMode(c *gin.Context) {
 	}
 
 	if result {
-		response.JSONSuccess(c, http.StatusOK, "Success", "AI mode in queue")
+		response.JSONSuccess(c, http.StatusOK, "Success", "AI mode enabled")
 		return
 	}
 

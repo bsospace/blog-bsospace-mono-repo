@@ -7,10 +7,34 @@ import { useAuth } from '../contexts/auth-context';
 import envConfig from '../configs/env-config';
 import { Post } from '../interfaces';
 import { useRouter } from 'next/navigation'
+import {
+  BrowserAIError,
+  containsPromptInjection,
+  createBrowserAISession,
+  getBrowserAIAvailability,
+  needsWebSearch,
+  streamBrowserAI,
+} from '../../lib/browser-ai';
+import type { BrowserAIAvailability, BrowserAISession } from '../../lib/browser-ai';
 // import { countTokens, isTokenLimitExceeded } from '../utils/token';
 
 const WORD_LIMIT = 100;
-const PAGE_SIZE = 20;
+
+interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+  type: string;
+  publishedAt: string;
+  thumbnail: string;
+}
+
+interface WebSearchResponse {
+  query: string;
+  total: number;
+  results: WebSearchResult[];
+}
 
 interface AIProps {
   isOpen?: boolean;
@@ -26,6 +50,19 @@ interface AIProps {
   setIsTyping?: (typing: boolean) => void;
 }
 
+const toSafeHttpUrl = (value: string, allowRelative = false): string | null => {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) return null;
+  try {
+    const url = allowRelative
+      ? new URL(normalizedValue, window.location.origin)
+      : new URL(normalizedValue);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
 // Function to parse search results JSON
 const parseSearchResults = (jsonObj: any): React.ReactNode => {
   if (!jsonObj.query || !jsonObj.results) return null;
@@ -36,15 +73,6 @@ const parseSearchResults = (jsonObj: any): React.ReactNode => {
       </div>
       <div className="space-y-2">
         {jsonObj.results.slice(0, 5).map((result: any, idx: number) => {
-          const toSafeHttpUrl = (u: string): string | null => {
-            try {
-              const url = new URL(u, window.location.origin);
-              const proto = url.protocol.toLowerCase();
-              return proto === 'http:' || proto === 'https:' ? url.toString() : null;
-            } catch {
-              return null;
-            }
-          };
           const safeUrl = toSafeHttpUrl(result.url);
           const source = result.source ?? (() => {
             try { return safeUrl ? new URL(safeUrl).hostname : ''; } catch { return ''; }
@@ -239,12 +267,17 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
         elements.push(<del key={key} className="line-through">{match.content}</del>);
         break;
       case 'link':
-        elements.push(
-          <a key={key} href={match.url} target="_blank" rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-700 underline">
-            {match.content}
-          </a>
-        );
+        {
+          const safeUrl = match.url ? toSafeHttpUrl(match.url, true) : null;
+          elements.push(
+            safeUrl ? (
+              <a key={key} href={safeUrl} target="_blank" rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700 underline">
+                {match.content}
+              </a>
+            ) : match.content
+          );
+        }
         break;
     }
 
@@ -295,13 +328,14 @@ const BlogAIChat: React.FC<AIProps> = ({
   const [isOpen, setIsOpen] = useState(initialIsOpen || false);
   const [isFullscreen, setIsFullscreen] = useState(initialIsFullOpen || false);
   const [messages, setMessages] = useState<any[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyOffset, setHistoryOffset] = useState(0);
-  const chatWindowRef = useRef<HTMLDivElement>(null);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageIdRef = useRef(1);
+  const browserAISessionRef = useRef<BrowserAISession | null>(null);
+  const browserAISessionPromiseRef = useRef<Promise<BrowserAISession> | null>(null);
+  const [browserAIStatus, setBrowserAIStatus] = useState<BrowserAIAvailability | 'checking' | 'error'>('checking');
+  const [browserAIError, setBrowserAIError] = useState('');
   const { user } = useAuth();
   const router = useRouter();
   const [wordCount, setWordCount] = useState(0);
@@ -326,69 +360,29 @@ const BlogAIChat: React.FC<AIProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  const fetchChatHistory = async (offset = 0) => {
-    setLoadingHistory(true);
-    const prevScrollHeight = chatWindowRef.current?.scrollHeight || 0;
-    try {
-      const res = await fetch(`${envConfig.apiBaseUrl}/ai/${Post.id}/chats?limit=${PAGE_SIZE}&offset=${offset}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const history = data.flatMap((chat: any) => [
-        {
-          id: chat.id * 2,
-          type: 'user',
-          content: chat.prompt,
-          timestamp: new Date(chat.used_at || chat.created_at)
-        },
-        {
-          id: chat.id * 2 + 1,
-          type: 'bot',
-          content: chat.response,
-          timestamp: new Date(chat.used_at || chat.created_at)
-        }
-      ]);
-      setMessages(prev => [...history, ...prev]);
-      setHasMore(data.length === PAGE_SIZE);
-      setHistoryOffset(offset + PAGE_SIZE);
-      // รอ render เสร็จแล้วค่อยปรับ scrollTop
-      setTimeout(() => {
-        if (chatWindowRef.current) {
-          const newScrollHeight = chatWindowRef.current.scrollHeight;
-          chatWindowRef.current.scrollTop = newScrollHeight - prevScrollHeight;
-        }
-      }, 0);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
   useEffect(() => {
     if (!isOpen || !Post?.id) return;
-    setMessages([]);
-    setHistoryOffset(0);
-    setHasMore(true);
-    fetchChatHistory(0).then(() => {
-      // ถ้าไม่มีแชทเก่าเลย ให้แสดง welcome bot
-      setTimeout(() => {
-        setMessages(prev => {
-          if (prev.length === 0) {
-            return [
-              {
-                id: 1,
-                type: 'bot',
-                content: 'สวัสดีครับ! ผมเป็น **AI Assistant** ของ blog นี้ ผมพร้อมตอบคำถามเกี่ยวกับเนื้อหา blog, การเขียน, หรือหัวข้อที่น่าสนใจ มีอะไรให้ช่วยไหมครับ?\n\nคุณสามารถใช้ markdown ได้ เช่น:\n- **ตัวหนา**\n- *ตัวเอียง*\n- `โค้ด`\n- [ลิงก์](https://example.com)',
-                timestamp: new Date()
-              }
-            ];
-          }
-          return prev;
-        });
-      }, 0);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    browserAISessionRef.current?.destroy();
+    browserAISessionRef.current = null;
+    browserAISessionPromiseRef.current = null;
+    messageIdRef.current = 1;
+    setBrowserAIError('');
+    setBrowserAIStatus('checking');
+    setMessages([
+      {
+        id: 1,
+        type: 'bot',
+        content: 'สวัสดีครับ! ผมคือ **AI Assistant บนเครื่องของคุณ** ผมจะตอบจากเนื้อหาบทความก่อนโดยไม่ต้องเข้าสู่ระบบครับ\n\nถ้าบทความมีข้อมูลไม่พอ ผู้ใช้ที่เข้าสู่ระบบจะค้นข้อมูลจากเว็บต่อได้',
+        timestamp: new Date()
+      }
+    ]);
+    void getBrowserAIAvailability().then(setBrowserAIStatus);
   }, [isOpen, Post?.id]);
+
+  useEffect(() => () => {
+    browserAISessionRef.current?.destroy();
+    browserAISessionRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -417,95 +411,208 @@ const BlogAIChat: React.FC<AIProps> = ({
     }
   }, [inputText]);
 
+  const fetchExternalWebContext = async (question: string): Promise<{
+    context: string;
+    results: WebSearchResult[];
+  }> => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
+    let response: Response;
+    try {
+      response = await fetch(`${envConfig.apiBaseUrl}/ai/${Post.id}/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ query: question }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new BrowserAIError('ค้นข้อมูลจากเว็บนานเกินไป กรุณาลองใหม่อีกครั้งครับ', 'failed');
+      }
+      throw new BrowserAIError('ค้นข้อมูลจากเว็บไม่สำเร็จ กรุณาลองใหม่อีกครั้งครับ', 'failed');
+    } finally {
+      window.clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new BrowserAIError('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่ก่อนค้นข้อมูลจากเว็บครับ', 'failed');
+      }
+      if (response.status === 429) {
+        const retryAfter = Number(response.headers.get('Retry-After'));
+        const waitMessage = Number.isFinite(retryAfter) ? ` กรุณารอ ${Math.ceil(retryAfter)} วินาที` : '';
+        throw new BrowserAIError(`ค้นข้อมูลจากเว็บบ่อยเกินไปครับ${waitMessage}`, 'failed');
+      }
+      throw new BrowserAIError('ค้นข้อมูลจากเว็บไม่สำเร็จ กรุณาลองใหม่อีกครั้งครับ', 'failed');
+    }
+
+    const payload = await response.json() as WebSearchResponse;
+    const results = Array.isArray(payload.results)
+      ? payload.results.slice(0, 5).map((result) => ({
+        title: String(result.title || '').slice(0, 240),
+        url: toSafeHttpUrl(String(result.url || '')) || '',
+        snippet: String(result.snippet || '').slice(0, 600),
+        source: String(result.source || '').slice(0, 120),
+        type: String(result.type || 'web'),
+        publishedAt: String(result.publishedAt || '').slice(0, 80),
+        thumbnail: '',
+      })).filter((result) => result.title && result.url)
+      : [];
+
+    const context = results.map((result, index) => [
+      `SOURCE ${index + 1}`,
+      `TITLE: ${result.title}`,
+      `URL: ${result.url}`,
+      `SNIPPET: ${result.snippet}`,
+    ].join('\n')).join('\n\n');
+
+    return { context, results };
+  };
+
+  const ensureBrowserAISession = async (): Promise<BrowserAISession> => {
+    if (browserAISessionRef.current) return browserAISessionRef.current;
+    if (browserAISessionPromiseRef.current) return browserAISessionPromiseRef.current;
+
+    const sessionPromise = createBrowserAISession(Post.content, (progress) => {
+      setBrowserAIStatus(progress >= 100 ? 'available' : 'downloading');
+    })
+      .then((session) => {
+        browserAISessionRef.current = session;
+        setBrowserAIStatus('available');
+        setBrowserAIError('');
+        return session;
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof BrowserAIError
+          ? error.message
+          : 'Gemini Nano could not start in this browser.';
+        setBrowserAIStatus(error instanceof BrowserAIError && error.code === 'unavailable' ? 'unavailable' : 'error');
+        setBrowserAIError(message);
+        throw error;
+      });
+
+    browserAISessionPromiseRef.current = sessionPromise;
+    try {
+      return await sessionPromise;
+    } finally {
+      browserAISessionPromiseRef.current = null;
+    }
+  };
+
+  const handleOpen = () => {
+    setIsOpen(true);
+    void ensureBrowserAISession().catch(() => undefined);
+  };
+
+  const streamIntoMessage = async (
+    session: BrowserAISession,
+    question: string,
+    webContext: string,
+    botMessageId: number,
+  ): Promise<string> => {
+    let response = '';
+    for await (const chunk of streamBrowserAI(session, question, webContext)) {
+      response += chunk;
+      setMessages((prev) => prev.map(msg =>
+        msg.id === botMessageId
+          ? { ...msg, content: response }
+          : msg
+      ));
+    }
+    return response;
+  };
+
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+    const question = inputText.trim();
+    if (!question) return;
     if (wordLimitExceeded) {
       setWordError('คำถามยาวเกินไป');
       return;
     }
     setWordError('');
 
-    // Check if user is authenticated
-    if (!user) {
-      const currentUrl = window.location.pathname + window.location.search;
-      const redirectUrl = encodeURIComponent(currentUrl);
-      router.push(`/auth/login?redirect=${redirectUrl}`);
-      return;
-    }
-
     const userMessage = {
-      id: messages.length + 1,
+      id: ++messageIdRef.current,
       type: 'user' as const,
-      content: inputText,
+      content: question,
       timestamp: new Date(),
     };
+    const botMessageId = ++messageIdRef.current;
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputText('');
-    setIsTyping(true);
-
-    // Add empty bot message for streaming
-    const botMessageId = messages.length + 2;
-    setMessages((prev) => [...prev, {
+    setMessages((prev) => [...prev, userMessage, {
       id: botMessageId,
       type: 'bot' as const,
       content: '',
+      searchResults: [],
+      searchQuery: question,
       timestamp: new Date(),
     }]);
+    setInputText('');
+    setIsTyping(true);
 
     try {
-      const res = await fetch(`${envConfig.apiBaseUrl}/ai/${Post?.id}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({ prompt: inputText }),
-      });
+      if (containsPromptInjection(question)) {
+        throw new BrowserAIError(
+          'ผมตอบได้เฉพาะคำถามเกี่ยวกับบทความ และไม่สามารถเปลี่ยนคำสั่งหรือเปิดเผย prompt ภายในได้ครับ',
+          'blocked',
+        );
+      }
 
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let botMessage = '';
+      const session = await ensureBrowserAISession();
+      let botMessage = await streamIntoMessage(session, question, '', botMessageId);
 
-      if (!reader) throw new Error("No readable stream");
+      if (needsWebSearch(botMessage)) {
+        if (!user) {
+          setMessages((prev) => prev.map(msg =>
+            msg.id === botMessageId
+              ? { ...msg, content: 'บทความนี้ไม่มีข้อมูลเพียงพอสำหรับคำถามนี้ครับ หากต้องการค้นข้อมูลจากเว็บ กรุณาเข้าสู่ระบบก่อน' }
+              : msg
+          ));
+          return;
+        }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        setMessages((prev) => prev.map(msg =>
+          msg.id === botMessageId
+            ? { ...msg, content: 'กำลังค้นข้อมูลเพิ่มเติมจากเว็บครับ...' }
+            : msg
+        ));
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        const search = await fetchExternalWebContext(question);
+        setMessages((prev) => prev.map(msg =>
+          msg.id === botMessageId
+            ? { ...msg, content: '', searchResults: search.results }
+            : msg
+        ));
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const jsonText = line.slice(6).trim();
-            if (!jsonText) continue;
+        if (!search.results.length) {
+          setMessages((prev) => prev.map(msg =>
+            msg.id === botMessageId
+              ? { ...msg, content: 'ค้นข้อมูลจากเว็บแล้ว แต่ไม่พบแหล่งข้อมูลที่เหมาะสมครับ' }
+              : msg
+          ));
+          return;
+        }
 
-            try {
-              const parsed = JSON.parse(jsonText);
-              const content = parsed.text || '';
-
-              if (content) {
-                botMessage += content;
-                setMessages((prev) => prev.map(msg =>
-                  msg.id === botMessageId
-                    ? { ...msg, content: botMessage }
-                    : msg
-                ));
-              }
-            } catch (e) {
-              console.warn("Malformed chunk:", jsonText);
-            }
-          }
+        botMessage = await streamIntoMessage(session, question, search.context, botMessageId);
+        if (needsWebSearch(botMessage)) {
+          setMessages((prev) => prev.map(msg =>
+            msg.id === botMessageId
+              ? { ...msg, content: 'ยังไม่พบข้อมูลที่เชื่อถือได้เพียงพอสำหรับคำถามนี้ครับ' }
+              : msg
+          ));
         }
       }
-    } catch (err) {
-      console.error('Streaming error:', err);
-      // Show error message
+    } catch (error: unknown) {
+      console.error('Browser AI error:', error);
+      const message = error instanceof BrowserAIError
+        ? error.message
+        : browserAIError || 'ขออภัยครับ Gemini Nano ใช้งานไม่ได้บน browser หรืออุปกรณ์นี้';
       setMessages((prev) => prev.map(msg =>
         msg.id === botMessageId
-          ? { ...msg, content: 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง' }
+          ? { ...msg, content: message }
           : msg
       ));
     } finally {
@@ -575,13 +682,6 @@ const BlogAIChat: React.FC<AIProps> = ({
     return <User className="h-3 w-3" />;
   }
 
-  const handleScroll = () => {
-    if (!chatWindowRef.current || loadingHistory || !hasMore) return;
-    if (chatWindowRef.current.scrollTop === 0) {
-      fetchChatHistory(historyOffset);
-    }
-  };
-
   // Fixed positioning logic
   const getContainerClasses = () => {
     if (isFullscreen) {
@@ -597,12 +697,25 @@ const BlogAIChat: React.FC<AIProps> = ({
     return 'bg-background border border-border rounded-lg shadow-lg flex flex-col w-80 h-96';
   };
 
+  const browserAIInputDisabled = browserAIStatus === 'unavailable';
+  const browserAIStatusText = browserAIStatus === 'available'
+    ? 'ทำงานบนเครื่องของคุณ'
+    : browserAIStatus === 'downloadable'
+      ? 'กำลังเตรียมดาวน์โหลดโมเดล'
+      : browserAIStatus === 'downloading'
+        ? 'กำลังดาวน์โหลดโมเดล'
+        : browserAIStatus === 'unavailable'
+          ? 'อุปกรณ์นี้ไม่รองรับ'
+          : browserAIStatus === 'error'
+            ? 'เริ่มใช้งานไม่ได้'
+            : 'กำลังตรวจสอบความพร้อม';
+
   return (
     <div className={getContainerClasses()}>
       {/* Chat Toggle Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpen}
           className="inline-flex items-center justify-center rounded-full w-12 h-12 bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:bg-primary/90 transition-all duration-200 relative"
         >
           <MessageCircle className="h-5 w-5" />
@@ -621,11 +734,14 @@ const BlogAIChat: React.FC<AIProps> = ({
               <div>
                 <span className="flex items-center gap-1 text-sm">
                   <span className="font-medium">Blog AI Assistant</span>
-                  <div className="relative">
-                    <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
-                    <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-ping absolute right-0 top-[7px]"></span>
+                  <div className="relative" title={browserAIStatusText}>
+                    <span className={`w-2 h-2 rounded-full inline-block ${browserAIStatus === 'available' ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+                    {browserAIStatus === 'available' && (
+                      <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-ping absolute right-0 top-[7px]"></span>
+                    )}
                   </div>
                 </span>
+                <span className="text-[10px] text-muted-foreground">{browserAIStatusText}</span>
               </div>
             </div>
 
@@ -649,8 +765,6 @@ const BlogAIChat: React.FC<AIProps> = ({
 
           {/* Messages */}
           <div
-            ref={chatWindowRef}
-            onScroll={handleScroll}
             className={`flex-1 overflow-y-auto p-4 space-y-3 ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}
             style={{
               maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '22rem',
@@ -663,9 +777,6 @@ const BlogAIChat: React.FC<AIProps> = ({
               scrollbarColor: '#cbd5e1 #f1f5f9',
             }}
           >
-            {loadingHistory && (
-              <div className="flex justify-center py-2 text-xs text-muted-foreground">กำลังโหลดแชทเก่า...</div>
-            )}
             {messages.map((message) => {
               if (!message.content) return null;
 
@@ -700,6 +811,9 @@ const BlogAIChat: React.FC<AIProps> = ({
                         className={`text-sm ${message.type === 'user' ? 'text-white' : ''}`}
                       >
                         {parseMarkdown(message.content)}
+                        {message.type === 'bot' && message.searchResults?.length > 0 && (
+                          parseSearchResults({ query: message.searchQuery, results: message.searchResults })
+                        )}
                       </div>
                       <p
                         className={`text-xs mt-1 ${message.type === 'user'
@@ -744,14 +858,14 @@ const BlogAIChat: React.FC<AIProps> = ({
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={!user ? "กรุณาเข้าสู่ระบบเพื่อแชท..." : "พิมพ์ข้อความของคุณ..."}
+                placeholder={browserAIInputDisabled ? browserAIError || "อุปกรณ์นี้ยังไม่รองรับ Gemini Nano" : "พิมพ์คำถามเกี่ยวกับบทความ..."}
                 className={`flex-1 min-h-9 px-3 py-2 text-sm ${isFullscreen ? 'max-h-32' : 'max-h-20'}`}
                 rows={1}
-                disabled={!user}
+                disabled={browserAIInputDisabled}
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!inputText.trim() || isTyping || !user || wordLimitExceeded}
+                disabled={!inputText.trim() || isTyping || browserAIInputDisabled || wordLimitExceeded}
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3"
               >
                 <Send className="h-4 w-4" />
@@ -761,7 +875,7 @@ const BlogAIChat: React.FC<AIProps> = ({
               <p className={`text-xs ${wordError ? 'text-red-500 font-bold dark:text-red-500' : 'text-muted-foreground'}`}>
                 {wordError
                   ? wordError
-                  : (!user ? "กรุณาเข้าสู่ระบบเพื่อใช้งาน AI Chat" : "Enter เพื่อส่ง • Shift+Enter บรรทัดใหม่")}
+                  : (browserAIInputDisabled ? browserAIError || "Gemini Nano ใช้งานไม่ได้บน browser หรืออุปกรณ์นี้" : "Enter เพื่อส่ง • Shift+Enter บรรทัดใหม่")}
               </p>
             </div>
           </div>
