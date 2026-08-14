@@ -46,8 +46,11 @@ minimumReleaseAgeExclude:
   - '@next/swc-win32-arm64-msvc@16.3.1'
   - '@next/swc-win32-x64-msvc@16.3.1'
 
+# Build scripts for these packages are not required to build/run the
+# frontend (pnpm 10 production already runs with them ignored). Explicitly
+# decline so pnpm 11 local installs behave the same.
 allowBuilds:
-  '@parcel/watcher': set this to true or false
-  '@prisma/engines': set this to true or false
-  prisma: set this to true or false
-  unrs-resolver: set this to true or false
+  '@parcel/watcher': false
+  '@prisma/engines': false
+  prisma: false
+  unrs-resolver: false
