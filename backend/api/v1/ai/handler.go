@@ -36,6 +36,7 @@ type AIHandler struct {
 	logger                         *zap.Logger
 	agentAgentToolWebSearchService ai.AgentToolWebSearch
 	llmClient                      llm.LLM
+	publicSearchLimiter            *publicSearchRateLimiter
 }
 
 func NewAIHandler(aiService *ai.AIService,
@@ -49,6 +50,7 @@ func NewAIHandler(aiService *ai.AIService,
 		AgentIntentClassifierService:   agentIntentClassifierService,
 		agentAgentToolWebSearchService: agentAgentToolWebSearchService,
 		llmClient:                      llmClient,
+		publicSearchLimiter:            newPublicSearchRateLimiter(),
 	}
 }
 

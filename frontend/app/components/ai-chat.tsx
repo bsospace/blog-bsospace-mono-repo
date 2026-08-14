@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, MessageCircle, X, Minimize2, Maximize2, Minimize } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '../contexts/auth-context';
+import envConfig from '../configs/env-config';
 import { Post } from '../interfaces';
 import { useRouter } from 'next/navigation'
 import {
@@ -11,12 +12,29 @@ import {
   containsPromptInjection,
   createBrowserAISession,
   getBrowserAIAvailability,
+  needsWebSearch,
   streamBrowserAI,
 } from '../../lib/browser-ai';
 import type { BrowserAIAvailability, BrowserAISession } from '../../lib/browser-ai';
 // import { countTokens, isTokenLimitExceeded } from '../utils/token';
 
 const WORD_LIMIT = 100;
+
+interface WebSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+  type: string;
+  publishedAt: string;
+  thumbnail: string;
+}
+
+interface WebSearchResponse {
+  query: string;
+  total: number;
+  results: WebSearchResult[];
+}
 
 interface AIProps {
   isOpen?: boolean;
@@ -33,6 +51,7 @@ interface AIProps {
 }
 
 const toSafeHttpUrl = (value: string): string | null => {
+  if (!value.trim()) return null;
   try {
     const url = new URL(value, window.location.origin);
     return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
@@ -348,7 +367,7 @@ const BlogAIChat: React.FC<AIProps> = ({
       {
         id: 1,
         type: 'bot',
-        content: 'สวัสดีครับ! ผมคือ **AI Assistant บนเครื่องของคุณ** ผมตอบคำถามจากเนื้อหาบทความนี้เท่านั้น และไม่ต้องเข้าสู่ระบบครับ',
+        content: 'สวัสดีครับ! ผมคือ **AI Assistant บนเครื่องของคุณ** ผมจะตอบจากเนื้อหาบทความก่อนโดยไม่ต้องเข้าสู่ระบบครับ\n\nถ้าบทความมีข้อมูลไม่พอ ผู้ใช้ที่เข้าสู่ระบบจะค้นข้อมูลจากเว็บต่อได้',
         timestamp: new Date()
       }
     ]);
@@ -387,6 +406,46 @@ const BlogAIChat: React.FC<AIProps> = ({
     }
   }, [inputText]);
 
+  const fetchExternalWebContext = async (question: string): Promise<{
+    context: string;
+    results: WebSearchResult[];
+  }> => {
+    const response = await fetch(`${envConfig.apiBaseUrl}/ai/${Post.id}/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ query: question }),
+    });
+
+    if (!response.ok) {
+      throw new BrowserAIError('ค้นข้อมูลจากเว็บไม่สำเร็จ กรุณาลองใหม่อีกครั้งครับ', 'failed');
+    }
+
+    const payload = await response.json() as WebSearchResponse;
+    const results = Array.isArray(payload.results)
+      ? payload.results.slice(0, 5).map((result) => ({
+        title: String(result.title || '').slice(0, 240),
+        url: toSafeHttpUrl(String(result.url || '')) || '',
+        snippet: String(result.snippet || '').slice(0, 600),
+        source: String(result.source || '').slice(0, 120),
+        type: String(result.type || 'web'),
+        publishedAt: String(result.publishedAt || '').slice(0, 80),
+        thumbnail: '',
+      })).filter((result) => result.title && result.url)
+      : [];
+
+    const context = results.map((result, index) => [
+      `SOURCE ${index + 1}`,
+      `TITLE: ${result.title}`,
+      `URL: ${result.url}`,
+      `SNIPPET: ${result.snippet}`,
+    ].join('\n')).join('\n\n');
+
+    return { context, results };
+  };
+
   const ensureBrowserAISession = async (): Promise<BrowserAISession> => {
     if (browserAISessionRef.current) return browserAISessionRef.current;
     if (browserAISessionPromiseRef.current) return browserAISessionPromiseRef.current;
@@ -422,6 +481,24 @@ const BlogAIChat: React.FC<AIProps> = ({
     void ensureBrowserAISession().catch(() => undefined);
   };
 
+  const streamIntoMessage = async (
+    session: BrowserAISession,
+    question: string,
+    webContext: string,
+    botMessageId: number,
+  ): Promise<string> => {
+    let response = '';
+    for await (const chunk of streamBrowserAI(session, question, webContext)) {
+      response += chunk;
+      setMessages((prev) => prev.map(msg =>
+        msg.id === botMessageId
+          ? { ...msg, content: response }
+          : msg
+      ));
+    }
+    return response;
+  };
+
   const handleSendMessage = async () => {
     const question = inputText.trim();
     if (!question) return;
@@ -443,6 +520,8 @@ const BlogAIChat: React.FC<AIProps> = ({
       id: botMessageId,
       type: 'bot' as const,
       content: '',
+      searchResults: [],
+      searchQuery: question,
       timestamp: new Date(),
     }]);
     setInputText('');
@@ -457,15 +536,48 @@ const BlogAIChat: React.FC<AIProps> = ({
       }
 
       const session = await ensureBrowserAISession();
+      let botMessage = await streamIntoMessage(session, question, '', botMessageId);
 
-      let botMessage = '';
-      for await (const chunk of streamBrowserAI(session, question)) {
-        botMessage += chunk;
+      if (needsWebSearch(botMessage)) {
+        if (!user) {
+          setMessages((prev) => prev.map(msg =>
+            msg.id === botMessageId
+              ? { ...msg, content: 'บทความนี้ไม่มีข้อมูลเพียงพอสำหรับคำถามนี้ครับ หากต้องการค้นข้อมูลจากเว็บ กรุณาเข้าสู่ระบบก่อน' }
+              : msg
+          ));
+          return;
+        }
+
         setMessages((prev) => prev.map(msg =>
           msg.id === botMessageId
-            ? { ...msg, content: botMessage }
+            ? { ...msg, content: 'กำลังค้นข้อมูลเพิ่มเติมจากเว็บครับ...' }
             : msg
         ));
+
+        const search = await fetchExternalWebContext(question);
+        setMessages((prev) => prev.map(msg =>
+          msg.id === botMessageId
+            ? { ...msg, content: '', searchResults: search.results }
+            : msg
+        ));
+
+        if (!search.results.length) {
+          setMessages((prev) => prev.map(msg =>
+            msg.id === botMessageId
+              ? { ...msg, content: 'ค้นข้อมูลจากเว็บแล้ว แต่ไม่พบแหล่งข้อมูลที่เหมาะสมครับ' }
+              : msg
+          ));
+          return;
+        }
+
+        botMessage = await streamIntoMessage(session, question, search.context, botMessageId);
+        if (needsWebSearch(botMessage)) {
+          setMessages((prev) => prev.map(msg =>
+            msg.id === botMessageId
+              ? { ...msg, content: 'ยังไม่พบข้อมูลที่เชื่อถือได้เพียงพอสำหรับคำถามนี้ครับ' }
+              : msg
+          ));
+        }
       }
     } catch (error: unknown) {
       console.error('Browser AI error:', error);
@@ -673,6 +785,9 @@ const BlogAIChat: React.FC<AIProps> = ({
                         className={`text-sm ${message.type === 'user' ? 'text-white' : ''}`}
                       >
                         {parseMarkdown(message.content)}
+                        {message.type === 'bot' && message.searchResults?.length > 0 && (
+                          parseSearchResults({ query: message.searchQuery, results: message.searchResults })
+                        )}
                       </div>
                       <p
                         className={`text-xs mt-1 ${message.type === 'user'

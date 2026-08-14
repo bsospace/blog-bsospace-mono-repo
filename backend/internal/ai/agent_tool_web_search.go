@@ -130,7 +130,8 @@ func (a *agentToolWebSearchService) SearchExternalWeb(message string) (string, e
 	}
 
 	a.logger.Info("SearxNG web search",
-		zap.String("url", fullURL),
+		zap.String("endpoint", base),
+		zap.Int("query_length", utf8.RuneCountInString(message)),
 		zap.Int("status", resp.StatusCode),
 		zap.Duration("latency", time.Since(start)),
 	)
