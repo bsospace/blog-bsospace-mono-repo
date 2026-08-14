@@ -50,8 +50,30 @@ jobs:
         id: ver
         if: steps.rel.outputs.type != 'none'
         shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           git fetch --tags --force
+
+          existing_tag=""
+          while IFS= read -r tag; do
+            if git for-each-ref --format='%(contents)' "refs/tags/$tag" | grep -Fq "PR #$PR_NUMBER "; then
+              existing_tag="$tag"
+              break
+            fi
+          done < <(git tag -l "v3.*-beta" --sort=-v:refname)
+
+          if [[ -n "$existing_tag" ]]; then
+            echo "Reusing existing tag $existing_tag for PR #$PR_NUMBER"
+            {
+              echo "latest=$existing_tag"
+              echo "new_tag=$existing_tag"
+              echo "release_type=reuse"
+              echo "reused=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           latest=$(git tag -l "v3.*-beta" | sort -V | tail -n1)
           if [[ -z "$latest" ]]; then
             minor=0
@@ -77,13 +99,25 @@ jobs:
             echo "latest=$latest"
             echo "new_tag=$new_tag"
             echo "release_type=${{ steps.rel.outputs.type }}"
+            echo "reused=false"
           } >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
         if: steps.rel.outputs.type != 'none'
+        env:
+          HEAD_REF: ${{ steps.rel.outputs.head_ref }}
+          NEW_TAG: ${{ steps.ver.outputs.new_tag }}
+          RELEASE_TYPE: ${{ steps.ver.outputs.release_type }}
+          LATEST_TAG: ${{ steps.ver.outputs.latest }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REUSED_TAG: ${{ steps.ver.outputs.reused }}
         run: |
-          git tag -a "${{ steps.ver.outputs.new_tag }}" -m "Auto bump ${{ steps.ver.outputs.release_type }} from ${{ steps.ver.outputs.latest }} (PR #${{ github.event.pull_request.number }} from ${{ steps.rel.outputs.head_ref }})"
-          git push origin "${{ steps.ver.outputs.new_tag }}"
+          if [[ "$REUSED_TAG" == "true" ]]; then
+            echo "Tag $NEW_TAG already exists; skipping tag creation."
+            exit 0
+          fi
+          git tag -a "$NEW_TAG" -m "Auto bump $RELEASE_TYPE from $LATEST_TAG (PR #$PR_NUMBER from $HEAD_REF)"
+          git push origin "$NEW_TAG"
 
       - name: Get PR body
         if: steps.rel.outputs.type != 'none'

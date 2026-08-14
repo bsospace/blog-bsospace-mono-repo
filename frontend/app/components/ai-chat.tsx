@@ -50,10 +50,13 @@ interface AIProps {
   setIsTyping?: (typing: boolean) => void;
 }
 
-const toSafeHttpUrl = (value: string): string | null => {
-  if (!value.trim()) return null;
+const toSafeHttpUrl = (value: string, allowRelative = false): string | null => {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) return null;
   try {
-    const url = new URL(value, window.location.origin);
+    const url = allowRelative
+      ? new URL(normalizedValue, window.location.origin)
+      : new URL(normalizedValue);
     return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
   } catch {
     return null;
@@ -265,7 +268,7 @@ const parseInlineMarkdown = (text: string, keyPrefix: number): React.ReactNode =
         break;
       case 'link':
         {
-          const safeUrl = match.url ? toSafeHttpUrl(match.url) : null;
+          const safeUrl = match.url ? toSafeHttpUrl(match.url, true) : null;
           elements.push(
             safeUrl ? (
               <a key={key} href={safeUrl} target="_blank" rel="noopener noreferrer"
@@ -328,6 +331,7 @@ const BlogAIChat: React.FC<AIProps> = ({
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageIdRef = useRef(1);
   const browserAISessionRef = useRef<BrowserAISession | null>(null);
   const browserAISessionPromiseRef = useRef<Promise<BrowserAISession> | null>(null);
   const [browserAIStatus, setBrowserAIStatus] = useState<BrowserAIAvailability | 'checking' | 'error'>('checking');
@@ -361,6 +365,7 @@ const BlogAIChat: React.FC<AIProps> = ({
     browserAISessionRef.current?.destroy();
     browserAISessionRef.current = null;
     browserAISessionPromiseRef.current = null;
+    messageIdRef.current = 1;
     setBrowserAIError('');
     setBrowserAIStatus('checking');
     setMessages([
@@ -410,16 +415,37 @@ const BlogAIChat: React.FC<AIProps> = ({
     context: string;
     results: WebSearchResult[];
   }> => {
-    const response = await fetch(`${envConfig.apiBaseUrl}/ai/${Post.id}/search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ query: question }),
-    });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
+    let response: Response;
+    try {
+      response = await fetch(`${envConfig.apiBaseUrl}/ai/${Post.id}/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ query: question }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new BrowserAIError('ค้นข้อมูลจากเว็บนานเกินไป กรุณาลองใหม่อีกครั้งครับ', 'failed');
+      }
+      throw new BrowserAIError('ค้นข้อมูลจากเว็บไม่สำเร็จ กรุณาลองใหม่อีกครั้งครับ', 'failed');
+    } finally {
+      window.clearTimeout(timeout);
+    }
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new BrowserAIError('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่ก่อนค้นข้อมูลจากเว็บครับ', 'failed');
+      }
+      if (response.status === 429) {
+        const retryAfter = Number(response.headers.get('Retry-After'));
+        const waitMessage = Number.isFinite(retryAfter) ? ` กรุณารอ ${Math.ceil(retryAfter)} วินาที` : '';
+        throw new BrowserAIError(`ค้นข้อมูลจากเว็บบ่อยเกินไปครับ${waitMessage}`, 'failed');
+      }
       throw new BrowserAIError('ค้นข้อมูลจากเว็บไม่สำเร็จ กรุณาลองใหม่อีกครั้งครับ', 'failed');
     }
 
@@ -509,12 +535,12 @@ const BlogAIChat: React.FC<AIProps> = ({
     setWordError('');
 
     const userMessage = {
-      id: Date.now(),
+      id: ++messageIdRef.current,
       type: 'user' as const,
       content: question,
       timestamp: new Date(),
     };
-    const botMessageId = Date.now() + 1;
+    const botMessageId = ++messageIdRef.current;
 
     setMessages((prev) => [...prev, userMessage, {
       id: botMessageId,

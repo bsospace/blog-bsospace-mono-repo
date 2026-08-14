@@ -252,6 +252,7 @@ export async function* streamBrowserAI(
       yield safeChunk;
     }
   } finally {
+    await reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
 }

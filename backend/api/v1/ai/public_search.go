@@ -2,6 +2,7 @@ package ai
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	internalAI "rag-searchbot-backend/internal/ai"
 	"rag-searchbot-backend/internal/models"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 const (
@@ -25,7 +27,7 @@ type publicSearchWindowState struct {
 	count     int
 }
 
-// ponytail: process-local limiter keeps the anonymous endpoint bounded; move
+// ponytail: process-local limiter keeps authenticated web search bounded; move
 // this to Redis or the edge when the API runs across multiple instances.
 type publicSearchRateLimiter struct {
 	mu      sync.Mutex
@@ -70,7 +72,13 @@ type publicWebSearchRequest struct {
 }
 
 func (a *AIHandler) WebSearch(c *gin.Context) {
-	if a.publicSearchLimiter == nil || !a.publicSearchLimiter.allow(c.ClientIP()) {
+	clientKey := c.ClientIP()
+	if authenticatedUser, ok := c.Get("user"); ok {
+		if user, ok := authenticatedUser.(*models.User); ok && user != nil {
+			clientKey = user.ID.String()
+		}
+	}
+	if a.publicSearchLimiter == nil || !a.publicSearchLimiter.allow(clientKey) {
 		c.Header("Retry-After", "60")
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "web search rate limit exceeded"})
 		return
@@ -88,6 +96,10 @@ func (a *AIHandler) WebSearch(c *gin.Context) {
 	}
 
 	post, err := a.PosRepo.GetByID(c.Param("post_id"))
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not available for AI search"})
+		return
+	}
 	if err != nil {
 		a.logger.Error("Failed to load post for public web search", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load post"})
