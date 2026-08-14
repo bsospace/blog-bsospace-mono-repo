@@ -155,7 +155,6 @@ export default function EditPost() {
         const htmlContent = generateHtmlFromContent(contentState);
 
         try {
-            // Send to AI for review - status becomes PROCESSING
             const response = await axiosInstance.put(`posts/publish/${slug}`, {
                 slug: metadata.slug || generateSlug(metadata.title),
                 title: metadata.title,
@@ -165,14 +164,13 @@ export default function EditPost() {
             });
 
 
-            // Update post status to PROCESSING
-            setPost((prev: Post | null) => prev ? { ...prev, status: 'PROCESSING' } : null);
+            setPost((prev: Post | null) => prev ? { ...prev, status: 'PUBLISHED', published: true } : null);
             setPublishStatus('published');
             setShowPublishModal(false);
 
             toast({
-                title: 'Sent for Review',
-                description: 'Your content has been sent to AI for review and will be published once approved.',
+                title: 'Published Successfully',
+                description: 'Your content is now live.',
             });
 
             setTimeout(() => {
@@ -183,7 +181,7 @@ export default function EditPost() {
             console.error('Publish failed:', error);
             toast({
                 title: 'Publish Failed',
-                description: 'There was an error sending your content for review. Please try again.',
+                description: 'There was an error publishing your content. Please try again.',
                 variant: 'destructive',
             });
         }
