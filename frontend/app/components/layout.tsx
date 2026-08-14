@@ -24,6 +24,48 @@ import NotificationDropdown from "./notification-dropdown";
 import { axiosInstance } from "../../lib/api";
 import envConfig from '../configs/env-config';
 
+interface GitHubTag {
+  name: string;
+}
+
+interface ParsedVersionTag {
+  major: number;
+  minor: number;
+  patch: number;
+  prerelease?: string;
+}
+
+const parseVersionTag = (tag: string): ParsedVersionTag | null => {
+  const match = /^v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(tag);
+  if (!match) return null;
+
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    prerelease: match[4],
+  };
+};
+
+const compareVersionTags = (leftTag: string, rightTag: string): number => {
+  const left = parseVersionTag(leftTag);
+  const right = parseVersionTag(rightTag);
+  if (!left) return 1;
+  if (!right) return -1;
+
+  for (const key of ['major', 'minor', 'patch'] as const) {
+    if (left[key] !== right[key]) return right[key] - left[key];
+  }
+
+  if (left.prerelease !== right.prerelease) {
+    if (!left.prerelease) return -1;
+    if (!right.prerelease) return 1;
+    return right.prerelease.localeCompare(left.prerelease);
+  }
+
+  return 0;
+};
+
 // Profile Button Component
 const ProfileButton = ({ 
   isLoggedIn, 
@@ -94,14 +136,17 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Add missing useEffect for version fetching
   useEffect(() => {
     const fetchLatestVersion = async () => {
       try {
         const response = await axios.get(
-          "https://api.github.com/repos/bsospace/blog-bsospace-mono-repo/releases/latest"
+          "https://api.github.com/repos/bsospace/blog-bsospace-mono-repo/tags?per_page=100"
         );
-        setVersion(response.data.tag_name || "unknown");
+        const tags = (Array.isArray(response.data) ? response.data : [])
+          .map((tag: GitHubTag) => tag.name)
+          .filter((tag: string) => parseVersionTag(tag));
+        const latestTag = tags.sort(compareVersionTags)[0];
+        setVersion(latestTag || "unknown");
       } catch (error) {
         console.error("Error fetching latest version from GitHub:", error);
         setVersion("unknown");
