@@ -53,8 +53,11 @@ func (s *AIService) OpenAIMode(postID string, userData *models.User) (bool, erro
 		return false, nil // User is not the author of the post
 	}
 
-	_, err = s.TaskEnqueuer.EnqueuePostEmbedding(post, userData)
-	if err != nil {
+	// Reader AI now runs locally in the browser, so enabling it does not need
+	// server-side embeddings or an LLM worker.
+	post.AIChatOpen = true
+	post.AIReady = true
+	if err := s.PosRepo.Update(post); err != nil {
 		return false, err
 	}
 

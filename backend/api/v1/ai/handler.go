@@ -80,7 +80,7 @@ func (a *AIHandler) OpenAIMode(c *gin.Context) {
 	}
 
 	if result {
-		response.JSONSuccess(c, http.StatusOK, "Success", "AI mode in queue")
+		response.JSONSuccess(c, http.StatusOK, "Success", "AI mode enabled")
 		return
 	}
 

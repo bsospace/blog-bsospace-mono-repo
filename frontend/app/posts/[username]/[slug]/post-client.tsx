@@ -339,7 +339,7 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
           </div>
         </div>
       </div>
-      {post?.ai_chat_open && post.ai_ready && (
+      {post?.ai_chat_open && (
         <BlogAIChat
           Post={post}
           isOpen={isChatOpen || isChatFullOpen}
@@ -348,4 +348,4 @@ export default function PostClient({ post, isLoadingPost }: PostClientProps) {
       )}
     </SEOProvider>
   );
-} 
+}

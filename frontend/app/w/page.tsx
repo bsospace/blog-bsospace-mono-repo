@@ -179,13 +179,14 @@ const PostsManagement = () => {
       setPosts(posts.map(p => p.id === postId ? { ...p, ai_chat_open: true } : p));
       await axiosInstance.post(`/ai/${postId}/on`);
       toast({
-        title: 'AI Mode under update',
-        description: 'AI mode update in progress',
+        title: 'AI Mode enabled',
+        description: 'Readers can use on-device AI when their browser supports it.',
         variant: 'default',
       });
 
     } catch (err) {
       console.error('Error toggling AI mode:', err);
+      setPosts(posts.map(p => p.id === postId ? { ...p, ai_chat_open: false } : p));
       toast({
         title: 'Error',
         description: 'Failed to update AI mode. Please try again.',
