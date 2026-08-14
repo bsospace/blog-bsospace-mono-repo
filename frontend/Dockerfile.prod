@@ -2,7 +2,7 @@
 FROM node:22.22.0
 
 # 2. Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.14.0
 
 # 3. Set working directory
 WORKDIR /bsoblog-prod
