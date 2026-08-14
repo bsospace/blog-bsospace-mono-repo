@@ -35,6 +35,10 @@ interface ParsedVersionTag {
   prerelease?: string;
 }
 
+const VERSION_CACHE_KEY = "bsospace:latest-version";
+const VERSION_CACHE_TIME_KEY = "bsospace:latest-version-time";
+const VERSION_CACHE_TTL_MS = 60 * 60 * 1000;
+
 const parseVersionTag = (tag: string): ParsedVersionTag | null => {
   const match = /^v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(tag);
   if (!match) return null;
@@ -138,6 +142,13 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchLatestVersion = async () => {
+      const cachedVersion = localStorage.getItem(VERSION_CACHE_KEY);
+      const cachedAt = Number(localStorage.getItem(VERSION_CACHE_TIME_KEY));
+      if (cachedVersion && Number.isFinite(cachedAt) && Date.now() - cachedAt < VERSION_CACHE_TTL_MS) {
+        setVersion(cachedVersion);
+        return;
+      }
+
       try {
         const response = await axios.get(
           "https://api.github.com/repos/bsospace/blog-bsospace-mono-repo/tags?per_page=100"
@@ -146,10 +157,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           .map((tag: GitHubTag) => tag.name)
           .filter((tag: string) => parseVersionTag(tag));
         const latestTag = tags.sort(compareVersionTags)[0];
-        setVersion(latestTag || "unknown");
+        if (!latestTag) throw new Error("No version tag found");
+        setVersion(latestTag);
+        localStorage.setItem(VERSION_CACHE_KEY, latestTag);
+        localStorage.setItem(VERSION_CACHE_TIME_KEY, String(Date.now()));
       } catch (error) {
         console.error("Error fetching latest version from GitHub:", error);
-        setVersion("unknown");
+        setVersion(cachedVersion || "unknown");
       }
     };
 

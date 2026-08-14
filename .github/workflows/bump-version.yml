@@ -119,8 +119,22 @@ jobs:
           git tag -a "$NEW_TAG" -m "Auto bump $RELEASE_TYPE from $LATEST_TAG (PR #$PR_NUMBER from $HEAD_REF)"
           git push origin "$NEW_TAG"
 
-      - name: Get PR body
+      - name: Check existing GitHub Release
+        id: release
         if: steps.rel.outputs.type != 'none'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.ver.outputs.new_tag }}
+        run: |
+          if gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get PR body
+        if: steps.rel.outputs.type != 'none' && steps.release.outputs.exists != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -130,7 +144,7 @@ jobs:
             --jq '.body // ""' > pr_body.txt
 
       - name: Create GitHub Release
-        if: steps.rel.outputs.type != 'none'
+        if: steps.rel.outputs.type != 'none' && steps.release.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.ver.outputs.new_tag }}
