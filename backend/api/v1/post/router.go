@@ -4,7 +4,6 @@ import (
 	"log"
 	"rag-searchbot-backend/internal/container"
 	"rag-searchbot-backend/internal/middleware"
-	"rag-searchbot-backend/internal/notification"
 	"rag-searchbot-backend/internal/post"
 
 	"github.com/gin-gonic/gin"
@@ -24,20 +23,11 @@ func RegisterRoutes(router *gin.RouterGroup, container *container.Container, mux
 		container.Log,
 	)
 
-	// Worker Setup
-	worker := post.FilterPostWorker{
-		Logger:      container.Log,
-		PostRepo:    container.PostRepo,
-		QueueRepo:   container.QueueRepo,
-		NotiService: container.NotificationService.(*notification.NotificationService),
-	}
-
 	// Create Service + Handler
 	taskEnqueuer := post.NewTaskEnqueuer(container.AsynqClient, container.QueueRepo)
 	postService := post.NewPostService(container.PostRepo, container.MediaService, taskEnqueuer)
 
-	mux.HandleFunc(post.TaskTypeFilterPostContentByAI, post.FilterPostContentByAIWorkerHandler(worker))
-
+	// AI moderation is disabled; publishing is handled synchronously after auth.
 	ps, ok := postService.(*post.PostService)
 	if !ok {
 		log.Fatal("[FATAL] Failed to cast postService to *post.PostService")

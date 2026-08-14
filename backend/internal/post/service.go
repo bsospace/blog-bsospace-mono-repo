@@ -9,6 +9,7 @@ import (
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/pkg/errs"
 	"rag-searchbot-backend/pkg/logger"
+	"rag-searchbot-backend/pkg/tiptap"
 	"strconv"
 	"time"
 
@@ -349,22 +350,22 @@ func (s *PostService) PublishPost(post *PublishPostRequestDTO, user *models.User
 	existingPost.Description = post.Description
 	existingPost.Thumbnail = post.Thumbnail
 	existingPost.HTMLContent = post.HTMLContent
-	existingPost.Published = false
-	existingPost.Status = models.PostProcessing
-	existingPost.PublishedAt = nil
+	existingPost.Published = true
+	existingPost.Status = models.PostPublished
+	now := time.Now()
+	existingPost.PublishedAt = &now
+	if post.HTMLContent != nil {
+		existingPost.ReadTime = float64(tiptap.EstimateReadTimeFromHTML(*post.HTMLContent))
+	}
 
 	// delete existing embedding from vector db
 	s.Repo.DeleteEmbeddingsByPostID(existingPost.ID.String())
 
-	logger.Log.Info("Enqueuing post content for AI filtering ",
+	logger.Log.Info("Publishing post without server-side AI moderation",
 		zap.String("post_id", existingPost.ID.String()),
 		zap.String("post_title", existingPost.Title),
 		zap.String("author_id", existingPost.AuthorID.String()),
 		zap.String("author_email", user.Email))
-	_, err = s.TaskEnqueuer.EnqueueFilterPostContentByAI(existingPost, user)
-	if err != nil {
-		return err
-	}
 
 	return s.Repo.Update(existingPost)
 }

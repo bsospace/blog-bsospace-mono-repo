@@ -8,10 +8,12 @@ import (
 	"rag-searchbot-backend/internal/media"
 	"rag-searchbot-backend/internal/models"
 	"rag-searchbot-backend/internal/post"
+	"rag-searchbot-backend/pkg/logger"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -41,6 +43,9 @@ func (m *MockPostRepository) GetByID(id string) (*models.Post, error) {
 }
 func (m *MockPostRepository) GetBySlug(slug string) (*models.Post, error) {
 	args := m.Called(slug)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*models.Post), args.Error(1)
 }
 func (m *MockPostRepository) Update(post *models.Post) error {
@@ -146,6 +151,40 @@ func (m *MockMediaService) UploadToChibisafe(fileHeader *multipart.FileHeader) (
 
 // Mock for TaskEnqueuer (minimal for this test)
 type MockTaskEnqueuer struct{}
+
+func TestPublishPostPublishesWithoutAIReview(t *testing.T) {
+	logger.Log = zap.NewNop()
+	repo := new(MockPostRepository)
+	media := new(MockMediaService)
+	user := &models.User{ID: uuid.New(), Email: "writer@example.com"}
+	shortSlug := "hello-world"
+	existing := &models.Post{
+		ID:        uuid.New(),
+		Slug:      shortSlug + "-" + user.ID.String(),
+		ShortSlug: shortSlug + "-" + user.ID.String(),
+		AuthorID:  user.ID,
+	}
+	html := "<p>Hello world</p>"
+
+	repo.On("GetByShortSlug", existing.ShortSlug).Return(existing, nil)
+	repo.On("GetBySlug", "hello-world").Return(nil, gorm.ErrRecordNotFound)
+	repo.On("DeleteEmbeddingsByPostID", existing.ID.String()).Return(nil)
+	repo.On("Update", existing).Return(nil)
+
+	service := post.NewPostService(repo, media, &post.TaskEnqueuer{}).(*post.PostService)
+	err := service.PublishPost(&post.PublishPostRequestDTO{
+		Slug:        "hello-world",
+		Title:       "Hello world",
+		HTMLContent: &html,
+	}, user, shortSlug)
+
+	assert.NoError(t, err)
+	assert.True(t, existing.Published)
+	assert.Equal(t, models.PostPublished, existing.Status)
+	assert.NotNil(t, existing.PublishedAt)
+	assert.Equal(t, 1.0, existing.ReadTime)
+	repo.AssertExpectations(t)
+}
 
 func TestCreatePost_UpdateExisting(t *testing.T) {
 	repo := new(MockPostRepository)
