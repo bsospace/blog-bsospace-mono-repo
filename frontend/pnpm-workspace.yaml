@@ -1,0 +1,56 @@
+# Dependency overrides to force patched versions for known CVEs.
+# pnpm 11 reads these here; pnpm 10 (production Docker) reads the same
+# overrides from package.json "pnpm". Keep the two lists identical.
+overrides:
+  form-data: 4.0.6
+  tinymce: 7.9.3
+  preact: 10.29.8
+  immutable: 5.1.9
+  ws: 8.21.3
+  markdown-it: 14.3.0
+  linkify-it: 5.0.2
+  minimatch@3: 3.1.4
+  minimatch@5: 5.1.8
+  minimatch@9: 9.0.7
+  brace-expansion@1: 1.1.18
+  brace-expansion@2: 2.1.4
+  picomatch@2: 2.3.2
+  picomatch@4: 4.0.5
+  js-yaml@3: 3.15.1
+  js-yaml@4: 4.3.1
+  lodash: 4.18.1
+  lodash-es: 4.18.1
+  glob@10: 10.5.0
+  flatted: 3.4.4
+  "@babel/core": 7.29.7
+  "@tootallnate/once": 2.0.1
+  diff@4: 4.0.4
+  ajv@6: 6.15.0
+  yaml: 2.9.0
+  jws@3: 3.2.3
+  nanoid@3: 3.3.18
+  postcss: 8.5.26
+  uuid: 11.1.1
+
+# next@16.3.1 is a very recent release; allow it despite the default
+# minimum-release-age guard (this lockfile pins it).
+minimumReleaseAgeExclude:
+  - next@16.3.1
+  - '@next/env@16.3.1'
+  - '@next/swc-darwin-arm64@16.3.1'
+  - '@next/swc-darwin-x64@16.3.1'
+  - '@next/swc-linux-arm64-gnu@16.3.1'
+  - '@next/swc-linux-arm64-musl@16.3.1'
+  - '@next/swc-linux-x64-gnu@16.3.1'
+  - '@next/swc-linux-x64-musl@16.3.1'
+  - '@next/swc-win32-arm64-msvc@16.3.1'
+  - '@next/swc-win32-x64-msvc@16.3.1'
+
+# Build scripts for these packages are not required to build/run the
+# frontend (pnpm 10 production already runs with them ignored). Explicitly
+# decline so pnpm 11 local installs behave the same.
+allowBuilds:
+  '@parcel/watcher': false
+  '@prisma/engines': false
+  prisma: false
+  unrs-resolver: false
